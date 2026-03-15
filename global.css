@@ -4,6 +4,7 @@
 @import "nativewind/theme";
 
 @theme {
+  /* Light theme (default) */
   --color-primary: #0a7ea4;
   --color-primary-foreground: #ffffff;
   --color-secondary: #f1f5f9;
@@ -14,11 +15,50 @@
   --color-accent-foreground: #0f172a;
   --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
-  --color-background: #ffffff;
+  --color-background: #fafbfc;
   --color-foreground: #0f172a;
   --color-card: #ffffff;
   --color-card-foreground: #0f172a;
   --color-border: #e2e8f0;
   --color-input: #e2e8f0;
   --color-ring: #0a7ea4;
+
+  /* Dark theme — deep navy-indigo palette */
+  --color-dark-primary: #38bdf8;
+  --color-dark-primary-fg: #0c1a2a;
+  --color-dark-bg: #121a2e;
+  --color-dark-fg: #e8ecf4;
+  --color-dark-card: #1a2540;
+  --color-dark-card-fg: #e8ecf4;
+  --color-dark-muted: #1e2d4a;
+  --color-dark-muted-fg: #8b9cc0;
+  --color-dark-border: #263354;
+  --color-dark-input: #263354;
+  --color-dark-secondary: #1e2d4a;
+  --color-dark-secondary-fg: #c8d5ea;
+  --color-dark-accent: #1e2d4a;
+  --color-dark-accent-fg: #c8d5ea;
+  --color-dark-destructive: #f87171;
+
+  /* Bill state colors — light */
+  --color-state-unsplit: #94a3b8;
+  --color-state-unsplit-bg: #f1f5f9;
+  --color-state-split: #10b981;
+  --color-state-split-bg: #ecfdf5;
+  --color-state-unresolved: #f59e0b;
+  --color-state-unresolved-bg: #fffbeb;
+
+  /* Bill state colors — dark */
+  --color-dark-state-unsplit: #7088aa;
+  --color-dark-state-unsplit-bg: #1a2540;
+  --color-dark-state-split: #34d399;
+  --color-dark-state-split-bg: #0d2a24;
+  --color-dark-state-unresolved: #fbbf24;
+  --color-dark-state-unresolved-bg: #2a2008;
+
+  /* Pro accent */
+  --color-pro: #d97706;
+  --color-pro-bg: #fef3c7;
+  --color-dark-pro: #f59e0b;
+  --color-dark-pro-bg: #2a1f0a;
 }
