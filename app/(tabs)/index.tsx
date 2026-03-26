@@ -1,31 +1,23 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { useState, useCallback } from 'react';
+import { ActionSheetIOS, Alert, Platform, Pressable, ScrollView, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter, type Href } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
+import { useQuery } from 'convex/react';
+import type { Doc } from '@/convex/_generated/dataModel';
 
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
+import { useAuth } from '@/lib/AuthContext';
+import { api } from '@/convex/_generated/api';
+
+type Bill = Doc<'bills'>;
 
 type BillState = 'unsplit' | 'split' | 'unresolved';
-
-interface Bill {
-  id: string;
-  name: string;
-  date: string;
-  total: number;
-  state: BillState;
-  contactCount: number;
-}
-
-const MOCK_BILLS: Bill[] = [
-  { id: '1', name: 'Andrés Carne de Res', date: 'Mar 14', total: 285000, state: 'unresolved', contactCount: 4 },
-  { id: '2', name: 'Crepes & Waffles', date: 'Mar 12', total: 142500, state: 'split', contactCount: 2 },
-  { id: '3', name: 'El Cielo', date: 'Mar 10', total: 520000, state: 'split', contactCount: 6 },
-  { id: '4', name: 'Wok', date: 'Mar 8', total: 96800, state: 'unsplit', contactCount: 0 },
-  { id: '5', name: 'La Hamburguesería', date: 'Mar 5', total: 178000, state: 'unresolved', contactCount: 3 },
-  { id: '6', name: 'Juan Valdez — Usaquén', date: 'Mar 3', total: 34500, state: 'split', contactCount: 2 },
-];
 
 const STATE_CONFIG: Record<BillState, { label: string; dot: string; bg: string; text: string }> = {
   unsplit: {
@@ -62,13 +54,28 @@ function StateBadge({ state }: { state: BillState }) {
   );
 }
 
-function BillCard({ bill, iconColors }: { bill: Bill; iconColors: typeof ICON_COLORS.light }) {
+function BillCard({
+  bill,
+  iconColors,
+  onPress,
+}: {
+  bill: Bill;
+  iconColors: typeof ICON_COLORS.light;
+  onPress: () => void;
+}) {
+  const date = new Date(bill._creationTime);
+  const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const contactCount = bill.contacts.length;
+
   return (
-    <Pressable className="rounded-2xl border border-border bg-card p-4 active:scale-[0.98] dark:border-dark-border dark:bg-dark-card">
+    <Pressable
+      onPress={onPress}
+      className="rounded-2xl border border-border bg-card p-4 active:scale-[0.98] dark:border-dark-border dark:bg-dark-card"
+    >
       <View className="flex-row items-start justify-between">
         <View className="flex-1 gap-1">
           <Text className="text-base font-semibold text-foreground dark:text-dark-fg">{bill.name}</Text>
-          <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">{bill.date}</Text>
+          <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">{dateStr}</Text>
         </View>
         <StateBadge state={bill.state} />
       </View>
@@ -77,11 +84,11 @@ function BillCard({ bill, iconColors }: { bill: Bill; iconColors: typeof ICON_CO
         <Text className="text-2xl font-bold tracking-tight text-foreground dark:text-dark-fg">
           {formatCOP(bill.total)}
         </Text>
-        {bill.contactCount > 0 && (
+        {contactCount > 0 && (
           <View className="flex-row items-center gap-1">
             <IconSymbol name="person.crop.circle" size={14} color={iconColors.muted} />
             <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">
-              {bill.contactCount} {bill.contactCount === 1 ? 'person' : 'people'}
+              {contactCount} {contactCount === 1 ? 'person' : 'people'}
             </Text>
           </View>
         )}
@@ -125,14 +132,75 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
+  const router = useRouter();
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<BillState | 'all'>('all');
+
+  const bills = useQuery(api.bills.list, user ? { userId: user.id } : 'skip');
 
   const filteredBills =
     activeFilter === 'all'
-      ? MOCK_BILLS
-      : MOCK_BILLS.filter((b) => b.state === activeFilter);
+      ? bills ?? []
+      : (bills ?? []).filter((b) => b.state === activeFilter);
 
   const totalAmount = filteredBills.reduce((sum, b) => sum + b.total, 0);
+
+  const pickImage = useCallback(async (source: 'camera' | 'library') => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    if (source === 'camera') {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission needed', 'Camera access is required to take photos of bills.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        router.push({ pathname: '/bills/new', params: { imageUri: result.assets[0].uri } } as Href);
+      }
+    } else {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission needed', 'Photo library access is required to select bill photos.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        router.push({ pathname: '/bills/new', params: { imageUri: result.assets[0].uri } } as Href);
+      }
+    }
+  }, [router]);
+
+  const handleFABPress = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) pickImage('camera');
+          if (buttonIndex === 2) pickImage('library');
+        }
+      );
+    } else {
+      Alert.alert('Add Bill', 'How would you like to add a bill?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Take Photo', onPress: () => pickImage('camera') },
+        { text: 'Choose from Library', onPress: () => pickImage('library') },
+      ]);
+    }
+  }, [pickImage]);
+
+  const handleClearFilter = useCallback(() => {
+    setActiveFilter('all');
+  }, []);
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-bg" style={{ paddingTop: insets.top }}>
@@ -161,36 +229,62 @@ export default function HomeScreen() {
             <FilterChip label="Unsplit" active={activeFilter === 'unsplit'} onPress={() => setActiveFilter('unsplit')} />
             <FilterChip label="Split" active={activeFilter === 'split'} onPress={() => setActiveFilter('split')} />
             <FilterChip label="Unresolved" active={activeFilter === 'unresolved'} onPress={() => setActiveFilter('unresolved')} />
+            {activeFilter !== 'all' && (
+              <Pressable
+                onPress={handleClearFilter}
+                className="flex-row items-center gap-1 rounded-full border border-destructive/30 px-3 py-2"
+              >
+                <IconSymbol name="xmark" size={12} color="#ef4444" />
+                <Text className="text-sm font-medium text-destructive">Clear</Text>
+              </Pressable>
+            )}
           </View>
         </ScrollView>
       </View>
 
       {/* Bill List */}
-      <ScrollView
-        className="flex-1 px-5"
-        contentContainerClassName="gap-3 pb-24"
-        showsVerticalScrollIndicator={false}
-      >
-        {filteredBills.map((bill) => (
-          <BillCard key={bill.id} bill={bill} iconColors={iconColors} />
-        ))}
-
-        {filteredBills.length === 0 && (
-          <View className="items-center justify-center py-20">
-            <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-muted dark:bg-dark-muted">
-              <IconSymbol name="receipt" size={28} color={iconColors.mutedLight} />
-            </View>
-            <Text className="text-lg font-semibold text-foreground dark:text-dark-fg">No bills found</Text>
-            <Text className="mt-1 text-center text-sm text-muted-foreground dark:text-dark-muted-fg">
-              Tap + to scan a new bill
-            </Text>
+      {bills === undefined ? (
+        // Loading state
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">Loading bills...</Text>
+        </View>
+      ) : filteredBills.length === 0 ? (
+        // Empty state
+        <View className="flex-1 items-center justify-center px-5">
+          <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-muted dark:bg-dark-muted">
+            <IconSymbol name="receipt" size={28} color={iconColors.mutedLight} />
           </View>
-        )}
-      </ScrollView>
+          <Text className="text-lg font-semibold text-foreground dark:text-dark-fg">No bills found</Text>
+          <Text className="mt-1 text-center text-sm text-muted-foreground dark:text-dark-muted-fg">
+            Tap + to scan a new bill
+          </Text>
+        </View>
+      ) : (
+        <FlashList<Bill>
+          data={filteredBills}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item }) => (
+            <View className="px-5 py-1.5">
+              <BillCard
+                bill={item}
+                iconColors={iconColors}
+                onPress={() => {
+                  // TODO: navigate to bill detail
+                }}
+              />
+            </View>
+          )}
+          contentContainerStyle={{ paddingBottom: 120 }}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       {/* FAB */}
       <View className="absolute bottom-28 right-5" style={{ marginBottom: insets.bottom }}>
-        <Pressable className="h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 active:scale-95 dark:bg-dark-primary dark:shadow-dark-primary/20">
+        <Pressable
+          onPress={handleFABPress}
+          className="h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 active:scale-95 dark:bg-dark-primary dark:shadow-dark-primary/20"
+        >
           <IconSymbol name="plus" size={28} color={colorScheme === 'dark' ? '#0c1a2a' : '#ffffff'} />
         </Pressable>
       </View>

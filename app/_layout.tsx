@@ -9,7 +9,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import 'react-native-reanimated';
 
+import { ConvexProvider } from 'convex/react';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { convex } from '@/lib/convex';
 import { queryClient } from '@/lib/queryClient';
 import { useThemeStore } from '@/stores/useThemeStore';
 
@@ -42,16 +44,19 @@ function RootLayoutNav() {
   }, [user, loading, segments]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        </Stack>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        <PortalHost />
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ConvexProvider client={convex}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="bills/new" options={{ title: 'New Bill', presentation: 'modal' }} />
+          </Stack>
+          <StatusBar style={isDark ? 'light' : 'dark'} />
+          <PortalHost />
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ConvexProvider>
   );
 }
 

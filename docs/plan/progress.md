@@ -103,10 +103,10 @@
 
 ### 3.2 Bill List
 
-- [ ] Create Convex `bills` table schema
-- [ ] Create Convex query to fetch all bills for current user
+- [x] Create Convex `bills` table schema
+- [x] Create Convex query to fetch all bills for current user
 - [x] Build `BillCard` component (name, date, total, state badge)
-- [ ] Render bills list using `FlashList`
+- [x] Render bills list using `FlashList`
 - [x] Add empty state UI when no bills exist
 
 ### 3.3 Bill State Badge
@@ -120,16 +120,16 @@
 - [x] Add filter by bill state (multi-select toggle)
 - [ ] Add filter by contact (contact picker dropdown)
 - [ ] Add filter by amount range (dual-handle slider)
-- [ ] Wire filters to Convex query or client-side filter logic
-- [ ] Add "Clear filters" button
+- [x] Wire filters to Convex query or client-side filter logic
+- [x] Add "Clear filters" button
 
 ### 3.5 Floating Action Button (FAB)
 
 - [x] Create `FAB` component with "+" icon
-- [ ] On press, show action sheet: "Take Photo" or "Choose from Library"
-- [ ] Handle camera permission request
-- [ ] Handle photo library permission request
-- [ ] On photo selected/captured, navigate to new bill screen with image URI
+- [x] On press, show action sheet: "Take Photo" or "Choose from Library"
+- [x] Handle camera permission request
+- [x] Handle photo library permission request
+- [x] On photo selected/captured, navigate to new bill screen with image URI
 
 ---
 
@@ -359,7 +359,7 @@
 | --------------------------------- | ----------- | ----- |
 | Phase 1 — Setup                   | 24          | 21    |
 | Phase 2 — Auth Screens            | 11          | 11    |
-| Phase 3 — Home Screen             | 18          | 10    |
+| Phase 3 — Home Screen             | 18          | 16    |
 | Phase 4 — Bill Creation & AI      | 13          | 0     |
 | Phase 5 — Bill Splitting          | 22          | 0     |
 | Phase 6 — Summary & Notifications | 16          | 0     |
@@ -367,4 +367,4 @@
 | Phase 8 — Settings                | 14          | 9     |
 | Phase 9 — Subscriptions           | 12          | 0     |
 | Phase 10 — Polish & Launch        | 14          | 0     |
-| **Total**                         | **153**     | **51**|
+| **Total**                         | **153**     | **57**|

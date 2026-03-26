@@ -11,14 +11,16 @@ pnpm
 ## Commands
 
 ```bash
-pnpm dev        # start Expo dev server
-pnpm typecheck  # tsc --noEmit
-pnpm lint       # expo lint
+pnpm dev           # start Expo dev server
+pnpm typecheck     # tsc --noEmit
+pnpm lint          # expo lint
+pnpm convex        # start Convex dev server (auto-sync on file changes)
+pnpm convex:deploy # deploy Convex functions to production
 ```
 
 ## Status
 
-Phase 1 in progress. See [docs/plan/progress.md](../docs/plan/progress.md).
+Phase 3 in progress. See [docs/plan/progress.md](../docs/plan/progress.md).
 
 ## Rules
 
