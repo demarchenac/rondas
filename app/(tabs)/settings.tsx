@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { useThemeStore, type ThemeMode } from '@/stores/useThemeStore';
+import { useAuth } from '@/lib/AuthContext';
 
 type Language = 'en' | 'es';
 
@@ -94,7 +96,22 @@ export default function SettingsScreen() {
   const { colorScheme, setColorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { mode, setMode } = useThemeStore();
+  const { user, signOut } = useAuth();
   const [language, setLanguage] = useState<Language>('en');
+
+  const handleSignOut = () => {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          await signOut();
+        },
+      },
+    ]);
+  };
 
   const handleThemeChange = (newMode: ThemeMode) => {
     setMode(newMode);
@@ -118,11 +135,20 @@ export default function SettingsScreen() {
         {/* Profile Card */}
         <View className="items-center gap-3 rounded-2xl border border-border bg-card px-6 py-6 dark:border-dark-border dark:bg-dark-card">
           <View className="h-20 w-20 items-center justify-center rounded-full bg-primary/10 dark:bg-dark-primary/15">
-            <Text className="text-3xl font-bold text-primary dark:text-dark-primary">DM</Text>
+            <Text className="text-3xl font-bold text-primary dark:text-dark-primary">
+              {user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?'}
+              {user?.lastName?.[0] ?? ''}
+            </Text>
           </View>
           <View className="items-center gap-0.5">
-            <Text className="text-lg font-semibold text-foreground dark:text-dark-fg">Demar Chenac</Text>
-            <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">demar@example.com</Text>
+            <Text className="text-lg font-semibold text-foreground dark:text-dark-fg">
+              {user?.firstName && user?.lastName
+                ? `${user.firstName} ${user.lastName}`
+                : user?.email ?? 'User'}
+            </Text>
+            <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">
+              {user?.email ?? ''}
+            </Text>
           </View>
         </View>
 
@@ -175,7 +201,7 @@ export default function SettingsScreen() {
             icon="rectangle.portrait.and.arrow.right"
             iconColor="#ef4444"
             label="Sign Out"
-            onPress={() => {}}
+            onPress={handleSignOut}
             last
           >
             <IconSymbol name="chevron.right" size={16} color={iconColors.mutedLight} />

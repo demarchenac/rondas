@@ -24,7 +24,7 @@ WebBrowser.maybeCompleteAuthSession();
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  signIn: () => Promise<{ success: boolean; error?: string }>;
+  signIn: (provider?: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<{ success: boolean; error?: string }>;
 }
 
@@ -79,32 +79,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.remove();
   }, []);
 
-  const signIn = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+  const signIn = useCallback(async (provider?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
-      const url = await getSignInUrl();
+      const url = await getSignInUrl(provider);
+      console.log('[Auth] Opening browser for provider:', provider ?? 'authkit');
       const result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_URI);
+      console.log('[Auth] Browser result type:', result.type);
 
       if (result.type !== 'success' || !result.url) {
-        return { success: false, error: 'Authentication was cancelled' };
+        return { success: false, error: `Authentication was cancelled (${result.type})` };
       }
 
+      console.log('[Auth] Callback URL:', result.url);
       const parsed = Linking.parse(result.url);
       const error = parsed.queryParams?.error as string | undefined;
       if (error) {
         const errorDesc = parsed.queryParams?.error_description as string;
+        console.error('[Auth] OAuth error:', error, errorDesc);
         return { success: false, error: errorDesc || error };
       }
 
       const code = parsed.queryParams?.code as string | undefined;
       if (!code) {
+        console.error('[Auth] No code in params:', JSON.stringify(parsed.queryParams));
         return { success: false, error: 'No authorization code received' };
       }
 
+      console.log('[Auth] Got code, exchanging token...');
       const newUser = await handleCallback(code);
+      console.log('[Auth] Authenticated user:', newUser.email);
       setUser(newUser);
       return { success: true };
     } catch (error) {
+      console.error('[Auth] Sign-in error:', error);
       return { success: false, error: String(error) };
     } finally {
       setLoading(false);

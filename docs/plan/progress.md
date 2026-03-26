@@ -75,19 +75,21 @@
 ### 2.1 Onboarding / Auth Flow
 
 - [x] Create `/app/(auth)/login.tsx` screen
-- [ ] Build Email OTP input form using TanStack Form + Zod
-- [ ] Build OTP verification input form
-- [ ] Add "Sign in with Apple" button
-- [ ] Add "Sign in with Google" button
-- [ ] Handle auth state and redirect to home on success
+- [x] Build Email OTP input form using TanStack Form + Zod
+- [x] Build OTP verification input form
+- [x] Add "Sign in with Apple" button
+- [x] Add "Sign in with Google" button
+- [x] Handle auth state and redirect to home on success
 - [x] Create `/app/(auth)/_layout.tsx` to protect auth routes
+
+> Note: Email OTP and verification are handled by WorkOS hosted UI via browser flow.
 
 ### 2.2 Auth Guard
 
 - [x] Create root layout that checks auth state
-- [ ] Redirect unauthenticated users to login screen
-- [ ] Redirect authenticated users to home screen
-- [ ] Handle loading state while checking auth
+- [x] Redirect unauthenticated users to login screen
+- [x] Redirect authenticated users to home screen
+- [x] Handle loading state while checking auth
 
 ---
 
@@ -281,8 +283,8 @@
 
 ### 8.4 Account Management
 
-- [ ] Add "Sign Out" button with confirmation dialog
-- [ ] Handle WorkOS sign out and clear local state
+- [x] Add "Sign Out" button with confirmation dialog
+- [x] Handle WorkOS sign out and clear local state
 
 ---
 
@@ -356,13 +358,13 @@
 | Phase                             | Total Tasks | Done  |
 | --------------------------------- | ----------- | ----- |
 | Phase 1 — Setup                   | 24          | 21    |
-| Phase 2 — Auth Screens            | 11          | 3     |
+| Phase 2 — Auth Screens            | 11          | 11    |
 | Phase 3 — Home Screen             | 18          | 10    |
 | Phase 4 — Bill Creation & AI      | 13          | 0     |
 | Phase 5 — Bill Splitting          | 22          | 0     |
 | Phase 6 — Summary & Notifications | 16          | 0     |
 | Phase 7 — Bill Detail & History   | 9           | 0     |
-| Phase 8 — Settings                | 14          | 7     |
+| Phase 8 — Settings                | 14          | 9     |
 | Phase 9 — Subscriptions           | 12          | 0     |
 | Phase 10 — Polish & Launch        | 14          | 0     |
-| **Total**                         | **153**     | **41**|
+| **Total**                         | **153**     | **51**|

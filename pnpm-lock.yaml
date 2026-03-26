@@ -41,9 +41,6 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.90.21
         version: 5.90.21(react@19.1.0)
-      '@workos-inc/node':
-        specifier: ^8.9.0
-        version: 8.9.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -86,9 +83,6 @@ importers:
       expo-splash-screen:
         specifier: ~31.0.13
         version: 31.0.13(expo@54.0.33)
-      expo-standard-web-crypto:
-        specifier: ^55.0.6
-        version: 55.0.6(expo-crypto@15.0.8(expo@54.0.33))
       expo-status-bar:
         specifier: ~3.0.9
         version: 3.0.9(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -2042,10 +2036,6 @@ packages:
     peerDependencies:
       '@urql/core': ^5.0.0
 
-  '@workos-inc/node@8.9.0':
-    resolution: {integrity: sha512-io5D4Scoy7RwjNQGyWWVeljwQz4RSqGRILP1/tbv5vXUxJdhpcGqGwML4AHamgacEay+QyiDW9RvgfjiQN3KLw==}
-    engines: {node: '>=20.15.0'}
-
   '@xmldom/xmldom@0.8.11':
     resolution: {integrity: sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw==}
     engines: {node: '>=10.0.0'}
@@ -2938,11 +2928,6 @@ packages:
     resolution: {integrity: sha512-1epJLC1cDlwwj089R2h8cxaU5uk4ONVAC+vzGiTZH4YARQhL4Stlz1MbR6yAS173GMosvkE6CAeihR7oIbCkDA==}
     peerDependencies:
       expo: '*'
-
-  expo-standard-web-crypto@55.0.6:
-    resolution: {integrity: sha512-BwTDwZYqKj7mSEOiaAxFj61sKsrrFIf2dCDHaNHb6SvSJNMuCtU6RNMOUdH/V2DLWv+ku5WXrV7fWiguGt39Mw==}
-    peerDependencies:
-      expo-crypto: ^55.0.9
 
   expo-status-bar@3.0.9:
     resolution: {integrity: sha512-xyYyVg6V1/SSOZWh4Ni3U129XHCnFHBTcUo0dhWtFDrZbNp/duw5AGsQfb2sVeU0gxWHXSY1+5F0jnKYC7WuOw==}
@@ -7174,8 +7159,6 @@ snapshots:
       '@urql/core': 5.2.0
       wonka: 6.3.5
 
-  '@workos-inc/node@8.9.0': {}
-
   '@xmldom/xmldom@0.8.11': {}
 
   abort-controller@3.0.0:
@@ -8311,10 +8294,6 @@ snapshots:
       expo: 54.0.33(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
     transitivePeerDependencies:
       - supports-color
-
-  expo-standard-web-crypto@55.0.6(expo-crypto@15.0.8(expo@54.0.33)):
-    dependencies:
-      expo-crypto: 15.0.8(expo@54.0.33)
 
   expo-status-bar@3.0.9(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
