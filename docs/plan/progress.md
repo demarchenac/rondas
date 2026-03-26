@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2025
+> Last updated: 2026-03-25
 
 ---
 
@@ -8,57 +8,57 @@
 
 ### 1.1 Expo Project Bootstrap
 
-- [ ] Initialize Expo project with `create-expo-app` using TypeScript template
-- [ ] Configure Expo Router file-based navigation
-- [ ] Set up folder structure (`app/`, `components/`, `lib/`, `stores/`, `constants/`)
-- [ ] Configure path aliases in `tsconfig.json`
-- [ ] Set up `.env` file and `expo-constants` for environment variables
+- [x] Initialize Expo project with `create-expo-app` using TypeScript template
+- [x] Configure Expo Router file-based navigation
+- [x] Set up folder structure (`app/`, `components/`, `lib/`, `stores/`, `constants/`)
+- [x] Configure path aliases in `tsconfig.json`
+- [x] Set up `.env` file and `expo-constants` for environment variables
 
 ### 1.2 Styling Setup
 
-- [ ] Install and configure NativeWind
-- [ ] Configure `tailwind.config.js` with custom color tokens
-- [ ] Verify NativeWind works with a test component
+- [x] Install and configure NativeWind
+- [x] Configure `tailwind.config.js` with custom color tokens
+- [x] Verify NativeWind works with a test component
 
 ### 1.3 UI Components Setup
 
-- [ ] Install React Native Reusables
-- [ ] Configure base theme tokens (colors, radius, spacing)
-- [ ] Test a sample Reusables component renders correctly
+- [x] Install React Native Reusables
+- [x] Configure base theme tokens (colors, radius, spacing)
+- [x] Test a sample Reusables component renders correctly
 
 ### 1.4 State & Data Layer
 
-- [ ] Install and configure Zustand
-- [ ] Install and configure TanStack Query with QueryClientProvider
-- [ ] Install TanStack Form and Zod
+- [x] Install and configure Zustand
+- [x] Install and configure TanStack Query with QueryClientProvider
+- [x] Install TanStack Form and Zod
 
 ### 1.5 Backend — Convex
 
-- [ ] Create Convex project
-- [ ] Install Convex client in Expo app
-- [ ] Configure ConvexProvider in app root
-- [ ] Verify Convex connection with a test query
+- [x] Create Convex project
+- [x] Install Convex client in Expo app
+- [x] Configure ConvexProvider in app root
+- [x] Verify Convex connection with a test query
 
 ### 1.6 Authentication — WorkOS
 
-- [ ] Create WorkOS project and configure AuthKit
-- [ ] Install WorkOS AuthKit React Native SDK
-- [ ] Configure Email OTP provider
-- [ ] Configure Sign in with Apple provider
-- [ ] Configure Sign in with Google provider
-- [ ] Create Convex `users` table and sync WorkOS user on login
+- [x] Create WorkOS project and configure AuthKit
+- [x] Install WorkOS AuthKit React Native SDK
+- [x] Configure Email OTP provider
+- [x] Configure Sign in with Apple provider
+- [x] Configure Sign in with Google provider
+- [x] Create Convex `users` table and sync WorkOS user on login
 
 ### 1.7 File Uploads — UploadThing
 
 - [ ] Create UploadThing project
-- [ ] Install UploadThing client in Expo app
+- [x] Install UploadThing client in Expo app
 - [ ] Configure upload route for bill images
 
 ### 1.8 Email — Resend + React Email
 
 - [ ] Create Resend account and obtain API key
-- [ ] Set up React Email project in `/emails` directory
-- [ ] Configure Resend client in Convex backend
+- [x] Set up React Email project in `/emails` directory
+- [x] Configure Resend client in Convex backend
 
 ### 1.9 WhatsApp — Meta Cloud API
 
@@ -66,7 +66,7 @@
 - [ ] Enable WhatsApp product on Meta app
 - [ ] Add test phone numbers to sandbox
 - [ ] Store WhatsApp API credentials in environment variables
-- [ ] Create a Convex action to send a WhatsApp message
+- [x] Create a Convex action to send a WhatsApp message
 
 ---
 
@@ -74,17 +74,17 @@
 
 ### 2.1 Onboarding / Auth Flow
 
-- [ ] Create `/app/(auth)/login.tsx` screen
+- [x] Create `/app/(auth)/login.tsx` screen
 - [ ] Build Email OTP input form using TanStack Form + Zod
 - [ ] Build OTP verification input form
 - [ ] Add "Sign in with Apple" button
 - [ ] Add "Sign in with Google" button
 - [ ] Handle auth state and redirect to home on success
-- [ ] Create `/app/(auth)/_layout.tsx` to protect auth routes
+- [x] Create `/app/(auth)/_layout.tsx` to protect auth routes
 
 ### 2.2 Auth Guard
 
-- [ ] Create root layout that checks auth state
+- [x] Create root layout that checks auth state
 - [ ] Redirect unauthenticated users to login screen
 - [ ] Redirect authenticated users to home screen
 - [ ] Handle loading state while checking auth
@@ -95,27 +95,27 @@
 
 ### 3.1 Layout & Navigation
 
-- [ ] Create bottom tab navigator with: Home, Settings
-- [ ] Create `/app/(tabs)/index.tsx` as the home screen
-- [ ] Create `/app/(tabs)/_layout.tsx` for tab configuration
+- [x] Create bottom tab navigator with: Home, Settings
+- [x] Create `/app/(tabs)/index.tsx` as the home screen
+- [x] Create `/app/(tabs)/_layout.tsx` for tab configuration
 
 ### 3.2 Bill List
 
 - [ ] Create Convex `bills` table schema
 - [ ] Create Convex query to fetch all bills for current user
-- [ ] Build `BillCard` component (name, date, total, state badge)
+- [x] Build `BillCard` component (name, date, total, state badge)
 - [ ] Render bills list using `FlashList`
-- [ ] Add empty state UI when no bills exist
+- [x] Add empty state UI when no bills exist
 
 ### 3.3 Bill State Badge
 
-- [ ] Create `StateBadge` component with three variants: Unsplit, Split, Unresolved
-- [ ] Apply correct color per state
+- [x] Create `StateBadge` component with three variants: Unsplit, Split, Unresolved
+- [x] Apply correct color per state
 
 ### 3.4 Filters
 
-- [ ] Build filter bar component above bill list
-- [ ] Add filter by bill state (multi-select toggle)
+- [x] Build filter bar component above bill list
+- [x] Add filter by bill state (multi-select toggle)
 - [ ] Add filter by contact (contact picker dropdown)
 - [ ] Add filter by amount range (dual-handle slider)
 - [ ] Wire filters to Convex query or client-side filter logic
@@ -123,7 +123,7 @@
 
 ### 3.5 Floating Action Button (FAB)
 
-- [ ] Create `FAB` component with "+" icon
+- [x] Create `FAB` component with "+" icon
 - [ ] On press, show action sheet: "Take Photo" or "Choose from Library"
 - [ ] Handle camera permission request
 - [ ] Handle photo library permission request
@@ -259,15 +259,15 @@
 
 ### 8.1 Settings Screen
 
-- [ ] Create `/app/(tabs)/settings.tsx` screen
-- [ ] Display user avatar, name, and email
+- [x] Create `/app/(tabs)/settings.tsx` screen
+- [x] Display user avatar, name, and email
 
 ### 8.2 Theme Toggle
 
-- [ ] Create Zustand store for theme preference
-- [ ] Build theme toggle (Light / Dark / System)
-- [ ] Apply theme to NativeWind using `colorScheme`
-- [ ] Persist theme preference to AsyncStorage
+- [x] Create Zustand store for theme preference
+- [x] Build theme toggle (Light / Dark / System)
+- [x] Apply theme to NativeWind using `colorScheme`
+- [x] Persist theme preference to AsyncStorage
 
 ### 8.3 Language Toggle
 
@@ -275,7 +275,7 @@
 - [ ] Create English translation file (`en.json`)
 - [ ] Create Spanish translation file (`es.json`)
 - [ ] Translate all UI strings to both languages
-- [ ] Build language selector in settings (English / Spanish)
+- [x] Build language selector in settings (English / Spanish)
 - [ ] Persist language preference to AsyncStorage
 - [ ] Apply selected language across the entire app
 
@@ -355,14 +355,14 @@
 
 | Phase                             | Total Tasks | Done  |
 | --------------------------------- | ----------- | ----- |
-| Phase 1 — Setup                   | 24          | 0     |
-| Phase 2 — Auth Screens            | 11          | 0     |
-| Phase 3 — Home Screen             | 18          | 0     |
+| Phase 1 — Setup                   | 24          | 21    |
+| Phase 2 — Auth Screens            | 11          | 3     |
+| Phase 3 — Home Screen             | 18          | 10    |
 | Phase 4 — Bill Creation & AI      | 13          | 0     |
 | Phase 5 — Bill Splitting          | 22          | 0     |
 | Phase 6 — Summary & Notifications | 16          | 0     |
 | Phase 7 — Bill Detail & History   | 9           | 0     |
-| Phase 8 — Settings                | 14          | 0     |
+| Phase 8 — Settings                | 14          | 7     |
 | Phase 9 — Subscriptions           | 12          | 0     |
 | Phase 10 — Polish & Launch        | 14          | 0     |
-| **Total**                         | **153**     | **0** |
+| **Total**                         | **153**     | **41**|
