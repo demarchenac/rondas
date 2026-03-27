@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useAction, useMutation } from 'convex/react';
@@ -43,32 +45,35 @@ interface ExtractedBill {
   total: number;
 }
 
-const MOCK_BILL: ExtractedBill = {
-  name: 'Restaurante El Cielo',
-  items: [
-    { name: 'Albóndigas Arrabiata', quantity: 1, unitPrice: 44000, subtotal: 44000 },
-    { name: 'Coca Cola Normal', quantity: 2, unitPrice: 9000, subtotal: 18000 },
-    { name: 'Coca Cola Zero', quantity: 5, unitPrice: 9000, subtotal: 45000 },
-    { name: 'Copa Sangría Tinto', quantity: 1, unitPrice: 16000, subtotal: 16000 },
-    { name: 'Tommy Margarita', quantity: 1, unitPrice: 45000, subtotal: 45000 },
-    { name: 'Éclair De Pistachos', quantity: 1, unitPrice: 25000, subtotal: 25000 },
-    { name: 'Agua Sin Gas', quantity: 2, unitPrice: 9900, subtotal: 19800 },
-    { name: 'Americano', quantity: 2, unitPrice: 10000, subtotal: 20000 },
-  ],
-  tax: 42560,
-  tip: 0,
-  total: 275360,
-};
-
-// Set to true to skip AI extraction and use mock data for UI testing
-const USE_MOCK_DATA = true;
-
 function formatCOP(amount: number): string {
   return `$${amount.toLocaleString('es-CO')}`;
 }
 
 function parseCOP(text: string): number {
   return Math.round(Number(text.replace(/[^0-9]/g, '')) || 0);
+}
+
+function deduplicateItems(items: BillItem[]): BillItem[] {
+  const grouped = new Map<string, BillItem>();
+
+  for (const item of items) {
+    const key = item.name.toLowerCase().trim();
+    if (!key) continue;
+
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.quantity += item.quantity;
+      existing.subtotal += item.subtotal;
+    } else {
+      grouped.set(key, { ...item });
+    }
+  }
+
+  return Array.from(grouped.values()).map((item) => ({
+    ...item,
+    name: item.name.trim().toLowerCase().replace(/^\w/, (c) => c.toUpperCase()),
+    unitPrice: Math.round(item.subtotal / item.quantity),
+  }));
 }
 
 export default function NewBillScreen() {
@@ -122,25 +127,19 @@ export default function NewBillScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      if (USE_MOCK_DATA) {
-        // Simulate network delay
-        await new Promise((r) => setTimeout(r, 800));
-        setBill({ ...MOCK_BILL });
-      } else {
-        // Resize and compress to reduce payload (~90% smaller)
-        const compressed = await manipulateAsync(
-          imageUri,
-          [{ resize: { width: 1024 } }],
-          { compress: 0.8, format: SaveFormat.JPEG },
-        );
+      // Resize and compress to reduce payload (~90% smaller)
+      const compressed = await manipulateAsync(
+        imageUri,
+        [{ resize: { width: 1024 } }],
+        { compress: 0.8, format: SaveFormat.JPEG },
+      );
 
-        const base64 = await FileSystem.readAsStringAsync(compressed.uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+      const base64 = await FileSystem.readAsStringAsync(compressed.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-        const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg' });
-        setBill(result);
-      }
+      const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg' });
+      setBill({ ...result, items: deduplicateItems(result.items) });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
       console.error('[Scan] Error:', err);
@@ -193,12 +192,13 @@ export default function NewBillScreen() {
       await createBill({
         userId: user.id,
         name: bill.name,
-        total: bill.total || calculatedTotal,
+        total: calculatedTotal,
         tax: bill.tax,
         tip: bill.tip,
         items: bill.items.filter((i) => i.name.trim() !== ''),
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setBill(null); // Clear bill so usePreventRemove allows navigation
       router.replace('/(tabs)' as Href);
     } catch (err) {
       console.error('[Save] Error:', err);
@@ -228,75 +228,146 @@ export default function NewBillScreen() {
   // --- Scan state (no items yet) ---
   if (!bill) {
     return (
-      <View
-        className="flex-1 bg-background"
-        style={{ paddingBottom: insets.bottom }}
-      >
-        {/* Drag indicator */}
-        <View className="items-center pb-2 pt-3">
-          <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-        </View>
-        <ScrollView
-          className="flex-1"
-          contentContainerClassName="items-center px-5 pb-8 pt-2"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Image Preview */}
-          <View className="w-full overflow-hidden rounded-2xl border border-border">
-            <Image
-              source={{ uri: imageUri }}
-              className="h-80 w-full"
-              resizeMode="contain"
-            />
-          </View>
+      <View className="flex-1" style={{ backgroundColor: '#121a2e' }}>
+        {/* Full-screen image background */}
+        <Image
+          source={{ uri: imageUri }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+          resizeMode="cover"
+        />
 
-          {/* Scan Button */}
-          <Button
-            variant="default"
-            size="lg"
-            className="mt-6 w-full"
-            disabled={scanning}
-            onPress={handleScan}
+        {/* Drag indicator */}
+        <View style={{ alignItems: 'center', paddingTop: 12, zIndex: 10 }}>
+          <View
+            style={{
+              height: 4,
+              width: 40,
+              borderRadius: 2,
+              backgroundColor: 'rgba(255,255,255,0.5)',
+            }}
+          />
+        </View>
+
+        {/* Bottom gradient + controls */}
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <LinearGradient
+            colors={['transparent', 'rgba(18,26,46,0.85)', 'rgba(18,26,46,0.95)']}
+            locations={[0, 0.5, 1]}
+            style={{ paddingBottom: insets.bottom + 8, paddingHorizontal: 28, paddingTop: 100 }}
           >
-            {scanning ? (
+            {/* Error toast */}
+            {error && (
+              <Pressable
+                onPress={handleScan}
+                style={{
+                  backgroundColor: 'rgba(239,68,68,0.15)',
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: 'rgba(239,68,68,0.25)',
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={{ color: '#fca5a5', fontSize: 13, textAlign: 'center' }}>
+                  {error}
+                </Text>
+                <Text style={{ color: '#fca5a5', fontSize: 12, textAlign: 'center', marginTop: 4, fontWeight: '600' }}>
+                  Tap to retry
+                </Text>
+              </Pressable>
+            )}
+
+            {/* Scan button — glass with primary tint */}
+            {!scanning && (
               <>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text>Scanning bill...</Text>
-              </>
-            ) : (
-              <>
-                <IconSymbol name="doc.text.viewfinder" size={20} color="#fff" />
-                <Text>Scan Bill</Text>
+                <Pressable
+                  onPress={handleScan}
+                  style={{
+                    overflow: 'hidden',
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: 'rgba(56, 189, 248, 0.3)',
+                  }}
+                >
+                  <BlurView
+                    intensity={60}
+                    tint="dark"
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 10,
+                      paddingVertical: 16,
+                      backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                    }}
+                  >
+                    <IconSymbol name="doc.text.viewfinder" size={22} color="#38bdf8" />
+                    <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }}>
+                      Scan Bill
+                    </Text>
+                  </BlurView>
+                </Pressable>
+
+                {/* Manual entry link */}
+                <Pressable
+                  onPress={() =>
+                    setBill({ name: 'Bill', items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }], tax: 0, tip: 0, total: 0 })
+                  }
+                  style={{ alignItems: 'center', paddingVertical: 16 }}
+                >
+                  <Text style={{ color: '#8b9cc0', fontSize: 14, fontWeight: '500' }}>
+                    Enter Manually
+                  </Text>
+                </Pressable>
               </>
             )}
-          </Button>
+          </LinearGradient>
+        </View>
 
-          {/* Manual Entry */}
-          <Button
-            variant="outline"
-            size="lg"
-            className="mt-3 w-full"
-            disabled={scanning}
-            onPress={() =>
-              setBill({ name: 'Bill', items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }], tax: 0, tip: 0, total: 0 })
-            }
+        {/* Scanning overlay */}
+        {scanning && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <IconSymbol name="pencil" size={18} color={iconColors.primary} />
-            <Text>Enter Manually</Text>
-          </Button>
-
-          {/* Error */}
-          {error && (
-            <View className="mt-4 w-full rounded-xl bg-destructive/10 px-4 py-3">
-              <Text className="text-center text-sm text-destructive">
-                {error}
+            <BlurView
+              intensity={30}
+              tint="dark"
+              style={{
+                position: 'absolute',
+                top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: 'rgba(18,26,46,0.7)',
+              }}
+            />
+            <View style={{ alignItems: 'center', zIndex: 1 }}>
+              <View
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(56, 189, 248, 0.2)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ActivityIndicator size="large" color="#38bdf8" />
+              </View>
+              <Text style={{ color: '#e8ecf4', fontSize: 17, fontWeight: '700', marginTop: 20 }}>
+                Analyzing bill...
               </Text>
-              <Button variant="ghost" className="mt-2" onPress={handleScan}>
-                <Text>Try Again</Text>
-              </Button>
+              <Text style={{ color: '#8b9cc0', fontSize: 13, marginTop: 6 }}>
+                This may take a few seconds
+              </Text>
             </View>
-          )}
-        </ScrollView>
+          </View>
+        )}
       </View>
     );
   }
