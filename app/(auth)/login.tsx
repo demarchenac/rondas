@@ -31,19 +31,19 @@ export default function LoginScreen() {
 
   return (
     <View
-      className="flex-1 bg-background dark:bg-dark-bg"
+      className="flex-1 bg-background"
       style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
       <View className="flex-1 items-center justify-center px-8">
         {/* Branding */}
         <View className="items-center gap-3">
-          <View className="h-24 w-24 items-center justify-center rounded-3xl bg-primary/10 dark:bg-dark-primary/15">
+          <View className="h-24 w-24 items-center justify-center rounded-3xl bg-primary/10">
             <IconSymbol name="receipt" size={48} color={iconColors.primary} />
           </View>
-          <Text className="text-4xl font-extrabold tracking-tight text-foreground dark:text-dark-fg">
+          <Text className="text-4xl font-extrabold tracking-tight text-foreground">
             Rondas
           </Text>
-          <Text className="text-center text-base text-muted-foreground dark:text-dark-muted-fg">
+          <Text className="text-center text-base text-muted-foreground">
             Split bills, not friendships
           </Text>
         </View>
@@ -64,9 +64,9 @@ export default function LoginScreen() {
 
           {/* Divider */}
           <View className="flex-row items-center gap-3 py-1">
-            <View className="h-px flex-1 bg-border dark:bg-dark-border" />
-            <Text className="text-xs text-muted-foreground dark:text-dark-muted-fg">or</Text>
-            <View className="h-px flex-1 bg-border dark:bg-dark-border" />
+            <View className="h-px flex-1 bg-border" />
+            <Text className="text-xs text-muted-foreground">or</Text>
+            <View className="h-px flex-1 bg-border" />
           </View>
 
           {/* Apple */}
@@ -104,8 +104,8 @@ export default function LoginScreen() {
 
         {/* Error message */}
         {error && (
-          <View className="mt-4 w-full rounded-xl bg-destructive/10 px-4 py-3 dark:bg-destructive/20">
-            <Text className="text-center text-sm text-destructive dark:text-red-400">
+          <View className="mt-4 w-full rounded-xl bg-destructive/10 px-4 py-3">
+            <Text className="text-center text-sm text-destructive">
               {error}
             </Text>
           </View>
@@ -114,14 +114,14 @@ export default function LoginScreen() {
 
       {/* Footer */}
       <View className="items-center pb-4">
-        <Text className="text-xs text-muted-foreground dark:text-dark-muted-fg">
+        <Text className="text-xs text-muted-foreground">
           By continuing, you agree to our Terms of Service
         </Text>
       </View>
 
       {/* Loading overlay */}
       {loading && (
-        <View className="absolute bottom-0 left-0 right-0 top-0 items-center justify-center bg-background/80 dark:bg-dark-bg/80">
+        <View className="absolute bottom-0 left-0 right-0 top-0 items-center justify-center bg-background/80">
           <ActivityIndicator size="large" color={iconColors.primary} />
         </View>
       )}

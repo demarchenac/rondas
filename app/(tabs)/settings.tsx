@@ -15,10 +15,10 @@ type Language = 'en' | 'es';
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View className="gap-2">
-      <Text className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-dark-muted-fg">
+      <Text className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {title}
       </Text>
-      <View className="overflow-hidden rounded-2xl border border-border bg-card dark:border-dark-border dark:bg-dark-card">
+      <View className="overflow-hidden rounded-2xl border border-border bg-card">
         {children}
       </View>
     </View>
@@ -44,12 +44,12 @@ function SettingsRow({
   return (
     <Wrapper
       onPress={onPress}
-      className={`flex-row items-center gap-3 px-4 py-3.5 ${!last ? 'border-b border-border dark:border-dark-border' : ''} ${onPress ? 'active:bg-muted dark:active:bg-dark-muted' : ''}`}
+      className={`flex-row items-center gap-3 px-4 py-3.5 ${!last ? 'border-b border-border' : ''} ${onPress ? 'active:bg-muted' : ''}`}
     >
-      <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted dark:bg-dark-muted">
+      <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted">
         <IconSymbol name={icon} size={18} color={iconColor} />
       </View>
-      <Text className="flex-1 text-base text-foreground dark:text-dark-fg">{label}</Text>
+      <Text className="flex-1 text-base text-foreground">{label}</Text>
       {children}
     </Wrapper>
   );
@@ -65,22 +65,22 @@ function SegmentedControl<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <View className="flex-row rounded-lg bg-muted p-0.5 dark:bg-dark-muted">
+    <View className="flex-row rounded-lg bg-muted p-0.5">
       {options.map((opt) => (
         <Pressable
           key={opt.value}
           onPress={() => onChange(opt.value)}
           className={`rounded-md px-3 py-1.5 ${
             value === opt.value
-              ? 'bg-card shadow-sm shadow-black/10 dark:bg-dark-border'
+              ? 'bg-card shadow-sm shadow-black/10'
               : ''
           }`}
         >
           <Text
             className={`text-xs font-medium ${
               value === opt.value
-                ? 'text-foreground dark:text-dark-fg'
-                : 'text-muted-foreground dark:text-dark-muted-fg'
+                ? 'text-foreground'
+                : 'text-muted-foreground'
             }`}
           >
             {opt.label}
@@ -119,10 +119,10 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-background dark:bg-dark-bg" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="px-5 pb-2 pt-4">
-        <Text className="text-3xl font-extrabold tracking-tight text-foreground dark:text-dark-fg">
+        <Text className="text-3xl font-extrabold tracking-tight text-foreground">
           Settings
         </Text>
       </View>
@@ -133,38 +133,38 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Card */}
-        <View className="items-center gap-3 rounded-2xl border border-border bg-card px-6 py-6 dark:border-dark-border dark:bg-dark-card">
-          <View className="h-20 w-20 items-center justify-center rounded-full bg-primary/10 dark:bg-dark-primary/15">
-            <Text className="text-3xl font-bold text-primary dark:text-dark-primary">
+        <View className="items-center gap-3 rounded-2xl border border-border bg-card px-6 py-6">
+          <View className="h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+            <Text className="text-3xl font-bold text-primary">
               {user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?'}
               {user?.lastName?.[0] ?? ''}
             </Text>
           </View>
           <View className="items-center gap-0.5">
-            <Text className="text-lg font-semibold text-foreground dark:text-dark-fg">
+            <Text className="text-lg font-semibold text-foreground">
               {user?.firstName && user?.lastName
                 ? `${user.firstName} ${user.lastName}`
                 : user?.email ?? 'User'}
             </Text>
-            <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">
+            <Text className="text-sm text-muted-foreground">
               {user?.email ?? ''}
             </Text>
           </View>
         </View>
 
         {/* Pro Upsell */}
-        <Pressable className="overflow-hidden rounded-2xl border border-pro/30 bg-pro-bg active:scale-[0.98] dark:border-dark-pro/25 dark:bg-dark-pro-bg">
+        <Pressable className="overflow-hidden rounded-2xl border border-pro/30 bg-pro-bg active:scale-[0.98]">
           <View className="flex-row items-center gap-4 p-5">
-            <View className="h-12 w-12 items-center justify-center rounded-xl bg-pro/10 dark:bg-dark-pro/15">
+            <View className="h-12 w-12 items-center justify-center rounded-xl bg-pro/10">
               <IconSymbol name="crown.fill" size={24} color={colorScheme === 'dark' ? '#f59e0b' : '#d97706'} />
             </View>
             <View className="flex-1 gap-1">
-              <Text className="text-base font-bold text-foreground dark:text-dark-fg">Upgrade to Pro</Text>
-              <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">
+              <Text className="text-base font-bold text-foreground">Upgrade to Pro</Text>
+              <Text className="text-sm text-muted-foreground">
                 Unlimited bills, item splits & more
               </Text>
             </View>
-            <View className="rounded-full bg-pro px-3 py-1.5 dark:bg-dark-pro">
+            <View className="rounded-full bg-pro px-3 py-1.5">
               <Text className="text-xs font-bold text-white">$1.99/mo</Text>
             </View>
           </View>
@@ -210,8 +210,8 @@ export default function SettingsScreen() {
 
         {/* Footer */}
         <View className="items-center gap-1 pt-4">
-          <Text className="text-xs text-muted-foreground dark:text-dark-muted-fg">Rondas v0.1.0</Text>
-          <Text className="text-xs text-muted-foreground dark:text-dark-muted-fg">Made with love in Colombia</Text>
+          <Text className="text-xs text-muted-foreground">Rondas v0.1.0</Text>
+          <Text className="text-xs text-muted-foreground">Made with love in Colombia</Text>
         </View>
       </ScrollView>
     </View>

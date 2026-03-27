@@ -22,21 +22,21 @@ type BillState = 'unsplit' | 'split' | 'unresolved';
 const STATE_CONFIG: Record<BillState, { label: string; dot: string; bg: string; text: string }> = {
   unsplit: {
     label: 'Unsplit',
-    dot: 'bg-state-unsplit dark:bg-dark-state-unsplit',
-    bg: 'bg-state-unsplit-bg dark:bg-dark-state-unsplit-bg',
-    text: 'text-muted-foreground dark:text-dark-muted-fg',
+    dot: 'bg-state-unsplit',
+    bg: 'bg-state-unsplit-bg',
+    text: 'text-muted-foreground',
   },
   split: {
     label: 'Split',
-    dot: 'bg-state-split dark:bg-dark-state-split',
-    bg: 'bg-state-split-bg dark:bg-dark-state-split-bg',
-    text: 'text-state-split dark:text-dark-state-split',
+    dot: 'bg-state-split',
+    bg: 'bg-state-split-bg',
+    text: 'text-state-split',
   },
   unresolved: {
     label: 'Unresolved',
-    dot: 'bg-state-unresolved dark:bg-dark-state-unresolved',
-    bg: 'bg-state-unresolved-bg dark:bg-dark-state-unresolved-bg',
-    text: 'text-state-unresolved dark:text-dark-state-unresolved',
+    dot: 'bg-state-unresolved',
+    bg: 'bg-state-unresolved-bg',
+    text: 'text-state-unresolved',
   },
 };
 
@@ -70,24 +70,24 @@ function BillCard({
   return (
     <Pressable
       onPress={onPress}
-      className="rounded-2xl border border-border bg-card p-4 active:scale-[0.98] dark:border-dark-border dark:bg-dark-card"
+      className="rounded-2xl border border-border bg-card p-4 active:opacity-80"
     >
       <View className="flex-row items-start justify-between">
         <View className="flex-1 gap-1">
-          <Text className="text-base font-semibold text-foreground dark:text-dark-fg">{bill.name}</Text>
-          <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">{dateStr}</Text>
+          <Text className="text-base font-semibold text-foreground">{bill.name}</Text>
+          <Text className="text-sm text-muted-foreground">{dateStr}</Text>
         </View>
         <StateBadge state={bill.state} />
       </View>
 
       <View className="mt-4 flex-row items-end justify-between">
-        <Text className="text-2xl font-bold tracking-tight text-foreground dark:text-dark-fg">
+        <Text className="text-2xl font-bold tracking-tight text-foreground">
           {formatCOP(bill.total)}
         </Text>
         {contactCount > 0 && (
           <View className="flex-row items-center gap-1">
             <IconSymbol name="person.crop.circle" size={14} color={iconColors.muted} />
-            <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">
+            <Text className="text-sm text-muted-foreground">
               {contactCount} {contactCount === 1 ? 'person' : 'people'}
             </Text>
           </View>
@@ -111,15 +111,15 @@ function FilterChip({
       onPress={onPress}
       className={`rounded-full px-4 py-2 ${
         active
-          ? 'bg-primary dark:bg-dark-primary'
-          : 'border border-border bg-card dark:border-dark-border dark:bg-dark-card'
+          ? 'bg-primary'
+          : 'border border-border bg-card'
       }`}
     >
       <Text
         className={`text-sm font-medium ${
           active
-            ? 'text-primary-foreground dark:text-dark-primary-fg'
-            : 'text-muted-foreground dark:text-dark-muted-fg'
+            ? 'text-primary-foreground'
+            : 'text-muted-foreground'
         }`}
       >
         {label}
@@ -203,19 +203,19 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <View className="flex-1 bg-background dark:bg-dark-bg" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="px-5 pb-2 pt-4">
         <View className="flex-row items-center justify-between">
           <View>
-            <Text className="text-3xl font-extrabold tracking-tight text-foreground dark:text-dark-fg">
+            <Text className="text-3xl font-extrabold tracking-tight text-foreground">
               Rondas
             </Text>
-            <Text className="mt-0.5 text-sm text-muted-foreground dark:text-dark-muted-fg">
+            <Text className="mt-0.5 text-sm text-muted-foreground">
               {filteredBills.length} {filteredBills.length === 1 ? 'bill' : 'bills'} · {formatCOP(totalAmount)}
             </Text>
           </View>
-          <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10 dark:bg-dark-primary/15">
+          <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
             <IconSymbol name="receipt" size={20} color={iconColors.primary} />
           </View>
         </View>
@@ -244,18 +244,16 @@ export default function HomeScreen() {
 
       {/* Bill List */}
       {bills === undefined ? (
-        // Loading state
         <View className="flex-1 items-center justify-center">
-          <Text className="text-sm text-muted-foreground dark:text-dark-muted-fg">Loading bills...</Text>
+          <Text className="text-sm text-muted-foreground">Loading bills...</Text>
         </View>
       ) : filteredBills.length === 0 ? (
-        // Empty state
         <View className="flex-1 items-center justify-center px-5">
-          <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-muted dark:bg-dark-muted">
+          <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-muted">
             <IconSymbol name="receipt" size={28} color={iconColors.mutedLight} />
           </View>
-          <Text className="text-lg font-semibold text-foreground dark:text-dark-fg">No bills found</Text>
-          <Text className="mt-1 text-center text-sm text-muted-foreground dark:text-dark-muted-fg">
+          <Text className="text-lg font-semibold text-foreground">No bills found</Text>
+          <Text className="mt-1 text-center text-sm text-muted-foreground">
             Tap + to scan a new bill
           </Text>
         </View>
@@ -283,7 +281,7 @@ export default function HomeScreen() {
       <View className="absolute bottom-28 right-5" style={{ marginBottom: insets.bottom }}>
         <Pressable
           onPress={handleFABPress}
-          className="h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 active:scale-95 dark:bg-dark-primary dark:shadow-dark-primary/20"
+          className="h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 active:opacity-80"
         >
           <IconSymbol name="plus" size={28} color={colorScheme === 'dark' ? '#0c1a2a' : '#ffffff'} />
         </Pressable>
