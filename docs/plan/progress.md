@@ -137,28 +137,32 @@
 
 ### 4.1 Image Handling
 
-- [ ] Create `/app/bills/new.tsx` screen
-- [ ] Display captured/selected image
+- [x] Create `/app/bills/new.tsx` screen
+- [x] Display captured/selected image
 - [ ] Upload image to UploadThing and store URL
+
+> Note: Image is sent as base64 directly to Gemini via Convex action. UploadThing deferred to later.
 
 ### 4.2 AI/OCR Item Extraction
 
-- [ ] Create Convex action that calls Claude Vision API with bill image
-- [ ] Write prompt to extract: item name, quantity, unit price, subtotal
-- [ ] Parse Claude's JSON response into structured line items
-- [ ] Handle extraction errors with a manual entry fallback
-- [ ] Show loading indicator while extraction runs
+- [x] Create Convex action that calls Gemini 2.0 Flash with bill image
+- [x] Write prompt to extract: item name, quantity, unit price, subtotal
+- [x] Parse Gemini's JSON response into structured line items
+- [x] Handle extraction errors with a manual entry fallback
+- [x] Show loading indicator while extraction runs
+
+> Note: Using Gemini 2.0 Flash instead of Claude Vision (better cost/quality ratio).
 
 ### 4.3 Item Review Screen
 
-- [ ] Display extracted items in an editable list
-- [ ] Allow user to edit item name
-- [ ] Allow user to edit item price
-- [ ] Allow user to delete an item
-- [ ] Allow user to add a new item manually
-- [ ] Display subtotal, tax, and total
-- [ ] Allow user to edit total manually
-- [ ] Add "Confirm Items" button to proceed
+- [x] Display extracted items in an editable list
+- [x] Allow user to edit item name
+- [x] Allow user to edit item price
+- [x] Allow user to delete an item
+- [x] Allow user to add a new item manually
+- [x] Display subtotal, tax, and total
+- [x] Allow user to edit total manually
+- [x] Add "Confirm Items" button to proceed
 
 ---
 
@@ -360,11 +364,11 @@
 | Phase 1 — Setup                   | 24          | 21    |
 | Phase 2 — Auth Screens            | 11          | 11    |
 | Phase 3 — Home Screen             | 18          | 16    |
-| Phase 4 — Bill Creation & AI      | 13          | 0     |
+| Phase 4 — Bill Creation & AI      | 13          | 12    |
 | Phase 5 — Bill Splitting          | 22          | 0     |
 | Phase 6 — Summary & Notifications | 16          | 0     |
 | Phase 7 — Bill Detail & History   | 9           | 0     |
 | Phase 8 — Settings                | 14          | 9     |
 | Phase 9 — Subscriptions           | 12          | 0     |
 | Phase 10 — Polish & Launch        | 14          | 0     |
-| **Total**                         | **153**     | **57**|
+| **Total**                         | **153**     | **69**|
