@@ -7,6 +7,8 @@ import { PortalHost } from '@rn-primitives/portal';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
 
 import { ConvexProvider } from 'convex/react';
@@ -50,7 +52,7 @@ function RootLayoutNav() {
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="bills/new" options={{ title: 'New Bill', presentation: 'modal' }} />
+            <Stack.Screen name="bills/new" options={{ headerShown: false, presentation: 'modal' }} />
           </Stack>
           <StatusBar style={isDark ? 'light' : 'dark'} />
           <PortalHost />
@@ -62,8 +64,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardProvider>
+        <AuthProvider>
+          <RootLayoutNav />
+        </AuthProvider>
+      </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }
