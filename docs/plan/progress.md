@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2026-03-28
+> Last updated: 2026-03-28 (session 2)
 
 ---
 
@@ -205,9 +205,14 @@
 - [x] Allow removing a contact from an item (tap chip)
 - [x] Allow assigning multiple contacts to a single item
 - [x] Multi-select mode for batch contact assignment
+- [x] Custom multi-select contact picker with search and photos
 - [x] Calculate each contact's proportional amount (items + tax/tip share)
 - [x] Auto-update bill state: unsplit → unresolved → split
 - [x] Import contact photo from iPhone
+- [x] Bulk edit toolbar: assign, unassign, delete
+- [x] Batch unassign contacts (multi-select with confirmation)
+- [x] Migrate contact-item references from indices to item IDs
+- [x] Auto-cleanup stale contact references on item deletion
 - [ ] Create split strategy screen (Equal Split)
 - [ ] Build number-of-people stepper for equal split
 
@@ -231,8 +236,10 @@
 - [x] Display per-contact breakdown with avatar, items, amount
 - [x] Two-column item layout per contact
 - [x] Paid/Unpaid toggle per contact
-- [x] WhatsApp deep link sharing with formatted message
-- [x] "Resumen generado con la app Rondas" footer in messages
+- [x] WhatsApp deep link sharing with formatted message (WhatsApp SVG icon)
+- [x] Receipt-style infographic generation (ViewShot + expo-sharing)
+- [x] Infographic with perforated edges, per-contact tax/tip breakdown
+- [x] "Resumen generado con la app Rondas" footer in messages and infographic
 - [ ] Create React Email template for per-contact bill summary
 - [ ] Create Convex action to send email via Resend
 
@@ -256,6 +263,11 @@
 - [x] Display subtotal and calculated total
 - [x] Display location (📍 address) and time metadata (🕐 relative)
 - [x] State badge (Draft, Unsplit, Unresolved, Split)
+- [x] Category badge (🍽️ Dining / 🛒 Retail / 🔧 Service)
+- [x] Computed tax based on country + category (informational for CO)
+- [x] Computed tip based on user's default tip percentage
+- [x] Dynamic tax label (Impoconsumo/IVA/Sales Tax)
+- [x] Delete bill button with confirmation
 - [x] Draft state with "Confirm Items" button
 - [x] Navigate back to home
 
@@ -301,7 +313,14 @@
 - [ ] Persist language preference to AsyncStorage
 - [ ] Apply selected language across the entire app
 
-### 8.4 Scanning Preferences
+### 8.4 Billing Settings
+
+- [x] Country picker (Colombia / USA) with segmented control
+- [x] US state selector (51 options via Alert)
+- [x] Default tip percentage chips (0%, 5%, 10%, 15%, 18%, 20%)
+- [x] Tax constants per country + receipt category
+
+### 8.5 Scanning Preferences
 
 - [x] Create useSettingsStore with AsyncStorage persistence
 - [x] Add "Auto-extract time" toggle (reads EXIF DateTimeOriginal)
@@ -390,10 +409,10 @@
 | Phase 2 — Auth Screens            | 11          | 11    |
 | Phase 3 — Home Screen             | 18          | 16    |
 | Phase 4 — Bill Creation & AI      | 29          | 28    |
-| Phase 5 — Bill Splitting          | 12          | 10    |
-| Phase 6 — Summary & Notifications | 8           | 6     |
-| Phase 7 — Bill Detail & History   | 18          | 16    |
-| Phase 8 — Settings                | 16          | 11    |
+| Phase 5 — Bill Splitting          | 16          | 14    |
+| Phase 6 — Summary & Notifications | 10          | 8     |
+| Phase 7 — Bill Detail & History   | 22          | 20    |
+| Phase 8 — Settings                | 20          | 15    |
 | Phase 9 — Subscriptions           | 12          | 0     |
 | Phase 10 — Polish & Launch        | 14          | 0     |
-| **Total**                         | **172**     | **129**|
+| **Total**                         | **186**     | **143**|
