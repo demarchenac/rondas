@@ -4,12 +4,14 @@ import { v } from 'convex/values';
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const EXTRACTION_PROMPT = `You are an OCR assistant specialized in restaurant bills from Colombia.
+const EXTRACTION_PROMPT = `You are an OCR assistant specialized in bills and receipts.
 
-Analyze this bill image and extract ALL line items, taxes, and total.
+Analyze this bill/receipt image and extract ALL line items, taxes, and total.
+Also classify the type of receipt.
 
 Return ONLY valid JSON in this exact format:
 {
+  "category": "dining",
   "items": [
     {
       "name": "Item name",
@@ -24,15 +26,17 @@ Return ONLY valid JSON in this exact format:
 }
 
 Rules:
-- All prices in Colombian Pesos (COP) as integers (no decimals)
-- Parse formats like "$35.000", "35,000", "35000" correctly as 35000
-- Include IVA/tax if shown separately
-- Include propina/tip if shown
+- "category" must be one of: "dining" (restaurants, cafes, bars), "retail" (stores, supermarkets), "service" (salons, repairs, subscriptions)
+- All prices as integers (no decimals)
+- Parse formats like "$35.000", "35,000", "35000", "35.00" correctly
+- Include IVA/impoconsumo/sales tax if shown separately
+- Include propina/tip/gratuity if shown
 - If total is not visible, calculate from items + tax + tip
 - If quantity is not explicit, assume 1
-- Keep original item names in Spanish`;
+- Keep original item names as they appear on the receipt`;
 
 interface ExtractedBill {
+  category: 'dining' | 'retail' | 'service';
   items: { name: string; quantity: number; unitPrice: number; subtotal: number }[];
   tax: number;
   tip: number;
@@ -92,7 +96,13 @@ export const extractBillItems = action({
       const parsed: ExtractedBill = JSON.parse(text);
 
       // Validate and sanitize
+      const validCategories = ['dining', 'retail', 'service'] as const;
+      const category = validCategories.includes(parsed.category as any)
+        ? parsed.category
+        : 'dining';
+
       return {
+        category,
         items: (parsed.items || []).map((item) => ({
           name: item.name || 'Unknown item',
           quantity: Math.max(1, Math.round(item.quantity || 1)),

@@ -26,7 +26,7 @@ const billContact = v.object({
   phone: v.optional(v.string()),
   email: v.optional(v.string()),
   imageUri: v.optional(v.string()),
-  items: v.array(v.number()), // indices into items array
+  items: v.array(v.string()), // item IDs
   amount: v.number(),
   paid: v.boolean(),
 });
@@ -50,6 +50,8 @@ export default defineSchema({
     items: v.array(billItem),
     splitStrategy: v.optional(splitStrategy),
     contacts: v.array(billContact),
+    category: v.optional(v.union(v.literal('dining'), v.literal('retail'), v.literal('service'))),
+    country: v.optional(v.string()),
     photoTakenAt: v.optional(v.string()),
     location: v.optional(v.object({
       latitude: v.number(),

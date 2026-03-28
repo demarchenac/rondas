@@ -58,6 +58,8 @@ export const create = mutation({
         subtotal: v.number(),
       })
     ),
+    category: v.optional(v.union(v.literal('dining'), v.literal('retail'), v.literal('service'))),
+    country: v.optional(v.string()),
     photoTakenAt: v.optional(v.string()),
     location: v.optional(v.object({
       latitude: v.number(),
@@ -151,45 +153,50 @@ export const update = mutation({
 });
 
 function computeBillState(
-  items: { subtotal: number }[],
-  contacts: { items: number[]; paid: boolean }[]
+  items: { id?: string; subtotal: number }[],
+  contacts: { items: string[]; paid: boolean }[]
 ): 'unsplit' | 'split' | 'unresolved' {
   if (contacts.length === 0) return 'unsplit';
-  const allItemsCovered = items.every((_, i) =>
-    contacts.some((c) => c.items.includes(i))
+  const allItemsCovered = items.every((item) =>
+    item.id ? contacts.some((c) => c.items.includes(item.id!)) : false
   );
   const allPaid = contacts.every((c) => c.paid);
   return allItemsCovered && allPaid ? 'split' : 'unresolved';
 }
 
 function recalculateAmounts(
-  items: { subtotal: number }[],
-  contacts: { name: string; phone?: string; email?: string; items: number[]; amount: number; paid: boolean }[],
+  items: { id?: string; subtotal: number }[],
+  contacts: { name: string; phone?: string; email?: string; imageUri?: string; items: string[]; amount: number; paid: boolean }[],
   tax: number,
   tip: number
 ) {
   const itemsTotal = items.reduce((sum, i) => sum + i.subtotal, 0);
 
   for (const contact of contacts) {
-    const contactItemsTotal = contact.items.reduce((sum, idx) => {
-      const item = items[idx];
+    // Clean up stale item references
+    contact.items = contact.items.filter((itemId) =>
+      items.some((i) => i.id === itemId)
+    );
+
+    const contactItemsTotal = contact.items.reduce((sum, itemId) => {
+      const item = items.find((i) => i.id === itemId);
       if (!item) return sum;
-      const numContacts = contacts.filter((c) => c.items.includes(idx)).length;
+      const numContacts = contacts.filter((c) => c.items.includes(itemId)).length;
       return sum + item.subtotal / numContacts;
     }, 0);
 
-    // Proportional share of tax and tip
     const share = itemsTotal > 0 ? contactItemsTotal / itemsTotal : 0;
     contact.amount = Math.round(contactItemsTotal + (tax * share) + (tip * share));
   }
 
-  return contacts;
+  // Remove contacts with no items left
+  return contacts.filter((c) => c.items.length > 0);
 }
 
 export const assignContactToItem = mutation({
   args: {
     id: v.id('bills'),
-    itemIndex: v.number(),
+    itemId: v.string(),
     contact: v.object({
       name: v.string(),
       phone: v.optional(v.string()),
@@ -202,27 +209,24 @@ export const assignContactToItem = mutation({
 
     const contacts = [...bill.contacts];
 
-    // Find existing contact by name + phone
     let contactIdx = contacts.findIndex(
       (c) => c.name === args.contact.name && c.phone === args.contact.phone
     );
 
     if (contactIdx >= 0) {
-      // Add item to existing contact if not already assigned
-      if (!contacts[contactIdx].items.includes(args.itemIndex)) {
+      if (!contacts[contactIdx].items.includes(args.itemId)) {
         contacts[contactIdx] = {
           ...contacts[contactIdx],
-          items: [...contacts[contactIdx].items, args.itemIndex],
+          items: [...contacts[contactIdx].items, args.itemId],
         };
       }
     } else {
-      // Add new contact
       contacts.push({
         name: args.contact.name,
         phone: args.contact.phone,
         imageUri: args.contact.imageUri,
         email: undefined,
-        items: [args.itemIndex],
+        items: [args.itemId],
         amount: 0,
         paid: false,
       });
@@ -242,7 +246,7 @@ export const assignContactToItem = mutation({
 export const assignContactToItems = mutation({
   args: {
     id: v.id('bills'),
-    itemIndices: v.array(v.number()),
+    itemIds: v.array(v.string()),
     contact: v.object({
       name: v.string(),
       phone: v.optional(v.string()),
@@ -261,7 +265,7 @@ export const assignContactToItems = mutation({
 
     if (contactIdx >= 0) {
       const existingItems = new Set(contacts[contactIdx].items);
-      for (const idx of args.itemIndices) existingItems.add(idx);
+      for (const itemId of args.itemIds) existingItems.add(itemId);
       contacts[contactIdx] = {
         ...contacts[contactIdx],
         items: Array.from(existingItems),
@@ -272,7 +276,7 @@ export const assignContactToItems = mutation({
         phone: args.contact.phone,
         imageUri: args.contact.imageUri,
         email: undefined,
-        items: [...args.itemIndices],
+        items: [...args.itemIds],
         amount: 0,
         paid: false,
       });
@@ -292,7 +296,7 @@ export const assignContactToItems = mutation({
 export const removeContactFromItem = mutation({
   args: {
     id: v.id('bills'),
-    itemIndex: v.number(),
+    itemId: v.string(),
     contactIndex: v.number(),
   },
   handler: async (ctx, args) => {
@@ -303,8 +307,7 @@ export const removeContactFromItem = mutation({
     const contact = contacts[args.contactIndex];
     if (!contact) throw new Error('Contact not found');
 
-    // Remove item from contact
-    const newItems = contact.items.filter((i) => i !== args.itemIndex);
+    const newItems = contact.items.filter((i) => i !== args.itemId);
 
     if (newItems.length === 0) {
       // Remove contact entirely
@@ -312,6 +315,30 @@ export const removeContactFromItem = mutation({
     } else {
       contacts[args.contactIndex] = { ...contact, items: newItems };
     }
+
+    const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
+    const state = computeBillState(bill.items, updated);
+
+    await ctx.db.patch(args.id, { contacts: updated, state });
+  },
+});
+
+export const removeContactsFromItems = mutation({
+  args: {
+    id: v.id('bills'),
+    itemIds: v.array(v.string()),
+    contactNames: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const bill = await ctx.db.get(args.id);
+    if (!bill) throw new Error('Bill not found');
+
+    let contacts = bill.contacts.map((c) => ({
+      ...c,
+      items: args.contactNames.includes(c.name)
+        ? c.items.filter((itemId) => !args.itemIds.includes(itemId as string))
+        : c.items,
+    })).filter((c) => c.items.length > 0);
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated);
