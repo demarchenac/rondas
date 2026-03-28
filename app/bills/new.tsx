@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,18 +9,20 @@ import {
   View,
 } from 'react-native';
 import { KeyboardAwareScrollView, useKeyboardHandler } from 'react-native-keyboard-controller';
-import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-router';
 import { usePreventRemove } from '@react-navigation/core';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
+import * as Location from 'expo-location';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useAction, useMutation } from 'convex/react';
+import { randomUUID } from 'expo-crypto';
 
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
@@ -29,16 +31,22 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
+import { resolvePlace } from '@/lib/places';
 
 interface BillItem {
+  id: string;
   name: string;
   quantity: number;
   unitPrice: number;
   subtotal: number;
 }
 
+function generateItemId(): string {
+  return randomUUID();
+}
+
 interface ExtractedBill {
-  name: string;
+  name?: string;
   items: BillItem[];
   tax: number;
   tip: number;
@@ -71,13 +79,20 @@ function deduplicateItems(items: BillItem[]): BillItem[] {
 
   return Array.from(grouped.values()).map((item) => ({
     ...item,
+    id: item.id || generateItemId(),
     name: item.name.trim().toLowerCase().replace(/^\w/, (c) => c.toUpperCase()),
     unitPrice: Math.round(item.subtotal / item.quantity),
   }));
 }
 
 export default function NewBillScreen() {
-  const { imageUri } = useLocalSearchParams<{ imageUri: string }>();
+  const { imageUri, photoTakenAt, latitude, longitude, resolveLocation } = useLocalSearchParams<{
+    imageUri: string;
+    photoTakenAt?: string;
+    latitude?: string;
+    longitude?: string;
+    resolveLocation?: 'device' | 'exif';
+  }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
@@ -86,6 +101,64 @@ export default function NewBillScreen() {
 
   const extractItems = useAction(api.ai.extractBillItems);
   const createBill = useMutation(api.bills.create);
+
+  // Resolve place name in background
+  const [placeData, setPlaceData] = useState<{
+    placeName?: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+  }>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function resolve() {
+      try {
+        if (resolveLocation === 'device') {
+          // Camera: get device GPS first, then resolve
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted' || cancelled) return;
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          if (cancelled) return;
+          const place = await resolvePlace(loc.coords.latitude, loc.coords.longitude);
+          if (cancelled) return;
+          setPlaceData({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+            placeName: place?.name,
+            address: place?.address,
+          });
+        } else if (resolveLocation === 'exif' && latitude && longitude) {
+          // Library: resolve from EXIF GPS
+          const lat = parseFloat(latitude);
+          const lng = parseFloat(longitude);
+          const place = await resolvePlace(lat, lng);
+          if (cancelled) return;
+          setPlaceData({
+            latitude: lat,
+            longitude: lng,
+            placeName: place?.name,
+            address: place?.address,
+          });
+        }
+      } catch {}
+    }
+
+    resolve();
+    return () => { cancelled = true; };
+  }, [resolveLocation, latitude, longitude]);
+
+  const metadataParams = {
+    ...(photoTakenAt ? { photoTakenAt } : {}),
+    ...(placeData.latitude && placeData.longitude ? {
+      location: {
+        latitude: placeData.latitude,
+        longitude: placeData.longitude,
+        ...(placeData.address ? { address: placeData.address } : {}),
+      },
+    } : {}),
+  };
 
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -130,8 +203,8 @@ export default function NewBillScreen() {
       // Resize and compress to reduce payload (~90% smaller)
       const compressed = await manipulateAsync(
         imageUri,
-        [{ resize: { width: 1024 } }],
-        { compress: 0.8, format: SaveFormat.JPEG },
+        [{ resize: { width: 800 } }],
+        { compress: 0.6, format: SaveFormat.JPEG },
       );
 
       const base64 = await FileSystem.readAsStringAsync(compressed.uri, {
@@ -139,8 +212,26 @@ export default function NewBillScreen() {
       });
 
       const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg' });
-      setBill({ ...result, items: deduplicateItems(result.items) });
+      const dedupedItems = deduplicateItems(
+        result.items.map((item) => ({ ...item, id: generateItemId() }))
+      );
+      const calculatedTotal = dedupedItems.reduce((sum, i) => sum + i.subtotal, 0) + (result.tax || 0) + (result.tip || 0);
+
+      // Strip client IDs — server generates them
+      const itemsForDB = dedupedItems.map(({ id: _id, ...rest }) => rest);
+
+      // Create bill as draft in DB and navigate to detail
+      const billId = await createBill({
+        userId: user!.id,
+        name: placeData.placeName || 'Bill',
+        total: calculatedTotal,
+        tax: result.tax,
+        tip: result.tip,
+        items: itemsForDB,
+        ...metadataParams,
+      });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.replace(`/bills/${billId}` as Href);
     } catch (err) {
       console.error('[Scan] Error:', err);
       setError(String(err));
@@ -165,17 +256,24 @@ export default function NewBillScreen() {
     setBill({ ...bill, items });
   };
 
+  const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
+
   const removeItem = (index: number) => {
     if (!bill) return;
-    const items = bill.items.filter((_, i) => i !== index);
-    setBill({ ...bill, items });
+    const snapshot = { ...bill, items: [...bill.items] };
+    setDeletingIndex(index);
+    setTimeout(() => {
+      const items = snapshot.items.filter((_, i) => i !== index);
+      setBill({ ...snapshot, items });
+      setDeletingIndex(null);
+    }, 300);
   };
 
   const addItem = () => {
     if (!bill) return;
     setBill({
       ...bill,
-      items: [...bill.items, { name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],
+      items: [...bill.items, { id: generateItemId(), name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],
     });
   };
 
@@ -191,7 +289,7 @@ export default function NewBillScreen() {
     try {
       await createBill({
         userId: user.id,
-        name: bill.name,
+        name: bill.name || 'Bill',
         total: calculatedTotal,
         tax: bill.tax,
         tip: bill.tip,
@@ -311,9 +409,17 @@ export default function NewBillScreen() {
 
                 {/* Manual entry link */}
                 <Pressable
-                  onPress={() =>
-                    setBill({ name: 'Bill', items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }], tax: 0, tip: 0, total: 0 })
-                  }
+                  onPress={async () => {
+                    if (!user) return;
+                    const billId = await createBill({
+                      userId: user.id,
+                      name: placeData.placeName || 'Bill',
+                      total: 0,
+                      items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],
+                      ...metadataParams,
+                    });
+                    router.replace(`/bills/${billId}` as Href);
+                  }}
                   style={{ alignItems: 'center', paddingVertical: 16 }}
                 >
                   <Text style={{ color: '#8b9cc0', fontSize: 14, fontWeight: '500' }}>
@@ -373,14 +479,19 @@ export default function NewBillScreen() {
   }
 
   // --- Review state (items extracted) ---
-  const renderDeleteAction = (index: number) => () => (
-    <Pressable
-      onPress={() => removeItem(index)}
-      className="w-20 items-center justify-center bg-destructive"
+  const renderDeleteAction = () => (
+    <Animated.View
+      style={{
+        flex: 1,
+        backgroundColor: '#ef4444',
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        paddingRight: 24,
+      }}
     >
       <IconSymbol name="xmark" size={18} color="#fff" />
-      <Text className="mt-1 text-[10px] font-medium text-white">Delete</Text>
-    </Pressable>
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500', marginTop: 2 }}>Delete</Text>
+    </Animated.View>
   );
 
   return (
@@ -440,9 +551,12 @@ export default function NewBillScreen() {
 
         {/* Items list — flat rows, no card wrapper */}
         {bill.items.map((item, index) => (
+          <SwipeableItem key={item.id} isDeleting={deletingIndex === index}>
           <Swipeable
-            key={index}
-            renderRightActions={renderDeleteAction(index)}
+            renderRightActions={renderDeleteAction}
+            rightThreshold={80}
+            overshootRight
+            onSwipeableOpen={() => removeItem(index)}
             onSwipeableOpenStartDrag={() => { swipeOpenRef.current = true; }}
           >
             {editingIndex === index ? (
@@ -529,6 +643,7 @@ export default function NewBillScreen() {
               </View>
             )}
           </Swipeable>
+          </SwipeableItem>
         ))}
 
         {/* Add Item */}
@@ -619,6 +734,31 @@ export default function NewBillScreen() {
 
       <KeyboardDoneButton />
     </View>
+  );
+}
+
+function SwipeableItem({ children, isDeleting }: { children: React.ReactNode; isDeleting: boolean }) {
+  const height = useSharedValue<number | null>(null);
+  const animatedStyle = useAnimatedStyle(() => {
+    if (!isDeleting || height.value === null) return {};
+    return {
+      height: withTiming(0, { duration: 300 }),
+      opacity: withTiming(0, { duration: 200 }),
+      overflow: 'hidden' as const,
+    };
+  }, [isDeleting]);
+
+  return (
+    <Animated.View
+      style={animatedStyle}
+      onLayout={(e) => {
+        if (height.value === null) {
+          height.value = e.nativeEvent.layout.height;
+        }
+      }}
+    >
+      {children}
+    </Animated.View>
   );
 }
 
