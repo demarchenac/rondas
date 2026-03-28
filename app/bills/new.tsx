@@ -32,6 +32,8 @@ import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
 import { resolvePlace } from '@/lib/places';
+import { getTaxConfig } from '@/constants/taxes';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 
 interface BillItem {
   id: string;
@@ -215,7 +217,24 @@ export default function NewBillScreen() {
       const dedupedItems = deduplicateItems(
         result.items.map((item) => ({ ...item, id: generateItemId() }))
       );
-      const calculatedTotal = dedupedItems.reduce((sum, i) => sum + i.subtotal, 0) + (result.tax || 0) + (result.tip || 0);
+
+      const { country, defaultTipPercent } = useSettingsStore.getState();
+      const category = result.category || 'dining';
+      const subtotal = dedupedItems.reduce((sum, i) => sum + i.subtotal, 0);
+      const taxConfig = getTaxConfig(country, category);
+
+      // Tax: computed from subtotal for CO (informational), from Gemini for US
+      const tax = taxConfig.taxIncluded
+        ? Math.round(subtotal * taxConfig.taxRate)
+        : (result.tax || 0);
+
+      // Tip: always computed from user's default tip percent
+      const tip = Math.round(subtotal * (defaultTipPercent / 100));
+
+      // Total: CO = subtotal + tip (tax in prices), US = subtotal + tax + tip
+      const calculatedTotal = taxConfig.taxIncluded
+        ? subtotal + tip
+        : subtotal + tax + tip;
 
       // Strip client IDs — server generates them
       const itemsForDB = dedupedItems.map(({ id: _id, ...rest }) => rest);
@@ -225,9 +244,11 @@ export default function NewBillScreen() {
         userId: user!.id,
         name: placeData.placeName || 'Bill',
         total: calculatedTotal,
-        tax: result.tax,
-        tip: result.tip,
+        tax,
+        tip,
         items: itemsForDB,
+        category,
+        country,
         ...metadataParams,
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
