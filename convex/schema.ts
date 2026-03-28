@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
 const billState = v.union(
+  v.literal('draft'),
   v.literal('unsplit'),
   v.literal('split'),
   v.literal('unresolved')
@@ -13,6 +14,7 @@ const splitStrategy = v.union(
 );
 
 const billItem = v.object({
+  id: v.optional(v.string()),
   name: v.string(),
   quantity: v.number(),
   unitPrice: v.number(),
@@ -23,6 +25,7 @@ const billContact = v.object({
   name: v.string(),
   phone: v.optional(v.string()),
   email: v.optional(v.string()),
+  imageUri: v.optional(v.string()),
   items: v.array(v.number()), // indices into items array
   amount: v.number(),
   paid: v.boolean(),
@@ -47,6 +50,12 @@ export default defineSchema({
     items: v.array(billItem),
     splitStrategy: v.optional(splitStrategy),
     contacts: v.array(billContact),
+    photoTakenAt: v.optional(v.string()),
+    location: v.optional(v.object({
+      latitude: v.number(),
+      longitude: v.number(),
+      address: v.optional(v.string()),
+    })),
   })
     .index('by_user', ['userId'])
     .index('by_user_state', ['userId', 'state']),

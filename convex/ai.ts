@@ -10,7 +10,6 @@ Analyze this bill image and extract ALL line items, taxes, and total.
 
 Return ONLY valid JSON in this exact format:
 {
-  "name": "Restaurant name if visible, otherwise 'Bill'",
   "items": [
     {
       "name": "Item name",
@@ -34,7 +33,6 @@ Rules:
 - Keep original item names in Spanish`;
 
 interface ExtractedBill {
-  name: string;
   items: { name: string; quantity: number; unitPrice: number; subtotal: number }[];
   tax: number;
   tip: number;
@@ -73,6 +71,7 @@ export const extractBillItems = action({
         ],
         generationConfig: {
           response_mime_type: 'application/json',
+          thinking_config: { thinking_budget: 0 },
         },
       }),
     });
@@ -94,7 +93,6 @@ export const extractBillItems = action({
 
       // Validate and sanitize
       return {
-        name: parsed.name || 'Bill',
         items: (parsed.items || []).map((item) => ({
           name: item.name || 'Unknown item',
           quantity: Math.max(1, Math.round(item.quantity || 1)),
