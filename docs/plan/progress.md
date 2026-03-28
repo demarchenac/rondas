@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2026-03-25
+> Last updated: 2026-03-28
 
 ---
 
@@ -19,12 +19,22 @@
 - [x] Install and configure NativeWind
 - [x] Configure `tailwind.config.js` with custom color tokens
 - [x] Verify NativeWind works with a test component
+- [x] Update NativeWind to v5 preview.3
+- [x] Restructure dark mode to use `@media (prefers-color-scheme: dark)` instead of custom `dark-*` tokens
+- [x] Patch `react-native-css` path.split bug via pnpm patch
+- [x] Simplify Input component for NativeWind v5 compatibility
 
 ### 1.3 UI Components Setup
 
 - [x] Install React Native Reusables
 - [x] Configure base theme tokens (colors, radius, spacing)
 - [x] Test a sample Reusables component renders correctly
+- [x] Install `expo-blur` and `expo-linear-gradient` for glass UI effects
+- [x] Install `expo-image-manipulator` for image compression
+- [x] Install `react-native-keyboard-controller` for keyboard UX
+- [x] Install `@expo/ngrok` for tunnel development
+- [x] Add `GestureHandlerRootView` to root layout
+- [x] Add `KeyboardProvider` to root layout
 
 ### 1.4 State & Data Layer
 
@@ -140,18 +150,25 @@
 - [x] Create `/app/bills/new.tsx` screen
 - [x] Display captured/selected image
 - [ ] Upload image to UploadThing and store URL
+- [x] Compress image before AI extraction (resize to 1024px, JPEG 80%)
+- [x] Redesign scan state with full-screen image background
+- [x] Add glass-style scan button with BlurView and primary tint
+- [x] Add bottom gradient overlay with LinearGradient (navy theme)
+- [x] Add blur overlay scanning state with centered spinner
 
 > Note: Image is sent as base64 directly to Gemini via Convex action. UploadThing deferred to later.
 
 ### 4.2 AI/OCR Item Extraction
 
-- [x] Create Convex action that calls Gemini 2.0 Flash with bill image
+- [x] Create Convex action that calls Gemini with bill image
 - [x] Write prompt to extract: item name, quantity, unit price, subtotal
 - [x] Parse Gemini's JSON response into structured line items
 - [x] Handle extraction errors with a manual entry fallback
 - [x] Show loading indicator while extraction runs
+- [x] Upgrade to Gemini 2.5 Flash (from 2.0 Flash Lite)
+- [x] Add item deduplication and name normalization post-extraction
 
-> Note: Using Gemini 2.0 Flash instead of Claude Vision (better cost/quality ratio).
+> Note: Using Gemini 2.5 Flash instead of Claude Vision (better cost/quality ratio). Items are deduplicated and normalized after extraction.
 
 ### 4.3 Item Review Screen
 
@@ -163,81 +180,67 @@
 - [x] Display subtotal, tax, and total
 - [x] Allow user to edit total manually
 - [x] Add "Confirm Items" button to proceed
+- [x] Redesign to flat receipt-style rows (remove card-within-card)
+- [x] Add tap-to-edit with inline expanded form (qty, price, subtotal)
+- [x] Add swipe-to-delete via Swipeable gesture
+- [x] Add swipe/tap conflict prevention (onSwipeableOpenStartDrag)
+- [x] Add KeyboardAwareScrollView for input field visibility
+- [x] Add floating Done button for keyboard dismiss
+- [x] Add usePreventRemove for unsaved data protection
+- [x] Add sticky total footer above confirm button
+- [x] Fix confirm to save calculatedTotal instead of original bill total
+- [x] Present as modal with drag indicator and dismiss gesture
 
 ---
 
-## Phase 5 — Bill Splitting
+## Phase 5 — Bill Splitting & Contact Assignment
 
-### 5.1 Split Strategy Selection
+> Note: Split strategy selection (equal split) deferred. Item-based split implemented directly in the bill detail screen.
 
-- [ ] Create split strategy screen
-- [ ] Build "Split Equally" option card
-- [ ] Build "Split by Items" option card
-- [ ] Navigate to appropriate split screen based on selection
+### 5.1 Item-Based Split (via Bill Detail)
 
-### 5.2 Equal Split
+- [x] Assign contact to item via native iPhone contact picker
+- [x] Request contacts permission
+- [x] Display assigned contact chips with name and photo
+- [x] Allow removing a contact from an item (tap chip)
+- [x] Allow assigning multiple contacts to a single item
+- [x] Multi-select mode for batch contact assignment
+- [x] Calculate each contact's proportional amount (items + tax/tip share)
+- [x] Auto-update bill state: unsplit → unresolved → split
+- [x] Import contact photo from iPhone
+- [ ] Create split strategy screen (Equal Split)
+- [ ] Build number-of-people stepper for equal split
 
-- [ ] Create equal split screen
-- [ ] Build number-of-people stepper input
-- [ ] Display calculated per-person amount in real time
-- [ ] Add ability to assign contacts to each portion
-- [ ] Show per-person breakdown list
-- [ ] Add "Confirm Split" button
+### 5.2 Backend Mutations
 
-### 5.3 Item-Based Split
-
-- [ ] Create item split screen listing all bill items
-- [ ] Add "Assign Contact" button per item
-- [ ] Open native contact picker on press
-- [ ] Request contacts permission
-- [ ] Display assigned contact name and avatar next to item
-- [ ] Allow reassigning or removing a contact from an item
-- [ ] Allow assigning multiple contacts to a single item
-- [ ] Highlight unassigned items as a warning
-- [ ] Calculate and display each contact's subtotal in real time
-- [ ] Add "Confirm Split" button
-
-### 5.4 Summary Generation
-
-- [ ] Create Convex mutation to save confirmed split to database
-- [ ] Generate per-contact summary (items + subtotal + tax/tip share)
-- [ ] Generate full group summary
-- [ ] Update bill state to "Split" or "Unresolved Payments"
-- [ ] Navigate to summary screen after confirmation
+- [x] Create `assignContactToItem` mutation with deduplication
+- [x] Create `assignContactToItems` batch mutation
+- [x] Create `removeContactFromItem` mutation with cleanup
+- [x] Create `togglePaymentStatus` mutation
+- [x] Create `update` mutation for name, items, tax, tip, state
+- [x] `computeBillState` helper for auto state transitions
+- [x] `recalculateAmounts` helper for proportional splitting
 
 ---
 
 ## Phase 6 — Summary & Notifications
 
-### 6.1 Summary Screen
+### 6.1 Share & Pay Modal
 
-- [ ] Create `/app/bills/[id]/summary.tsx` screen
-- [ ] Display full bill summary with all contacts and totals
-- [ ] Display individual contact cards with item breakdown
-- [ ] Show payment status badge per contact (Paid / Unpaid)
-- [ ] Add "Mark as Paid" toggle per contact
-- [ ] Add "Send Summary" button per contact
+- [x] Create Share & Pay modal (replaces separate summary screen)
+- [x] Display per-contact breakdown with avatar, items, amount
+- [x] Two-column item layout per contact
+- [x] Paid/Unpaid toggle per contact
+- [x] WhatsApp deep link sharing with formatted message
+- [x] "Resumen generado con la app Rondas" footer in messages
+- [ ] Create React Email template for per-contact bill summary
+- [ ] Create Convex action to send email via Resend
 
 ### 6.2 Payment Tracking
 
-- [ ] Create Convex mutation to toggle contact payment status
-- [ ] Update bill state to "Split" when all contacts are marked paid
-- [ ] Persist payment state in `bills` table
-
-### 6.3 WhatsApp Notifications
-
-- [ ] Create Convex action to send per-contact WhatsApp message
-- [ ] Format WhatsApp message template with item list and total
-- [ ] Handle send success and error states
-- [ ] Show confirmation toast on successful send
-
-### 6.4 Email Notifications
-
-- [ ] Create React Email template for per-contact bill summary
-- [ ] Create React Email template for full group summary
-- [ ] Create Convex action to send email via Resend
-- [ ] Handle send success and error states
-- [ ] Show confirmation toast on successful send
+- [x] Toggle contact payment status via mutation
+- [x] Auto-update bill state to "Split" when all paid
+- [x] Persist payment state in bills table
 
 ---
 
@@ -245,19 +248,32 @@
 
 ### 7.1 Bill Detail Screen
 
-- [ ] Create `/app/bills/[id]/index.tsx` screen
-- [ ] Display bill image thumbnail
-- [ ] Display all items
-- [ ] Display split strategy used
-- [ ] Display per-contact breakdown
-- [ ] Display payment status per contact
-- [ ] Add navigation back to home
+- [x] Create `/app/bills/[id].tsx` screen
+- [x] Editable bill name
+- [x] Display all items with tap-to-edit
+- [x] Swipe-to-delete items with height collapse animation
+- [x] Editable tax (IVA) and tip (propina)
+- [x] Display subtotal and calculated total
+- [x] Display location (📍 address) and time metadata (🕐 relative)
+- [x] State badge (Draft, Unsplit, Unresolved, Split)
+- [x] Draft state with "Confirm Items" button
+- [x] Navigate back to home
 
 ### 7.2 Bill List Interactions
 
-- [ ] Tapping a bill card navigates to bill detail screen
-- [ ] Swipe-to-delete on bill card with confirmation dialog
+- [x] Tapping a bill card navigates to bill detail screen
+- [x] Swipe-to-delete on bill card with confirmation dialog
 - [ ] Pull-to-refresh on bills list
+
+### 7.3 Bill Creation Flow
+
+- [x] Bills created as draft after Gemini scan
+- [x] Items get server-generated UUIDs
+- [x] Navigate to detail screen for editing
+- [x] usePreventRemove for unsaved data protection
+- [x] Background location resolution (native + optional Google Places)
+- [x] EXIF time extraction for photo timestamp
+- [x] Place name from reverse geocoding as bill name
 
 ---
 
@@ -285,7 +301,16 @@
 - [ ] Persist language preference to AsyncStorage
 - [ ] Apply selected language across the entire app
 
-### 8.4 Account Management
+### 8.4 Scanning Preferences
+
+- [x] Create useSettingsStore with AsyncStorage persistence
+- [x] Add "Auto-extract time" toggle (reads EXIF DateTimeOriginal)
+- [x] Add "Capture location" toggle (device GPS for camera)
+- [x] Extract GPS from EXIF for library photos
+- [x] Reverse geocoding via native + optional Google Places
+- [x] Place name resolution as bill name
+
+### 8.5 Account Management
 
 - [x] Add "Sign Out" button with confirmation dialog
 - [x] Handle WorkOS sign out and clear local state
@@ -361,14 +386,14 @@
 
 | Phase                             | Total Tasks | Done  |
 | --------------------------------- | ----------- | ----- |
-| Phase 1 — Setup                   | 24          | 21    |
+| Phase 1 — Setup                   | 34          | 31    |
 | Phase 2 — Auth Screens            | 11          | 11    |
 | Phase 3 — Home Screen             | 18          | 16    |
-| Phase 4 — Bill Creation & AI      | 13          | 12    |
-| Phase 5 — Bill Splitting          | 22          | 0     |
-| Phase 6 — Summary & Notifications | 16          | 0     |
-| Phase 7 — Bill Detail & History   | 9           | 0     |
-| Phase 8 — Settings                | 14          | 9     |
+| Phase 4 — Bill Creation & AI      | 29          | 28    |
+| Phase 5 — Bill Splitting          | 12          | 10    |
+| Phase 6 — Summary & Notifications | 8           | 6     |
+| Phase 7 — Bill Detail & History   | 18          | 16    |
+| Phase 8 — Settings                | 16          | 11    |
 | Phase 9 — Subscriptions           | 12          | 0     |
 | Phase 10 — Polish & Launch        | 14          | 0     |
-| **Total**                         | **153**     | **69**|
+| **Total**                         | **172**     | **129**|
