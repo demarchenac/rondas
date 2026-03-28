@@ -10,6 +10,7 @@ import { ICON_COLORS } from '@/constants/colors';
 import { useThemeStore, type ThemeMode } from '@/stores/useThemeStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuth } from '@/lib/AuthContext';
+import { US_STATE_RATES, type Country } from '@/constants/taxes';
 
 type Language = 'en' | 'es';
 
@@ -97,7 +98,7 @@ export default function SettingsScreen() {
   const { colorScheme, setColorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { mode, setMode } = useThemeStore();
-  const { extractPhotoTime, useLocation, setExtractPhotoTime, setUseLocation } = useSettingsStore();
+  const { extractPhotoTime, useLocation, country, usState, defaultTipPercent, setExtractPhotoTime, setUseLocation, setCountry, setUsState, setDefaultTipPercent } = useSettingsStore();
   const { user, signOut } = useAuth();
   const [language, setLanguage] = useState<Language>('en');
 
@@ -195,6 +196,89 @@ export default function SettingsScreen() {
               onChange={setLanguage}
             />
           </SettingsRow>
+        </SettingsSection>
+
+        {/* Billing */}
+        <SettingsSection title="Billing">
+          <SettingsRow icon="globe.americas.fill" iconColor="#0a7ea4" label="Country">
+            <SegmentedControl
+              options={[
+                { label: 'Colombia', value: 'CO' as Country },
+                { label: 'USA', value: 'US' as Country },
+              ]}
+              value={country}
+              onChange={setCountry}
+            />
+          </SettingsRow>
+          {country === 'US' && (
+            <SettingsRow icon="map.fill" iconColor="#6366f1" label="State">
+              <Pressable
+                onPress={() => {
+                  const states = Object.entries(US_STATE_RATES).map(([code, { name }]) => ({ code, name }));
+                  Alert.alert(
+                    'Select State',
+                    undefined,
+                    [
+                      ...states.map(({ code, name }) => ({
+                        text: `${name} (${code})`,
+                        onPress: () => setUsState(code),
+                      })),
+                      { text: 'Cancel', style: 'cancel' as const },
+                    ]
+                  );
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 8,
+                  backgroundColor: 'rgba(148,163,184,0.1)',
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '600', color: iconColors.primary }}>
+                  {US_STATE_RATES[usState]?.name ?? usState}
+                </Text>
+                <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
+              </Pressable>
+            </SettingsRow>
+          )}
+          <View className={`px-4 py-3.5 ${country === 'US' ? 'border-t border-border' : 'border-t border-border'}`}>
+            <View className="flex-row items-center gap-3 mb-3">
+              <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                <IconSymbol name="percent" size={18} color="#f59e0b" />
+              </View>
+              <Text className="text-base text-foreground">Default tip</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {[0, 5, 10, 15, 18, 20].map((pct) => (
+                <Pressable
+                  key={pct}
+                  onPress={() => setDefaultTipPercent(pct)}
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    paddingVertical: 8,
+                    borderRadius: 10,
+                    backgroundColor: defaultTipPercent === pct ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
+                    borderWidth: 1.5,
+                    borderColor: defaultTipPercent === pct ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148,163,184,0.12)',
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: '700',
+                      color: defaultTipPercent === pct ? '#38bdf8' : '#64748b',
+                    }}
+                  >
+                    {pct}%
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
         </SettingsSection>
 
         {/* Scanning */}
