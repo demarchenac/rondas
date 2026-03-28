@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Switch, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -8,6 +8,7 @@ import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { useThemeStore, type ThemeMode } from '@/stores/useThemeStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuth } from '@/lib/AuthContext';
 
 type Language = 'en' | 'es';
@@ -96,6 +97,7 @@ export default function SettingsScreen() {
   const { colorScheme, setColorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { mode, setMode } = useThemeStore();
+  const { extractPhotoTime, useLocation, setExtractPhotoTime, setUseLocation } = useSettingsStore();
   const { user, signOut } = useAuth();
   const [language, setLanguage] = useState<Language>('en');
 
@@ -191,6 +193,26 @@ export default function SettingsScreen() {
               ]}
               value={language}
               onChange={setLanguage}
+            />
+          </SettingsRow>
+        </SettingsSection>
+
+        {/* Scanning */}
+        <SettingsSection title="Scanning">
+          <SettingsRow icon="clock.fill" iconColor="#6366f1" label="Auto-extract time">
+            <Switch
+              value={extractPhotoTime}
+              onValueChange={setExtractPhotoTime}
+              trackColor={{ false: '#263354', true: '#38bdf8' }}
+              thumbColor="#fff"
+            />
+          </SettingsRow>
+          <SettingsRow icon="location.fill" iconColor="#10b981" label="Capture location" last>
+            <Switch
+              value={useLocation}
+              onValueChange={setUseLocation}
+              trackColor={{ false: '#263354', true: '#38bdf8' }}
+              thumbColor="#fff"
             />
           </SettingsRow>
         </SettingsSection>

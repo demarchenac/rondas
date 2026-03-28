@@ -1,57 +1,46 @@
 import { useState, useCallback } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, ScrollView, View } from 'react-native';
+import { ActionSheetIOS, Alert, Image, Platform, Pressable, ScrollView, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
-import { useQuery } from 'convex/react';
+import { Swipeable } from 'react-native-gesture-handler';
+import { useQuery, useMutation } from 'convex/react';
 import type { Doc } from '@/convex/_generated/dataModel';
 
 import { Text } from '@/components/ui/text';
+import { Button } from '@/components/ui/button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
+import { formatCOP } from '@/lib/format';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 
 type Bill = Doc<'bills'>;
+type BillState = 'draft' | 'unsplit' | 'split' | 'unresolved';
 
-type BillState = 'unsplit' | 'split' | 'unresolved';
-
-const STATE_CONFIG: Record<BillState, { label: string; dot: string; bg: string; text: string }> = {
-  unsplit: {
-    label: 'Unsplit',
-    dot: 'bg-state-unsplit',
-    bg: 'bg-state-unsplit-bg',
-    text: 'text-muted-foreground',
-  },
-  split: {
-    label: 'Split',
-    dot: 'bg-state-split',
-    bg: 'bg-state-split-bg',
-    text: 'text-state-split',
-  },
-  unresolved: {
-    label: 'Unresolved',
-    dot: 'bg-state-unresolved',
-    bg: 'bg-state-unresolved-bg',
-    text: 'text-state-unresolved',
-  },
+const STATE_STYLES: Record<BillState, { label: string; color: string; bg: string }> = {
+  draft: { label: 'Draft', color: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
+  unsplit: { label: 'Unsplit', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
+  split: { label: 'Split', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
+  unresolved: { label: 'Unresolved', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
 };
 
-function formatCOP(amount: number): string {
-  return `$${amount.toLocaleString('es-CO')}`;
-}
-
-function StateBadge({ state }: { state: BillState }) {
-  const config = STATE_CONFIG[state];
-  return (
-    <View className={`flex-row items-center gap-1.5 rounded-full px-2.5 py-1 ${config.bg}`}>
-      <View className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
-      <Text className={`text-xs font-medium ${config.text}`}>{config.label}</Text>
-    </View>
-  );
+function relativeTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function BillCard({
@@ -63,36 +52,140 @@ function BillCard({
   iconColors: typeof ICON_COLORS.light;
   onPress: () => void;
 }) {
-  const date = new Date(bill._creationTime);
-  const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const stateStyle = STATE_STYLES[bill.state];
   const contactCount = bill.contacts.length;
+  const itemCount = bill.items.length;
+  const assignedItems = bill.state !== 'unsplit' && bill.state !== 'draft'
+    ? new Set(bill.contacts.flatMap((c) => c.items)).size
+    : 0;
+  const progress = itemCount > 0 ? assignedItems / itemCount : 0;
 
   return (
     <Pressable
       onPress={onPress}
-      className="rounded-2xl border border-border bg-card p-4 active:opacity-80"
+      style={{ borderLeftWidth: 3, borderLeftColor: stateStyle.color }}
+      className="rounded-xl bg-card px-4 py-3.5 active:opacity-80"
     >
-      <View className="flex-row items-start justify-between">
-        <View className="flex-1 gap-1">
-          <Text className="text-base font-semibold text-foreground">{bill.name}</Text>
-          <Text className="text-sm text-muted-foreground">{dateStr}</Text>
+      {/* Top row: name + badge */}
+      <View className="flex-row items-center justify-between">
+        <Text className="flex-1 text-base font-bold text-foreground" numberOfLines={1}>
+          {bill.name}
+        </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 5,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 999,
+            backgroundColor: stateStyle.bg,
+          }}
+        >
+          <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: stateStyle.color }} />
+          <Text style={{ fontSize: 10, fontWeight: '600', color: stateStyle.color }}>
+            {stateStyle.label}
+          </Text>
         </View>
-        <StateBadge state={bill.state} />
       </View>
 
-      <View className="mt-4 flex-row items-end justify-between">
-        <Text className="text-2xl font-bold tracking-tight text-foreground">
-          {formatCOP(bill.total)}
-        </Text>
-        {contactCount > 0 && (
-          <View className="flex-row items-center gap-1">
-            <IconSymbol name="person.crop.circle" size={14} color={iconColors.muted} />
-            <Text className="text-sm text-muted-foreground">
-              {contactCount} {contactCount === 1 ? 'person' : 'people'}
-            </Text>
+      {/* Bottom row: amount + meta */}
+      <View className="mt-2 flex-row items-end justify-between">
+        <View>
+          <Text className="text-xl font-extrabold tracking-tight text-foreground">
+            {formatCOP(bill.total)}
+          </Text>
+          <Text className="mt-0.5 text-xs text-muted-foreground">
+            {relativeTime(bill._creationTime)} · {itemCount} {itemCount === 1 ? 'item' : 'items'}
+          </Text>
+        </View>
+
+        {/* Contact avatars or item count */}
+        {contactCount > 0 ? (
+          <View className="flex-row items-center">
+            {bill.contacts.slice(0, 3).map((c, i) => (
+              c.imageUri ? (
+                <Image
+                  key={i}
+                  source={{ uri: c.imageUri }}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    marginLeft: i > 0 ? -8 : 0,
+                    borderWidth: 2,
+                    borderColor: '#1a2540',
+                  }}
+                />
+              ) : (
+                <View
+                  key={i}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: stateStyle.bg,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginLeft: i > 0 ? -8 : 0,
+                    borderWidth: 2,
+                    borderColor: '#1a2540',
+                  }}
+                >
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: stateStyle.color }}>
+                    {c.name[0]?.toUpperCase() ?? '?'}
+                  </Text>
+                </View>
+              )
+            ))}
+            {contactCount > 3 && (
+              <View
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: 'rgba(148,163,184,0.15)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginLeft: -8,
+                  borderWidth: 2,
+                  borderColor: '#1a2540',
+                }}
+              >
+                <Text style={{ fontSize: 9, fontWeight: '700', color: '#8b9cc0' }}>
+                  +{contactCount - 3}
+                </Text>
+              </View>
+            )}
           </View>
-        )}
+        ) : null}
       </View>
+
+      {/* Progress bar for unresolved bills */}
+      {bill.state === 'unresolved' && itemCount > 0 && (
+        <View className="mt-2.5">
+          <View
+            style={{
+              height: 3,
+              borderRadius: 2,
+              backgroundColor: 'rgba(148,163,184,0.15)',
+              overflow: 'hidden',
+            }}
+          >
+            <View
+              style={{
+                height: '100%',
+                width: `${Math.round(progress * 100)}%`,
+                backgroundColor: stateStyle.color,
+                borderRadius: 2,
+              }}
+            />
+          </View>
+          <Text style={{ fontSize: 10, color: '#8b9cc0', marginTop: 3 }}>
+            {assignedItems}/{itemCount} items assigned
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -101,29 +194,50 @@ function FilterChip({
   label,
   active,
   onPress,
+  count,
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
+  count?: number;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      className={`rounded-full px-4 py-2 ${
-        active
-          ? 'bg-primary'
-          : 'border border-border bg-card'
+      className={`flex-row items-center gap-1.5 rounded-full px-3.5 py-1.5 ${
+        active ? 'bg-primary' : 'border border-border bg-card'
       }`}
     >
       <Text
-        className={`text-sm font-medium ${
-          active
-            ? 'text-primary-foreground'
-            : 'text-muted-foreground'
+        className={`text-xs font-semibold ${
+          active ? 'text-primary-foreground' : 'text-muted-foreground'
         }`}
       >
         {label}
       </Text>
+      {count !== undefined && count > 0 && (
+        <View
+          style={{
+            minWidth: 16,
+            height: 16,
+            borderRadius: 8,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: active ? 'rgba(255,255,255,0.25)' : 'rgba(148,163,184,0.2)',
+            paddingHorizontal: 4,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 9,
+              fontWeight: '700',
+              color: active ? '#fff' : '#8b9cc0',
+            }}
+          >
+            {count}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -137,13 +251,46 @@ export default function HomeScreen() {
   const [activeFilter, setActiveFilter] = useState<BillState | 'all'>('all');
 
   const bills = useQuery(api.bills.list, user ? { userId: user.id } : 'skip');
+  const removeBill = useMutation(api.bills.remove);
 
+  const allBills = bills ?? [];
+  const nonDraftBills = allBills.filter((b) => b.state !== 'draft');
   const filteredBills =
     activeFilter === 'all'
-      ? bills ?? []
-      : (bills ?? []).filter((b) => b.state === activeFilter);
+      ? nonDraftBills
+      : allBills.filter((b) => b.state === activeFilter);
 
-  const totalAmount = filteredBills.reduce((sum, b) => sum + b.total, 0);
+  const totalAmount = nonDraftBills.reduce((sum, b) => sum + b.total, 0);
+  const unpaidAmount = nonDraftBills
+    .filter((b) => b.state === 'unresolved')
+    .reduce((sum, b) => {
+      const unpaid = b.contacts.filter((c) => !c.paid).reduce((s, c) => s + c.amount, 0);
+      return sum + unpaid;
+    }, 0);
+
+  // Count per state for filter badges
+  const counts = {
+    draft: allBills.filter((b) => b.state === 'draft').length,
+    unsplit: allBills.filter((b) => b.state === 'unsplit').length,
+    split: allBills.filter((b) => b.state === 'split').length,
+    unresolved: allBills.filter((b) => b.state === 'unresolved').length,
+  };
+
+  const handleDeleteBill = useCallback((billId: string) => {
+    Alert.alert('Delete bill', 'Are you sure? This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await removeBill({ id: billId as any });
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+      },
+    ]);
+  }, [removeBill]);
+
+  const { extractPhotoTime, useLocation: useLocationSetting } = useSettingsStore();
 
   const pickImage = useCallback(async (source: 'camera' | 'library') => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -154,12 +301,21 @@ export default function HomeScreen() {
         Alert.alert('Permission needed', 'Camera access is required to take photos of bills.');
         return;
       }
+
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
         quality: 0.8,
+        exif: extractPhotoTime,
       });
       if (!result.canceled && result.assets[0]) {
-        router.push({ pathname: '/bills/new', params: { imageUri: result.assets[0].uri } } as Href);
+        const asset = result.assets[0];
+        const photoTakenAt = extractPhotoTime ? (asset.exif?.DateTimeOriginal ?? asset.exif?.DateTime) : undefined;
+
+        // Navigate immediately, resolve location in background
+        const params: Record<string, string> = { imageUri: asset.uri };
+        if (photoTakenAt) params.photoTakenAt = String(photoTakenAt);
+        if (useLocationSetting) params.resolveLocation = 'device';
+        router.push({ pathname: '/bills/new', params } as Href);
       }
     } else {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -167,15 +323,32 @@ export default function HomeScreen() {
         Alert.alert('Permission needed', 'Photo library access is required to select bill photos.');
         return;
       }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         quality: 0.8,
+        exif: true,
       });
       if (!result.canceled && result.assets[0]) {
-        router.push({ pathname: '/bills/new', params: { imageUri: result.assets[0].uri } } as Href);
+        const asset = result.assets[0];
+        const photoTakenAt = extractPhotoTime ? (asset.exif?.DateTimeOriginal ?? asset.exif?.DateTime) : undefined;
+        const gpsLat = asset.exif?.GPSLatitude;
+        const gpsLng = asset.exif?.GPSLongitude;
+        const gpsLatRef = asset.exif?.GPSLatitudeRef;
+        const gpsLngRef = asset.exif?.GPSLongitudeRef;
+
+        // Navigate immediately with raw GPS, resolve place name in new.tsx
+        const params: Record<string, string> = { imageUri: asset.uri };
+        if (photoTakenAt) params.photoTakenAt = String(photoTakenAt);
+        if (gpsLat != null && gpsLng != null) {
+          params.latitude = String(gpsLatRef === 'S' ? -gpsLat : gpsLat);
+          params.longitude = String(gpsLngRef === 'W' ? -gpsLng : gpsLng);
+          params.resolveLocation = 'exif';
+        }
+        router.push({ pathname: '/bills/new', params } as Href);
       }
     }
-  }, [router]);
+  }, [router, extractPhotoTime, useLocationSetting]);
 
   const handleFABPress = useCallback(() => {
     if (Platform.OS === 'ios') {
@@ -198,44 +371,69 @@ export default function HomeScreen() {
     }
   }, [pickImage]);
 
-  const handleClearFilter = useCallback(() => {
-    setActiveFilter('all');
-  }, []);
+  const firstName = user?.firstName ?? user?.email?.split('@')[0] ?? 'there';
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
-      <View className="px-5 pb-2 pt-4">
+      <View className="px-5 pb-1 pt-4">
         <View className="flex-row items-center justify-between">
           <View>
-            <Text className="text-3xl font-extrabold tracking-tight text-foreground">
-              Rondas
+            <Text className="text-2xl font-extrabold tracking-tight text-foreground">
+              Hey {firstName} 👋
             </Text>
-            <Text className="mt-0.5 text-sm text-muted-foreground">
-              {filteredBills.length} {filteredBills.length === 1 ? 'bill' : 'bills'} · {formatCOP(totalAmount)}
+            <View className="mt-1 flex-row items-center gap-3">
+              <Text className="text-xs text-muted-foreground">
+                {nonDraftBills.length} {nonDraftBills.length === 1 ? 'bill' : 'bills'}
+              </Text>
+              <Text className="text-xs font-semibold text-foreground">
+                {formatCOP(totalAmount)}
+              </Text>
+              {unpaidAmount > 0 && (
+                <>
+                  <View className="h-3 w-px bg-border" />
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#f59e0b' }}>
+                    {formatCOP(unpaidAmount)} pending
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+          <Pressable
+            onPress={() => router.push('/(tabs)/settings' as Href)}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: 'rgba(56, 189, 248, 0.1)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: iconColors.primary }}>
+              {(user?.firstName?.[0] ?? user?.email?.[0] ?? '?').toUpperCase()}
             </Text>
-          </View>
-          <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-            <IconSymbol name="receipt" size={20} color={iconColors.primary} />
-          </View>
+          </Pressable>
         </View>
       </View>
 
       {/* Filter Bar */}
-      <View className="px-5 py-3">
+      <View className="px-5 py-2.5">
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
-            <FilterChip label="All" active={activeFilter === 'all'} onPress={() => setActiveFilter('all')} />
-            <FilterChip label="Unsplit" active={activeFilter === 'unsplit'} onPress={() => setActiveFilter('unsplit')} />
-            <FilterChip label="Split" active={activeFilter === 'split'} onPress={() => setActiveFilter('split')} />
-            <FilterChip label="Unresolved" active={activeFilter === 'unresolved'} onPress={() => setActiveFilter('unresolved')} />
+            <FilterChip label="All" active={activeFilter === 'all'} onPress={() => setActiveFilter('all')} count={nonDraftBills.length} />
+            {counts.draft > 0 && (
+              <FilterChip label="Draft" active={activeFilter === 'draft'} onPress={() => setActiveFilter('draft')} count={counts.draft} />
+            )}
+            <FilterChip label="Unsplit" active={activeFilter === 'unsplit'} onPress={() => setActiveFilter('unsplit')} count={counts.unsplit} />
+            <FilterChip label="Unresolved" active={activeFilter === 'unresolved'} onPress={() => setActiveFilter('unresolved')} count={counts.unresolved} />
+            <FilterChip label="Split" active={activeFilter === 'split'} onPress={() => setActiveFilter('split')} count={counts.split} />
             {activeFilter !== 'all' && (
               <Pressable
-                onPress={handleClearFilter}
-                className="flex-row items-center gap-1 rounded-full border border-destructive/30 px-3 py-2"
+                onPress={() => setActiveFilter('all')}
+                className="items-center justify-center rounded-full border border-destructive/30 px-3 py-1.5"
               >
                 <IconSymbol name="xmark" size={12} color="#ef4444" />
-                <Text className="text-sm font-medium text-destructive">Clear</Text>
               </Pressable>
             )}
           </View>
@@ -248,31 +446,64 @@ export default function HomeScreen() {
           <Text className="text-sm text-muted-foreground">Loading bills...</Text>
         </View>
       ) : filteredBills.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-5">
-          <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-muted">
-            <IconSymbol name="receipt" size={28} color={iconColors.mutedLight} />
+        <View className="flex-1 items-center justify-center px-8">
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: 'rgba(56, 189, 248, 0.08)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+            }}
+          >
+            <IconSymbol name="receipt" size={32} color={iconColors.primary} />
           </View>
-          <Text className="text-lg font-semibold text-foreground">No bills found</Text>
-          <Text className="mt-1 text-center text-sm text-muted-foreground">
-            Tap + to scan a new bill
+          <Text className="text-lg font-bold text-foreground">No bills yet</Text>
+          <Text className="mt-1.5 text-center text-sm text-muted-foreground">
+            Scan a receipt to get started
           </Text>
+          <Button variant="default" className="mt-5" onPress={handleFABPress}>
+            <IconSymbol name="plus" size={16} color={colorScheme === 'dark' ? '#0c1a2a' : '#fff'} />
+            <Text>Add your first bill</Text>
+          </Button>
         </View>
       ) : (
         <FlashList<Bill>
           data={filteredBills}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
-            <View className="px-5 py-1.5">
-              <BillCard
-                bill={item}
-                iconColors={iconColors}
-                onPress={() => {
-                  // TODO: navigate to bill detail
-                }}
-              />
+            <View className="px-5 py-1">
+              <Swipeable
+                renderRightActions={() => (
+                  <Pressable
+                    onPress={() => handleDeleteBill(item._id)}
+                    style={{
+                      width: 80,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#ef4444',
+                      borderRadius: 12,
+                      marginLeft: 8,
+                    }}
+                  >
+                    <IconSymbol name="xmark" size={18} color="#fff" />
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500', marginTop: 2 }}>Delete</Text>
+                  </Pressable>
+                )}
+                rightThreshold={80}
+                overshootRight={false}
+              >
+                <BillCard
+                  bill={item}
+                  iconColors={iconColors}
+                  onPress={() => router.push(`/bills/${item._id}` as Href)}
+                />
+              </Swipeable>
             </View>
           )}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: 140 }}
           showsVerticalScrollIndicator={false}
         />
       )}
