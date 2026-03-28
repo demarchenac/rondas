@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import ViewShot from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
@@ -17,6 +19,10 @@ import { ICON_COLORS } from '@/constants/colors';
 import { api } from '@/convex/_generated/api';
 import { formatCOP, parseCOP } from '@/lib/format';
 import { toE164 } from '@/lib/phone';
+import { CATEGORY_LABELS, getTaxConfig, type TaxConfig } from '@/constants/taxes';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+import { WhatsAppIcon } from '@/components/icons/whatsapp';
+import { Share2 } from 'lucide-react-native';
 
 type BillState = 'draft' | 'unsplit' | 'split' | 'unresolved';
 
@@ -54,12 +60,21 @@ export default function BillDetailScreen() {
   const assignContact = useMutation(api.bills.assignContactToItem);
   const removeContact = useMutation(api.bills.removeContactFromItem);
   const togglePaid = useMutation(api.bills.togglePaymentStatus);
+  const removeBill = useMutation(api.bills.remove);
+  const removeContactsBatch = useMutation(api.bills.removeContactsFromItems);
+  const { defaultTipPercent } = useSettingsStore();
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [showShareSheet, setShowShareSheet] = useState(false);
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [showUnassignPicker, setShowUnassignPicker] = useState(false);
+  const [phoneContacts, setPhoneContacts] = useState<(Contacts.Contact & { id: string })[]>([]);
+  const [contactSearch, setContactSearch] = useState('');
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+  const [singleAssignItemIndex, setSingleAssignItemIndex] = useState<number | null>(null);
   const swipeOpenRef = useRef(false);
   const assignContactToItems = useMutation(api.bills.assignContactToItems);
   const billRef = useRef(bill);
@@ -128,9 +143,38 @@ export default function BillDetailScreen() {
       Alert.alert('Permission needed', 'Contact access is required to assign people to items.');
       return;
     }
-    try {
-      const contact = await Contacts.presentContactPickerAsync();
-      if (!contact) return;
+
+    const { data } = await Contacts.getContactsAsync({
+      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Image, Contacts.Fields.Name],
+      sort: Contacts.SortTypes.FirstName,
+    });
+    setPhoneContacts(data.filter((c): c is typeof c & { id: string } => !!c.id));
+    setContactSearch('');
+    setSelectedContactIds(new Set());
+    setShowContactPicker(true);
+  }, [selectedItems]);
+
+  const handleConfirmContactPicker = useCallback(async () => {
+    if (selectedContactIds.size === 0 || !bill) return;
+
+    // Determine which items to assign to
+    let itemIds: string[];
+    if (singleAssignItemIndex !== null) {
+      // Single item assignment via + button
+      const itemId = bill.items[singleAssignItemIndex]?.id;
+      if (!itemId) return;
+      itemIds = [itemId];
+    } else {
+      // Bulk assignment via multi-select
+      itemIds = Array.from(selectedItems)
+        .map((idx) => bill.items[idx]?.id)
+        .filter((itemId): itemId is string => !!itemId);
+    }
+    if (itemIds.length === 0) return;
+
+    for (const contactId of selectedContactIds) {
+      const contact = phoneContacts.find((c) => c.id === contactId);
+      if (!contact) continue;
 
       const phone = contact.phoneNumbers?.[0]?.number;
       const name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
@@ -138,16 +182,103 @@ export default function BillDetailScreen() {
 
       await assignContactToItems({
         id: id as Id<'bills'>,
-        itemIndices: Array.from(selectedItems),
+        itemIds,
         contact: { name, phone: phone ?? undefined, imageUri: imageUri ?? undefined },
       });
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setSelectedItems(new Set());
-      setMultiSelectMode(false);
-    } catch (err) {
-      console.error('[MultiAssign] Error:', err);
     }
-  }, [selectedItems, id, assignContactToItems]);
+
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setShowContactPicker(false);
+    setSingleAssignItemIndex(null);
+    setSelectedItems(new Set());
+    setMultiSelectMode(false);
+  }, [selectedContactIds, selectedItems, singleAssignItemIndex, phoneContacts, bill, id, assignContactToItems]);
+
+  const handleBulkDelete = useCallback(() => {
+    if (selectedItems.size === 0 || !bill) return;
+    Alert.alert(
+      'Delete items',
+      `Delete ${selectedItems.size} selected ${selectedItems.size === 1 ? 'item' : 'items'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const selectedIds = new Set(
+              Array.from(selectedItems).map((idx) => bill.items[idx]?.id).filter(Boolean)
+            );
+            const remaining = bill.items.filter((i) => !selectedIds.has(i.id));
+            updateBill({ id: id as Id<'bills'>, items: remaining });
+            setSelectedItems(new Set());
+            setMultiSelectMode(false);
+          },
+        },
+      ]
+    );
+  }, [selectedItems, bill, id, updateBill]);
+
+  const handleBulkRemoveContact = useCallback(() => {
+    if (selectedItems.size === 0 || !bill) return;
+
+    const selectedIds = Array.from(selectedItems).map((idx) => bill.items[idx]?.id).filter(Boolean);
+    const contactsOnSelected = bill.contacts
+      .map((c, ci) => ({ ...c, contactIndex: ci }))
+      .filter((c) => c.items.some((itemId) => selectedIds.includes(itemId)));
+
+    if (contactsOnSelected.length === 0) {
+      Alert.alert('No contacts', 'Selected items have no contacts assigned.');
+      return;
+    }
+
+    if (contactsOnSelected.length === 1) {
+      const c = contactsOnSelected[0];
+      Alert.alert('Remove contact', `Remove ${c.name} from selected items?`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            await removeContactsBatch({
+              id: id as Id<'bills'>,
+              itemIds: selectedIds.filter((i): i is string => !!i),
+              contactNames: [c.name],
+            });
+            setSelectedItems(new Set());
+            setMultiSelectMode(false);
+          },
+        },
+      ]);
+    } else {
+      // Multiple contacts — open picker modal
+      setSelectedContactIds(new Set());
+      setShowUnassignPicker(true);
+    }
+  }, [selectedItems, bill, id, removeContact]);
+
+  const handleConfirmUnassign = useCallback(async () => {
+    if (selectedContactIds.size === 0 || !bill) return;
+
+    const itemIds = Array.from(selectedItems)
+      .map((idx) => bill.items[idx]?.id)
+      .filter((itemId): itemId is string => !!itemId);
+
+    const contactNames = Array.from(selectedContactIds).map((ciStr) => {
+      const ci = parseInt(ciStr, 10);
+      return bill.contacts[ci]?.name;
+    }).filter((n): n is string => !!n);
+
+    await removeContactsBatch({
+      id: id as Id<'bills'>,
+      itemIds,
+      contactNames,
+    });
+
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setShowUnassignPicker(false);
+    setSelectedItems(new Set());
+    setMultiSelectMode(false);
+  }, [selectedContactIds, selectedItems, bill, id, removeContactsBatch]);
 
   const handleAssignContact = useCallback(async (itemIndex: number) => {
     const { status } = await Contacts.requestPermissionsAsync();
@@ -156,32 +287,24 @@ export default function BillDetailScreen() {
       return;
     }
 
-    try {
-      const contact = await Contacts.presentContactPickerAsync();
-      if (!contact) return;
+    const { data } = await Contacts.getContactsAsync({
+      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Image, Contacts.Fields.Name],
+      sort: Contacts.SortTypes.FirstName,
+    });
+    setPhoneContacts(data.filter((c): c is typeof c & { id: string } => !!c.id));
+    setContactSearch('');
+    setSelectedContactIds(new Set());
+    setSingleAssignItemIndex(itemIndex);
+    setShowContactPicker(true);
+  }, []);
 
-      const phone = contact.phoneNumbers?.[0]?.number;
-      const name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
-      const imageUri = contact.image?.uri;
-
-      await assignContact({
-        id: id as Id<'bills'>,
-        itemIndex,
-        contact: { name, phone: phone ?? undefined, imageUri: imageUri ?? undefined },
-      });
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (err) {
-      console.error('[Contact] Error:', err);
-    }
-  }, [id, assignContact]);
-
-  const handleRemoveContact = useCallback((itemIndex: number, contactIndex: number) => {
+  const handleRemoveContact = useCallback((itemId: string, contactIndex: number) => {
     Alert.alert('Remove contact', 'Remove this person from the item?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: () => removeContact({ id: id as Id<'bills'>, itemIndex, contactIndex }),
+        onPress: () => removeContact({ id: id as Id<'bills'>, itemId, contactIndex }),
       },
     ]);
   }, [id, removeContact]);
@@ -191,17 +314,17 @@ export default function BillDetailScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [id, togglePaid]);
 
-  const handleSendWhatsApp = useCallback((contact: { name: string; phone?: string; items: number[]; amount: number }) => {
+  const handleSendWhatsApp = useCallback((contact: { name: string; phone?: string; items: string[]; amount: number }) => {
     if (!bill || !contact.phone) {
       Alert.alert('No phone number', 'This contact has no phone number to send a message to.');
       return;
     }
 
     const itemLines = contact.items
-      .map((idx) => {
-        const item = bill.items[idx];
+      .map((itemId) => {
+        const item = bill.items.find((i) => i.id === itemId);
         if (!item) return null;
-        const numContacts = bill.contacts.filter((c) => c.items.includes(idx)).length;
+        const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
         const share = Math.round(item.subtotal / numContacts);
         return `- ${item.name}: ${formatCOP(share)}`;
       })
@@ -211,6 +334,24 @@ export default function BillDetailScreen() {
     const message = `🧾 *${bill.name}*\n\nYour items:\n${itemLines}\n\n*Your total: ${formatCOP(contact.amount)}*\n\nResumen generado con la app Rondas`;
     const url = `https://wa.me/${toE164(contact.phone)}?text=${encodeURIComponent(message)}`;
     Linking.openURL(url);
+  }, [bill]);
+
+  const infographicRefs = useRef<Record<number, ViewShot | null>>({});
+
+  const handleShareInfographic = useCallback(async (contact: { name: string; items: string[]; amount: number }, contactIndex: number) => {
+    if (!bill) return;
+    const ref = infographicRefs.current[contactIndex];
+    if (!ref?.capture) return;
+
+    try {
+      const uri = await ref.capture();
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        dialogTitle: `Bill summary for ${contact.name}`,
+      });
+    } catch (err) {
+      console.error('[Share] Error:', err);
+    }
   }, [bill]);
 
   // Loading state
@@ -235,7 +376,23 @@ export default function BillDetailScreen() {
 
   const stateStyle = STATE_STYLES[bill.state];
   const subtotal = bill.items.reduce((sum, i) => sum + i.subtotal, 0);
-  const total = subtotal + (bill.tax ?? 0) + (bill.tip ?? 0);
+  const billCountry = (bill.country as 'CO' | 'US') || 'CO';
+  const billCategory = bill.category || 'dining';
+  const taxConfig = getTaxConfig(billCountry, billCategory);
+
+  // Tax: always computed from subtotal for tax-included countries (CO)
+  // For US, use what's stored (from Gemini or user edit)
+  const computedTax = taxConfig.taxIncluded
+    ? Math.round(subtotal * taxConfig.taxRate)
+    : (bill.tax ?? 0);
+
+  // Tip: always computed from subtotal × user's default tip percent
+  const computedTip = Math.round(subtotal * (defaultTipPercent / 100));
+
+  // Total: CO = subtotal + tip (tax already in prices), US = subtotal + tax + tip
+  const total = taxConfig.taxIncluded
+    ? subtotal + computedTip
+    : subtotal + computedTax + computedTip;
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
@@ -252,19 +409,51 @@ export default function BillDetailScreen() {
             className="h-auto border-0 bg-transparent px-0 py-0 text-xl font-bold shadow-none"
           />
         </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            paddingHorizontal: 10,
-            paddingVertical: 4,
-            borderRadius: 999,
-            backgroundColor: stateStyle.bg,
-          }}
-        >
-          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateStyle.dot }} />
-          <Text style={{ fontSize: 11, fontWeight: '600', color: stateStyle.text }}>{stateStyle.label}</Text>
+        <View className="flex-row items-center gap-2">
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 999,
+              backgroundColor: stateStyle.bg,
+            }}
+          >
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateStyle.dot }} />
+            <Text style={{ fontSize: 11, fontWeight: '600', color: stateStyle.text }}>{stateStyle.label}</Text>
+          </View>
+          <Pressable
+            onPress={() => {
+              Alert.alert(
+                'Delete bill',
+                'Are you sure? This cannot be undone.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                      await removeBill({ id: id as Id<'bills'> });
+                      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      router.back();
+                    },
+                  },
+                ]
+              );
+            }}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: 'rgba(239,68,68,0.1)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <IconSymbol name="xmark" size={14} color="#ef4444" />
+          </Pressable>
         </View>
       </View>
 
@@ -273,7 +462,17 @@ export default function BillDetailScreen() {
         contentContainerClassName="pb-8"
         showsVerticalScrollIndicator={false}
       >
-        {/* Location & time metadata */}
+        {/* Category + Location + time metadata */}
+        <View className="mb-1 gap-1 px-7">
+          {bill.category && (
+            <View className="flex-row items-center gap-1.5">
+              <Text style={{ fontSize: 12 }}>{CATEGORY_LABELS[bill.category]?.emoji ?? '📋'}</Text>
+              <Text className="text-xs text-muted-foreground">
+                {CATEGORY_LABELS[bill.category]?.label ?? bill.category}
+              </Text>
+            </View>
+          )}
+        </View>
         {(bill.location?.address || bill.photoTakenAt) && (
           <View className="mb-1 gap-1 px-7">
             {bill.location?.address && (
@@ -307,7 +506,7 @@ export default function BillDetailScreen() {
         <View className="mb-2 flex-row items-center justify-between px-7">
           <Text className="text-xs text-muted-foreground">
             {multiSelectMode
-              ? `${selectedItems.size} selected · Pick a contact to assign`
+              ? `${selectedItems.size} selected`
               : 'Tap item to edit · Tap + to assign contact'}
           </Text>
           <Pressable
@@ -326,7 +525,7 @@ export default function BillDetailScreen() {
             }}
           >
             <Text style={{ fontSize: 11, fontWeight: '600', color: multiSelectMode ? '#38bdf8' : '#8b9cc0' }}>
-              {multiSelectMode ? 'Cancel' : 'Multi-select'}
+              {multiSelectMode ? 'Cancel' : 'Bulk edit'}
             </Text>
           </Pressable>
         </View>
@@ -335,7 +534,7 @@ export default function BillDetailScreen() {
         {bill.items.map((item, index) => {
           const assignedContacts = bill.contacts
             .map((c, ci) => ({ ...c, contactIndex: ci }))
-            .filter((c) => c.items.includes(index));
+            .filter((c) => item.id ? c.items.includes(item.id) : false);
           const isEditing = editingIndex === index;
 
           return (
@@ -443,7 +642,7 @@ export default function BillDetailScreen() {
                         {assignedContacts.map((c) => (
                           <Pressable
                             key={c.contactIndex}
-                            onPress={() => handleRemoveContact(index, c.contactIndex)}
+                            onPress={() => item.id && handleRemoveContact(item.id, c.contactIndex)}
                             style={{
                               flexDirection: 'row',
                               alignItems: 'center',
@@ -513,23 +712,25 @@ export default function BillDetailScreen() {
           <Text className="text-sm font-semibold tabular-nums text-foreground">{formatCOP(subtotal)}</Text>
         </View>
         <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-foreground">Tax (IVA)</Text>
-          <Input
-            value={formatCOP(bill.tax ?? 0)}
-            onChangeText={handleUpdateTax}
-            className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
-            keyboardType="number-pad"
-          />
+          <Text className="text-sm text-foreground">{taxConfig.taxLabel}</Text>
+          {taxConfig.taxIncluded ? (
+            <Text className="text-sm font-semibold tabular-nums text-muted-foreground">
+              {formatCOP(computedTax)}
+            </Text>
+          ) : (
+            <Input
+              value={formatCOP(computedTax)}
+              onChangeText={handleUpdateTax}
+              className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
+              keyboardType="number-pad"
+            />
+          )}
         </View>
         <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-foreground">Tip (Propina)</Text>
-          <Input
-            value={(bill.tip ?? 0) === 0 ? '' : formatCOP(bill.tip ?? 0)}
-            onChangeText={handleUpdateTip}
-            className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
-            placeholder="$0"
-            keyboardType="number-pad"
-          />
+          <Text className="text-sm text-foreground">Tip ({defaultTipPercent}%)</Text>
+          <Text className="text-sm font-semibold tabular-nums text-foreground">
+            {formatCOP(computedTip)}
+          </Text>
         </View>
         <View className="mx-7 h-px bg-border/40" />
         <View className="flex-row items-center justify-between px-7 py-4">
@@ -584,7 +785,22 @@ export default function BillDetailScreen() {
           </View>
 
           <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
-            {bill.contacts.map((contact, ci) => (
+            {bill.contacts.map((contact, ci) => {
+              // Compute per-contact amounts
+              const contactItemAmounts = contact.items.map((itemId) => {
+                const item = bill.items.find((i) => i.id === itemId);
+                if (!item) return 0;
+                const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
+                return Math.round(item.subtotal / numContacts);
+              });
+              const contactSubtotal = contactItemAmounts.reduce((s, a) => s + a, 0);
+              const contactTax = Math.round(contactSubtotal * taxConfig.taxRate);
+              const contactTip = Math.round(contactSubtotal * (defaultTipPercent / 100));
+              const contactTotal = taxConfig.taxIncluded
+                ? contactSubtotal + contactTip
+                : contactSubtotal + contactTax + contactTip;
+
+              return (
               <View key={ci} className="mb-4">
                 {/* Contact header */}
                 <View className="flex-row items-center justify-between">
@@ -615,24 +831,38 @@ export default function BillDetailScreen() {
                     </View>
                   </View>
                   <Text className="text-lg font-bold tabular-nums text-foreground">
-                    {formatCOP(contact.amount)}
+                    {formatCOP(contactTotal)}
                   </Text>
                 </View>
 
                 {/* Contact items — two column */}
                 <View className="ml-[52px] mt-2 flex-row flex-wrap">
-                  {contact.items.map((idx) => {
-                    const item = bill.items[idx];
+                  {contact.items.map((itemId) => {
+                    const item = bill.items.find((i) => i.id === itemId);
                     if (!item) return null;
-                    const numContacts = bill.contacts.filter((c) => c.items.includes(idx)).length;
+                    const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
                     const share = Math.round(item.subtotal / numContacts);
                     return (
-                      <View key={idx} style={{ width: '50%', paddingRight: 8, marginBottom: 4 }}>
+                      <View key={itemId} style={{ width: '50%', paddingRight: 8, marginBottom: 4 }}>
                         <Text className="text-xs text-foreground" numberOfLines={1}>{item.name}</Text>
                         <Text className="text-[11px] text-muted-foreground">{formatCOP(share)}</Text>
                       </View>
                     );
                   })}
+                </View>
+
+                {/* Tax & Tip breakdown */}
+                <View className="ml-[52px] mt-2 gap-1">
+                  <View className="flex-row justify-between">
+                    <Text className="text-[11px] text-muted-foreground">{taxConfig.taxLabel}</Text>
+                    <Text className="text-[11px] text-muted-foreground">{formatCOP(contactTax)}</Text>
+                  </View>
+                  {defaultTipPercent > 0 && (
+                    <View className="flex-row justify-between">
+                      <Text className="text-[11px] text-muted-foreground">Tip ({defaultTipPercent}%)</Text>
+                      <Text className="text-[11px] text-muted-foreground">{formatCOP(contactTip)}</Text>
+                    </View>
+                  )}
                 </View>
 
                 {/* Actions */}
@@ -663,7 +893,7 @@ export default function BillDetailScreen() {
                     </Text>
                   </Pressable>
 
-                  {/* WhatsApp */}
+                  {/* WhatsApp text */}
                   {contact.phone && (
                     <Pressable
                       onPress={() => handleSendWhatsApp(contact)}
@@ -680,10 +910,58 @@ export default function BillDetailScreen() {
                         borderColor: 'rgba(37,211,102,0.3)',
                       }}
                     >
-                      <Text style={{ fontSize: 15 }}>💬</Text>
+                      <WhatsAppIcon size={16} color="#25d366" />
                       <Text style={{ fontSize: 13, fontWeight: '600', color: '#25d366' }}>WhatsApp</Text>
                     </Pressable>
                   )}
+
+                  {/* Share infographic */}
+                  <Pressable
+                    onPress={() => handleShareInfographic(contact, ci)}
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      paddingVertical: 10,
+                      borderRadius: 12,
+                      backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(56, 189, 248, 0.2)',
+                    }}
+                  >
+                    <Share2 size={14} color="#38bdf8" />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#38bdf8' }}>Share</Text>
+                  </Pressable>
+                </View>
+
+                {/* Hidden infographic for capture */}
+                <View style={{ position: 'absolute', left: -9999 }}>
+                  <ViewShot
+                    ref={(ref) => { infographicRefs.current[ci] = ref; }}
+                    options={{ format: 'png', quality: 1 }}
+                  >
+                    <BillInfographic
+                      billName={bill.name}
+                      contactName={contact.name}
+                      contactImageUri={contact.imageUri}
+                      items={contact.items
+                        .map((itemId) => {
+                          const item = bill.items.find((i) => i.id === itemId);
+                          if (!item) return null;
+                          const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
+                          const amount = Math.round(item.subtotal / numContacts);
+                          if (amount === 0) return null;
+                          return { name: item.name, amount };
+                        })
+                        .filter((i): i is { name: string; amount: number } => i !== null)}
+                      taxConfig={taxConfig}
+                      tipPercent={defaultTipPercent}
+                      location={bill.location?.address}
+                      date={bill.photoTakenAt ?? new Date(bill._creationTime).toISOString()}
+                    />
+                  </ViewShot>
                 </View>
 
                 {/* Divider */}
@@ -691,27 +969,298 @@ export default function BillDetailScreen() {
                   <View className="ml-[52px] mt-4 h-px bg-border/40" />
                 )}
               </View>
-            ))}
+              );
+            })}
           </ScrollView>
         </View>
       </Modal>
 
-      {/* Multi-select assign button */}
-      {multiSelectMode && selectedItems.size > 0 && (
-        <View className="border-t border-border/30 px-7 pb-2 pt-3">
-          <Pressable
-            onPress={handleMultiAssign}
-            className="items-center rounded-xl bg-primary py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-2">
-              <IconSymbol name="person.crop.circle" size={18} color={colorScheme === 'dark' ? '#0c1a2a' : '#ffffff'} />
-              <Text style={{ fontSize: 16, fontWeight: '600', color: colorScheme === 'dark' ? '#0c1a2a' : '#ffffff' }}>
-                Assign {selectedItems.size} {selectedItems.size === 1 ? 'item' : 'items'} to contact
-              </Text>
+      {/* Contact picker modal (multi-select) */}
+      <Modal
+        visible={showContactPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => { setShowContactPicker(false); setSingleAssignItemIndex(null); }}
+      >
+        <View className="flex-1 bg-background" style={{ paddingTop: 12, paddingBottom: insets.bottom }}>
+          <View className="items-center pb-2">
+            <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+          </View>
+          <View className="flex-row items-center justify-between px-7 pb-3 pt-2">
+            <Text className="text-xl font-bold text-foreground">Select Contacts</Text>
+            <Pressable onPress={() => { setShowContactPicker(false); setSingleAssignItemIndex(null); }} className="rounded-full bg-muted p-2">
+              <IconSymbol name="xmark" size={14} color={iconColors.muted} />
+            </Pressable>
+          </View>
+
+          {/* Search */}
+          <View className="px-7 pb-3">
+            <TextInput
+              value={contactSearch}
+              onChangeText={setContactSearch}
+              placeholder="Search contacts..."
+              placeholderTextColor="#64748b"
+              style={{
+                backgroundColor: 'rgba(148,163,184,0.08)',
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                fontSize: 15,
+                color: '#e8ecf4',
+              }}
+            />
+          </View>
+
+          <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
+            {phoneContacts
+              .filter((c) => {
+                if (!contactSearch) return true;
+                const name = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase();
+                return name.includes(contactSearch.toLowerCase());
+              })
+              .map((c) => {
+                const isSelected = selectedContactIds.has(c.id!);
+                return (
+                  <Pressable
+                    key={c.id}
+                    onPress={() => {
+                      setSelectedContactIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(c.id!)) next.delete(c.id!);
+                        else next.add(c.id!);
+                        return next;
+                      });
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      gap: 12,
+                    }}
+                  >
+                    <IconSymbol
+                      name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+                      size={22}
+                      color={isSelected ? '#38bdf8' : '#64748b'}
+                    />
+                    {c.image?.uri ? (
+                      <Image source={{ uri: c.image.uri }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                    ) : (
+                      <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(56,189,248,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#38bdf8' }}>
+                          {(c.firstName?.[0] ?? '?').toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <View className="flex-1">
+                      <Text className="text-sm font-medium text-foreground">
+                        {`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || 'Unknown'}
+                      </Text>
+                      {c.phoneNumbers?.[0]?.number && (
+                        <Text className="text-xs text-muted-foreground">{c.phoneNumbers[0].number}</Text>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+          </ScrollView>
+
+          {selectedContactIds.size > 0 && (
+            <View className="border-t border-border/30 px-7 pb-2 pt-3">
+              <Pressable
+                onPress={handleConfirmContactPicker}
+                className="items-center rounded-xl bg-primary py-4 active:opacity-80"
+              >
+                <Text style={{ fontSize: 16, fontWeight: '600', color: colorScheme === 'dark' ? '#0c1a2a' : '#ffffff' }}>
+                  Assign {selectedContactIds.size} {selectedContactIds.size === 1 ? 'contact' : 'contacts'}
+                </Text>
+              </Pressable>
             </View>
-          </Pressable>
+          )}
         </View>
+      </Modal>
+
+      {/* Unassign picker modal (multi-select from bill contacts) */}
+      {bill && (
+        <Modal
+          visible={showUnassignPicker}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowUnassignPicker(false)}
+        >
+          <View className="flex-1 bg-background" style={{ paddingTop: 12, paddingBottom: insets.bottom }}>
+            <View className="items-center pb-2">
+              <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+            </View>
+            <View className="flex-row items-center justify-between px-7 pb-3 pt-2">
+              <Text className="text-xl font-bold text-foreground">Remove Contacts</Text>
+              <Pressable onPress={() => setShowUnassignPicker(false)} className="rounded-full bg-muted p-2">
+                <IconSymbol name="xmark" size={14} color={iconColors.muted} />
+              </Pressable>
+            </View>
+
+            <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
+              {(() => {
+                const selectedIds = Array.from(selectedItems).map((idx) => bill.items[idx]?.id).filter(Boolean);
+                const contactsOnSelected = bill.contacts
+                  .map((c, ci) => ({ ...c, contactIndex: ci }))
+                  .filter((c) => c.items.some((itemId) => selectedIds.includes(itemId)));
+
+                return contactsOnSelected.map((c) => {
+                  const isSelected = selectedContactIds.has(String(c.contactIndex));
+                  const itemCount = c.items.filter((itemId) => selectedIds.includes(itemId)).length;
+                  return (
+                    <Pressable
+                      key={c.contactIndex}
+                      onPress={() => {
+                        setSelectedContactIds((prev) => {
+                          const next = new Set(prev);
+                          const key = String(c.contactIndex);
+                          if (next.has(key)) next.delete(key);
+                          else next.add(key);
+                          return next;
+                        });
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 12,
+                        gap: 12,
+                      }}
+                    >
+                      <IconSymbol
+                        name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+                        size={22}
+                        color={isSelected ? '#ef4444' : '#64748b'}
+                      />
+                      {c.imageUri ? (
+                        <Image source={{ uri: c.imageUri }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                      ) : (
+                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(56,189,248,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={{ fontSize: 14, fontWeight: '700', color: '#38bdf8' }}>
+                            {(c.name[0] ?? '?').toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                      <View className="flex-1">
+                        <Text className="text-sm font-medium text-foreground">{c.name}</Text>
+                        <Text className="text-xs text-muted-foreground">
+                          {itemCount} {itemCount === 1 ? 'item' : 'items'} on selection
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                });
+              })()}
+            </ScrollView>
+
+            {selectedContactIds.size > 0 && (
+              <View className="border-t border-border/30 px-7 pb-2 pt-3">
+                <Pressable
+                  onPress={() => {
+                    Alert.alert(
+                      'Confirm removal',
+                      `Remove ${selectedContactIds.size} ${selectedContactIds.size === 1 ? 'contact' : 'contacts'} from selected items?`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Remove', style: 'destructive', onPress: handleConfirmUnassign },
+                      ]
+                    );
+                  }}
+                  style={{
+                    alignItems: 'center',
+                    paddingVertical: 16,
+                    borderRadius: 14,
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(239, 68, 68, 0.3)',
+                  }}
+                >
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#ef4444' }}>
+                    Remove {selectedContactIds.size} {selectedContactIds.size === 1 ? 'contact' : 'contacts'}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </Modal>
       )}
+
+      {/* Bulk edit toolbar */}
+      {multiSelectMode && selectedItems.size > 0 && (() => {
+        const selectedIds = Array.from(selectedItems).map((idx) => bill.items[idx]?.id).filter(Boolean);
+        const hasContacts = bill.contacts.some((c) =>
+          c.items.some((itemId) => selectedIds.includes(itemId))
+        );
+
+        return (
+          <View className="border-t border-border/30 px-7 pb-2 pt-3">
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {/* Assign contact */}
+              <Pressable
+                onPress={handleMultiAssign}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(56, 189, 248, 0.2)',
+                }}
+              >
+                <IconSymbol name="person.crop.circle" size={16} color="#38bdf8" />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#38bdf8' }}>Assign</Text>
+              </Pressable>
+
+              {/* Remove contact — only if any selected item has contacts */}
+              {hasContacts && (
+                <Pressable
+                  onPress={handleBulkRemoveContact}
+                  style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(245, 158, 11, 0.2)',
+                  }}
+                >
+                  <IconSymbol name="person.crop.circle" size={16} color="#f59e0b" />
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#f59e0b' }}>Unassign</Text>
+                </Pressable>
+              )}
+
+              {/* Delete items */}
+              <Pressable
+                onPress={handleBulkDelete}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(239, 68, 68, 0.2)',
+                }}
+              >
+                <IconSymbol name="xmark" size={14} color="#ef4444" />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#ef4444' }}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        );
+      })()}
 
       {/* Confirm button for draft bills */}
       {!multiSelectMode && bill.state === 'draft' && (
@@ -733,6 +1282,203 @@ export default function BillDetailScreen() {
           </Pressable>
         </View>
       )}
+    </View>
+  );
+}
+
+function ReceiptDashedLine() {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 14 }}>
+      {Array.from({ length: 40 }).map((_, i) => (
+        <View key={i} style={{ flex: 1, height: 2, backgroundColor: i % 2 === 0 ? '#cbd5e1' : 'transparent', marginHorizontal: 1 }} />
+      ))}
+    </View>
+  );
+}
+
+const PERF_SIZE = 10;
+const PERF_GAP = 6;
+const PERF_COLOR = '#dfe4ea';
+const PERF_STEP = PERF_SIZE + PERF_GAP; // 16px center to center
+
+function BillInfographic({
+  billName,
+  contactName,
+  contactImageUri,
+  items,
+  taxConfig: infTaxConfig,
+  tipPercent,
+  location,
+  date,
+}: {
+  billName: string;
+  contactName: string;
+  contactImageUri?: string;
+  items: { name: string; amount: number }[];
+  taxConfig: TaxConfig;
+  tipPercent: number;
+  location?: string;
+  date: string;
+}) {
+  const d = new Date(date);
+  const isValidDate = !isNaN(d.getTime());
+  const dateStr = isValidDate
+    ? d.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+    : '';
+
+  const contactSubtotal = items.reduce((sum, i) => sum + i.amount, 0);
+  const contactTax = Math.round(contactSubtotal * infTaxConfig.taxRate);
+  const contactTip = Math.round(contactSubtotal * (tipPercent / 100));
+  const contactTotal = infTaxConfig.taxIncluded
+    ? contactSubtotal + contactTip
+    : contactSubtotal + contactTax + contactTip;
+
+  const hCount = Math.floor(408 / PERF_STEP); // horizontal circles count (width - padding)
+  const vCount = 40; // vertical circles — generous, will be clipped by overflow
+
+  return (
+    <View style={{ width: 420, backgroundColor: PERF_COLOR, padding: PERF_SIZE / 2 + 2 }}>
+      {/* Receipt paper */}
+      <View style={{ backgroundColor: '#ffffff', overflow: 'hidden' }}>
+        {/* Top perforations */}
+        <View style={{ position: 'absolute', top: -(PERF_SIZE / 2), left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-evenly', zIndex: 2 }}>
+          {Array.from({ length: hCount }).map((_, i) => (
+            <View key={`t${i}`} style={{ width: PERF_SIZE, height: PERF_SIZE, borderRadius: PERF_SIZE / 2, backgroundColor: PERF_COLOR }} />
+          ))}
+        </View>
+        {/* Bottom perforations */}
+        <View style={{ position: 'absolute', bottom: -(PERF_SIZE / 2), left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-evenly', zIndex: 2 }}>
+          {Array.from({ length: hCount }).map((_, i) => (
+            <View key={`b${i}`} style={{ width: PERF_SIZE, height: PERF_SIZE, borderRadius: PERF_SIZE / 2, backgroundColor: PERF_COLOR }} />
+          ))}
+        </View>
+        {/* Left perforations */}
+        <View style={{ position: 'absolute', left: -(PERF_SIZE / 2), top: 0, bottom: 0, justifyContent: 'space-evenly', zIndex: 2 }}>
+          {Array.from({ length: vCount }).map((_, i) => (
+            <View key={`l${i}`} style={{ width: PERF_SIZE, height: PERF_SIZE, borderRadius: PERF_SIZE / 2, backgroundColor: PERF_COLOR }} />
+          ))}
+        </View>
+        {/* Right perforations */}
+        <View style={{ position: 'absolute', right: -(PERF_SIZE / 2), top: 0, bottom: 0, justifyContent: 'space-evenly', zIndex: 2 }}>
+          {Array.from({ length: vCount }).map((_, i) => (
+            <View key={`r${i}`} style={{ width: PERF_SIZE, height: PERF_SIZE, borderRadius: PERF_SIZE / 2, backgroundColor: PERF_COLOR }} />
+          ))}
+        </View>
+
+        {/* Content */}
+        <View style={{ paddingHorizontal: 32, paddingTop: 32, paddingBottom: 24 }}>
+          {/* App brand */}
+          <View style={{ alignItems: 'center', marginBottom: 4 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#0a7ea4', letterSpacing: 3, textTransform: 'uppercase' }}>
+              Rondas
+            </Text>
+          </View>
+
+          <ReceiptDashedLine />
+
+          {/* Restaurant name */}
+          <View style={{ alignItems: 'center', marginBottom: 4 }}>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: '#0f172a', textAlign: 'center' }}>
+              {billName}
+            </Text>
+            {location && !location.startsWith(billName) && (
+              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 4, textAlign: 'center' }} numberOfLines={2}>
+                {location}
+              </Text>
+            )}
+            {dateStr && (
+              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+                {dateStr}
+              </Text>
+            )}
+          </View>
+
+          <ReceiptDashedLine />
+
+          {/* Bill for contact */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            {contactImageUri ? (
+              <Image source={{ uri: contactImageUri }} style={{ width: 28, height: 28, borderRadius: 14 }} />
+            ) : (
+              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b' }}>
+                  {contactName[0]?.toUpperCase() ?? '?'}
+                </Text>
+              </View>
+            )}
+            <View>
+              <Text style={{ fontSize: 8, color: '#94a3b8', fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' }}>Bill for</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#0f172a' }}>{contactName}</Text>
+            </View>
+          </View>
+
+          {/* Column headers */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+            <Text style={{ fontSize: 8, fontWeight: '600', color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase' }}>Item</Text>
+            <Text style={{ fontSize: 8, fontWeight: '600', color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase' }}>Amount</Text>
+          </View>
+
+          {/* Items */}
+          {items.map((item, i) => (
+            <View
+              key={i}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingVertical: 8,
+                borderBottomWidth: i < items.length - 1 ? 1 : 0,
+                borderBottomColor: '#f1f5f9',
+              }}
+            >
+              <Text style={{ fontSize: 13, color: '#334155', flex: 1, marginRight: 12 }} numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a' }}>
+                {formatCOP(item.amount)}
+              </Text>
+            </View>
+          ))}
+
+          {/* Subtotal */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+            <Text style={{ fontSize: 11, color: '#94a3b8' }}>Subtotal</Text>
+            <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>{formatCOP(contactSubtotal)}</Text>
+          </View>
+
+          {/* Tax */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+            <Text style={{ fontSize: 11, color: '#94a3b8' }}>{infTaxConfig.taxLabel}</Text>
+            <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>{formatCOP(contactTax)}</Text>
+          </View>
+
+          {/* Tip */}
+          {tipPercent > 0 && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+              <Text style={{ fontSize: 11, color: '#94a3b8' }}>Tip ({tipPercent}%)</Text>
+              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>{formatCOP(contactTip)}</Text>
+            </View>
+          )}
+
+          <ReceiptDashedLine />
+
+          {/* Total */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: '#0f172a' }}>TOTAL</Text>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: '#0f172a' }}>
+              {formatCOP(contactTotal)}
+            </Text>
+          </View>
+
+          <ReceiptDashedLine />
+
+          {/* Footer */}
+          <View style={{ alignItems: 'center', paddingTop: 4 }}>
+            <Text style={{ fontSize: 9, color: '#94a3b8' }}>Split bills, not friendships</Text>
+            <Text style={{ fontSize: 8, color: '#cbd5e1', marginTop: 4 }}>rondas.app</Text>
+          </View>
+        </View>
+      </View>
     </View>
   );
 }
