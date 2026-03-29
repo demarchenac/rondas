@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 import type { Doc } from '@/convex/_generated/dataModel';
 import { Text } from '@/components/ui/text';
+import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/format';
 import { relativeTime } from '@/lib/date';
 import { STATE_STYLES, stateLabel, type BillState } from '@/lib/billHelpers';
@@ -36,22 +37,9 @@ function BillCard({ bill, onPress, t }: BillCardProps) {
         <Text className="flex-1 text-base font-bold text-foreground" numberOfLines={1}>
           {bill.name}
         </Text>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 5,
-            paddingHorizontal: 8,
-            paddingVertical: 3,
-            borderRadius: 999,
-            backgroundColor: stateStyle.bg,
-          }}
-        >
-          <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: stateStyle.color }} />
-          <Text style={{ fontSize: 10, fontWeight: '600', color: stateStyle.color }}>
-            {label}
-          </Text>
-        </View>
+        <Badge variant={bill.state as BillState}>
+          <Text>{label}</Text>
+        </Badge>
       </View>
 
       {/* Bottom row: amount + meta */}

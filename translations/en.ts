@@ -35,6 +35,7 @@ export const en = {
   home_noBills: 'No bills yet',
   home_noBillsHint: 'Scan a receipt to get started',
   home_addFirstBill: 'Add your first bill',
+  home_loadMore: 'Load more',
   home_addBill: 'Add Bill',
   home_addBillHow: 'How would you like to add a bill?',
   home_takePhoto: 'Take Photo',

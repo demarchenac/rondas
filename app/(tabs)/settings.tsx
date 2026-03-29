@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, Switch, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SegmentedControl, SettingsRow, SettingsSection } from '@/components/settings';
 import { TipSelector } from '@/components/TipSelector';
+import USStatePicker from '@/components/settings/USStatePicker';
 import { ICON_COLORS } from '@/constants/colors';
 import { useThemeStore, type ThemeMode } from '@/stores/useThemeStore';
 import { useSettingsStore, type Language } from '@/stores/useSettingsStore';
@@ -29,6 +30,7 @@ export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const t = useT();
   const updateConfigMutation = useMutation(api.users.updateConfig);
+  const [statePickerVisible, setStatePickerVisible] = useState(false);
 
   const syncConfig = useCallback(() => {
     if (!user) return;
@@ -167,20 +169,7 @@ export default function SettingsScreen() {
           {country === 'US' && (
             <SettingsRow icon="map.fill" iconColor="#6366f1" label={t.settings_state}>
               <Pressable
-                onPress={() => {
-                  const states = Object.entries(US_STATE_RATES).map(([code, { name }]) => ({ code, name }));
-                  Alert.alert(
-                    t.settings_selectState,
-                    undefined,
-                    [
-                      ...states.map(({ code, name }) => ({
-                        text: `${name} (${code})`,
-                        onPress: () => handleUsStateChange(code),
-                      })),
-                      { text: t.cancel, style: 'cancel' as const },
-                    ]
-                  );
-                }}
+                onPress={() => setStatePickerVisible(true)}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -197,6 +186,14 @@ export default function SettingsScreen() {
                 <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
               </Pressable>
             </SettingsRow>
+          )}
+          {country === 'US' && (
+            <USStatePicker
+              visible={statePickerVisible}
+              selected={usState}
+              onSelect={handleUsStateChange}
+              onClose={() => setStatePickerVisible(false)}
+            />
           )}
           <View className="px-4 py-3.5 border-t border-border">
             <TipSelector value={defaultTipPercent} onSelect={handleTipChange} />

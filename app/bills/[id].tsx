@@ -52,16 +52,13 @@ export default function BillDetailScreen() {
   const removeBill = useMutation(api.bills.remove);
   const removeContactsBatch = useMutation(api.bills.removeContactsFromItems);
   type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
+  type DialogType = 'tip' | 'country' | 'share' | 'contactPicker' | 'unassignPicker' | null;
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [showTipDialog, setShowTipDialog] = useState(false);
-  const [showCountryDialog, setShowCountryDialog] = useState(false);
+  const [activeDialog, setActiveDialog] = useState<DialogType>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [sortStrategy, setSortStrategy] = useState<SortStrategy>('original');
-  const [showShareSheet, setShowShareSheet] = useState(false);
-  const [showContactPicker, setShowContactPicker] = useState(false);
-  const [showUnassignPicker, setShowUnassignPicker] = useState(false);
   const [phoneContacts, setPhoneContacts] = useState<(Contacts.Contact & { id: string })[]>([]);
   const [contactSearch, setContactSearch] = useState('');
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
@@ -137,7 +134,7 @@ export default function BillDetailScreen() {
     setPhoneContacts(data.filter((c): c is typeof c & { id: string } => !!c.id));
     setContactSearch('');
     setSelectedContactIds(new Set());
-    setShowContactPicker(true);
+    setActiveDialog('contactPicker');
   }, [selectedItemIds, t]);
 
   const handleConfirmContactPicker = useCallback(async () => {
@@ -169,7 +166,7 @@ export default function BillDetailScreen() {
     }
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setShowContactPicker(false);
+    setActiveDialog(null);
     setSingleAssignItemId(null);
     setSelectedItemIds(new Set());
     setMultiSelectMode(false);
@@ -231,7 +228,7 @@ export default function BillDetailScreen() {
     } else {
       // Multiple contacts — open picker modal
       setSelectedContactIds(new Set());
-      setShowUnassignPicker(true);
+      setActiveDialog('unassignPicker');
     }
   }, [selectedItemIds, bill, id, removeContact, t]);
 
@@ -253,7 +250,7 @@ export default function BillDetailScreen() {
     });
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setShowUnassignPicker(false);
+    setActiveDialog(null);
     setSelectedItemIds(new Set());
     setMultiSelectMode(false);
   }, [selectedContactIds, selectedItemIds, bill, id, removeContactsBatch]);
@@ -273,7 +270,7 @@ export default function BillDetailScreen() {
     setContactSearch('');
     setSelectedContactIds(new Set());
     setSingleAssignItemId(itemId);
-    setShowContactPicker(true);
+    setActiveDialog('contactPicker');
   }, [t]);
 
   const handleRemoveContact = useCallback((itemId: string, contactIndex: number) => {
@@ -506,7 +503,7 @@ export default function BillDetailScreen() {
 
         {/* Country row */}
         <Pressable
-          onPress={() => setShowCountryDialog(true)}
+          onPress={() => setActiveDialog('country')}
           className="mb-1 px-7"
         >
           <View className="flex-row items-center gap-1.5">
@@ -777,7 +774,7 @@ export default function BillDetailScreen() {
         </View>
         <Pressable
           className="flex-row items-center justify-between px-7 py-3 active:bg-muted/30"
-          onPress={() => setShowTipDialog(true)}
+          onPress={() => setActiveDialog('tip')}
         >
           <View className="flex-row items-center gap-1">
             <Text className="text-sm text-foreground">{t.bill_tip(tipPercent)}</Text>
@@ -799,7 +796,7 @@ export default function BillDetailScreen() {
       {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
         <View className="border-t border-border/30 px-7 pb-2 pt-3">
           <Pressable
-            onPress={() => setShowShareSheet(true)}
+            onPress={() => setActiveDialog('share')}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -821,7 +818,7 @@ export default function BillDetailScreen() {
       )}
 
       <BillShareSheet
-        visible={showShareSheet}
+        visible={activeDialog === 'share'}
         bill={bill}
         billCountry={billCountry}
         taxConfig={taxConfig}
@@ -832,11 +829,11 @@ export default function BillDetailScreen() {
         onTogglePaid={handleTogglePaid}
         onSendWhatsApp={handleSendWhatsApp}
         onShareInfographic={handleShareInfographic}
-        onClose={() => setShowShareSheet(false)}
+        onClose={() => setActiveDialog(null)}
       />
 
       <ContactPickerSheet
-        visible={showContactPicker}
+        visible={activeDialog === 'contactPicker'}
         phoneContacts={phoneContacts}
         contactSearch={contactSearch}
         selectedContactIds={selectedContactIds}
@@ -851,12 +848,12 @@ export default function BillDetailScreen() {
           });
         }}
         onConfirm={handleConfirmContactPicker}
-        onClose={() => { setShowContactPicker(false); setSingleAssignItemId(null); }}
+        onClose={() => { setActiveDialog(null); setSingleAssignItemId(null); }}
       />
 
       {bill && (
         <UnassignPickerSheet
-          visible={showUnassignPicker}
+          visible={activeDialog === 'unassignPicker'}
           contacts={bill.contacts.map((c, contactIdx) => ({ ...c, contactIndex: contactIdx }))}
           selectedItemIds={selectedItemIds}
           selectedContactIds={selectedContactIds}
@@ -870,30 +867,30 @@ export default function BillDetailScreen() {
             });
           }}
           onConfirm={handleConfirmUnassign}
-          onClose={() => setShowUnassignPicker(false)}
+          onClose={() => setActiveDialog(null)}
         />
       )}
 
       <TipDialog
-        visible={showTipDialog}
+        visible={activeDialog === 'tip'}
         tipPercent={tipPercent}
         subtotal={subtotal}
         billCountry={billCountry}
         onSelectTip={async (pct, newTip) => {
           await updateBill({ id: id as Id<'bills'>, userId, tipPercent: pct, tip: newTip });
-          setShowTipDialog(false);
+          setActiveDialog(null);
         }}
-        onClose={() => setShowTipDialog(false)}
+        onClose={() => setActiveDialog(null)}
       />
 
       <CountryDialog
-        visible={showCountryDialog}
+        visible={activeDialog === 'country'}
         billCountry={billCountry}
         onSelectCountry={async (code) => {
           await updateBill({ id: id as Id<'bills'>, userId, country: code });
-          setShowCountryDialog(false);
+          setActiveDialog(null);
         }}
-        onClose={() => setShowCountryDialog(false)}
+        onClose={() => setActiveDialog(null)}
       />
 
       {multiSelectMode && selectedItemIds.size > 0 && (

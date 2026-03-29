@@ -7,7 +7,7 @@ import { useRouter, type Href } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useQuery, useMutation } from 'convex/react';
+import { usePaginatedQuery, useMutation } from 'convex/react';
 import type { Doc } from '@/convex/_generated/dataModel';
 
 import { Text } from '@/components/ui/text';
@@ -35,7 +35,11 @@ export default function HomeScreen() {
   const t = useT();
   const [activeFilter, setActiveFilter] = useState<BillState | 'all'>('all');
 
-  const bills = useQuery(api.bills.list, user ? { userId: user.id } : 'skip');
+  const { results: bills, status: paginationStatus, loadMore } = usePaginatedQuery(
+    api.bills.list,
+    user ? { userId: user.id } : 'skip',
+    { initialNumItems: 20 },
+  );
   const removeBill = useMutation(api.bills.remove);
 
   const allBills = bills ?? [];
@@ -228,7 +232,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Bill List */}
-      {bills === undefined ? (
+      {paginationStatus === 'LoadingFirstPage' ? (
         <View className="flex-1 items-center justify-center">
           <Text className="text-sm text-muted-foreground">{t.loading}</Text>
         </View>
@@ -292,6 +296,15 @@ export default function HomeScreen() {
           )}
           contentContainerStyle={{ paddingBottom: 140 }}
           showsVerticalScrollIndicator={false}
+          ListFooterComponent={
+            paginationStatus === 'CanLoadMore' ? (
+              <View className="items-center py-4">
+                <Button variant="outline" onPress={() => loadMore(20)}>
+                  <Text>{t.home_loadMore}</Text>
+                </Button>
+              </View>
+            ) : null
+          }
         />
       )}
 

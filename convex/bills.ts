@@ -1,4 +1,5 @@
 import { mutation, query } from './_generated/server';
+import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 import {
   billStateValidator,
@@ -16,13 +17,14 @@ function assertMaxLength(value: string, max: number, field: string) {
 export const list = query({
   args: {
     userId: v.string(),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     return await ctx.db
       .query('bills')
       .withIndex('by_user', (q) => q.eq('userId', args.userId))
       .order('desc')
-      .collect();
+      .paginate(args.paginationOpts);
   },
 });
 
@@ -30,6 +32,7 @@ export const listByState = query({
   args: {
     userId: v.string(),
     state: billStateValidator,
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -38,7 +41,7 @@ export const listByState = query({
         q.eq('userId', args.userId).eq('state', args.state)
       )
       .order('desc')
-      .collect();
+      .paginate(args.paginationOpts);
   },
 });
 
