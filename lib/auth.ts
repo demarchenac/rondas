@@ -2,11 +2,13 @@ import '@/lib/polyfills';
 import * as SecureStore from 'expo-secure-store';
 import { getRandomValues, digestStringAsync, CryptoDigestAlgorithm } from 'expo-crypto';
 
-const WORKOS_CLIENT_ID = process.env.EXPO_PUBLIC_WORKOS_CLIENT_ID!;
+import { ENV } from '@/constants/env';
+
+const WORKOS_CLIENT_ID = ENV.WORKOS_CLIENT_ID;
 const WORKOS_API_BASE = 'https://api.workos.com';
 const PKCE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-export const REDIRECT_URI = 'rondas://callback';
+export const REDIRECT_URI = ENV.REDIRECT_URI;
 
 const KEYS = {
   SESSION: 'workos_session',

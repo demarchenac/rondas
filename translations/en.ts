@@ -11,6 +11,10 @@ export const en = {
   back: 'Go Back',
   or: 'or',
 
+  // Tabs
+  tabs_home: 'Home',
+  tabs_settings: 'Settings',
+
   // Auth / Login
   auth_appName: 'Rondas',
   auth_tagline: 'Split bills, not friendships',

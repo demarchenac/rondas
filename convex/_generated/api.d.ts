@@ -14,6 +14,7 @@ import type * as notifications from "../notifications.js";
 import type * as scans from "../scans.js";
 import type * as uploads from "../uploads.js";
 import type * as users from "../users.js";
+import type * as validators from "../validators.js";
 
 import type {
   ApiFromModules,
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   scans: typeof scans;
   uploads: typeof uploads;
   users: typeof users;
+  validators: typeof validators;
 }>;
 
 /**

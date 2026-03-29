@@ -74,7 +74,7 @@ export default function BillDetailScreen() {
   const handleRemoveItem = useCallback((itemId: string) => {
     const currentBill = billRef.current;
     if (!currentBill) return;
-    const remaining = currentBill.items.filter((i) => i.id !== itemId);
+    const remaining = currentBill.items.filter((billItem) => billItem.id !== itemId);
     setDeletingId(itemId);
     setTimeout(() => {
       updateBill({ id: id as Id<'bills'>, userId, items: remaining });
@@ -186,7 +186,7 @@ export default function BillDetailScreen() {
           text: t.delete,
           style: 'destructive',
           onPress: () => {
-            const remaining = bill.items.filter((i) => !selectedItemIds.has(i.id!));
+            const remaining = bill.items.filter((billItem) => !selectedItemIds.has(billItem.id!));
             updateBill({ id: id as Id<'bills'>, userId, items: remaining });
             setSelectedItemIds(new Set());
             setMultiSelectMode(false);
@@ -201,7 +201,7 @@ export default function BillDetailScreen() {
 
     const selectedIds = Array.from(selectedItemIds);
     const contactsOnSelected = bill.contacts
-      .map((c, ci) => ({ ...c, contactIndex: ci }))
+      .map((c, contactIdx) => ({ ...c, contactIndex: contactIdx }))
       .filter((c) => c.items.some((itemId) => selectedIds.includes(itemId)));
 
     if (contactsOnSelected.length === 0) {
@@ -220,7 +220,7 @@ export default function BillDetailScreen() {
             await removeContactsBatch({
               id: id as Id<'bills'>,
               userId,
-              itemIds: selectedIds.filter((i): i is string => !!i),
+              itemIds: selectedIds.filter((itemId): itemId is string => !!itemId),
               contactNames: [c.name],
             });
             setSelectedItemIds(new Set());
@@ -241,9 +241,9 @@ export default function BillDetailScreen() {
     const itemIds = Array.from(selectedItemIds);
 
     const contactNames = Array.from(selectedContactIds).map((ciStr) => {
-      const ci = parseInt(ciStr, 10);
-      return bill.contacts[ci]?.name;
-    }).filter((n): n is string => !!n);
+      const contactIdx = parseInt(ciStr, 10);
+      return bill.contacts[contactIdx]?.name;
+    }).filter((contactName): contactName is string => !!contactName);
 
     await removeContactsBatch({
       id: id as Id<'bills'>,
@@ -302,7 +302,7 @@ export default function BillDetailScreen() {
 
     const itemLines = contact.items
       .map((itemId) => {
-        const item = bill.items.find((i) => i.id === itemId);
+        const item = bill.items.find((billItem) => billItem.id === itemId);
         if (!item) return null;
         const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
         const share = Math.round(item.subtotal / numContacts);
@@ -368,7 +368,7 @@ export default function BillDetailScreen() {
 
   const stateStyle = STATE_STYLES[bill.state];
   const stateLabel = t[STATE_LABEL_KEYS[bill.state]] as string;
-  const subtotal = bill.items.reduce((sum, i) => sum + i.subtotal, 0);
+  const subtotal = bill.items.reduce((sum, billItem) => sum + billItem.subtotal, 0);
   const billCountry = (bill.country as 'CO' | 'US') || 'CO';
   const billCategory = bill.category || 'dining';
   const taxConfig = getTaxConfig(billCountry, billCategory);
@@ -574,7 +574,7 @@ export default function BillDetailScreen() {
         {sortedItems.map((item, index) => {
           const itemId = item.id!;
           const assignedContacts = bill.contacts
-            .map((c, ci) => ({ ...c, contactIndex: ci }))
+            .map((c, contactIdx) => ({ ...c, contactIndex: contactIdx }))
             .filter((c) => c.items.includes(itemId));
           const isEditing = editingItemId === itemId;
 
@@ -849,7 +849,7 @@ export default function BillDetailScreen() {
       {bill && (
         <UnassignPickerSheet
           visible={showUnassignPicker}
-          contacts={bill.contacts.map((c, ci) => ({ ...c, contactIndex: ci }))}
+          contacts={bill.contacts.map((c, contactIdx) => ({ ...c, contactIndex: contactIdx }))}
           selectedItemIds={selectedItemIds}
           selectedContactIds={selectedContactIds}
           bottomInset={insets.bottom}

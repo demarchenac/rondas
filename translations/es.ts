@@ -13,6 +13,10 @@ export const es: typeof en = {
   back: 'Volver',
   or: 'o',
 
+  // Tabs
+  tabs_home: 'Inicio',
+  tabs_settings: 'Configuración',
+
   // Auth / Login
   auth_appName: 'Rondas',
   auth_tagline: 'Divide cuentas, no amistades',
