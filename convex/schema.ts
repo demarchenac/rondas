@@ -44,6 +44,8 @@ export default defineSchema({
     country: v.optional(v.string()),
     photoTakenAt: v.optional(v.string()),
     location: v.optional(locationValidator),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   })
     .index('by_user', ['userId'])
     .index('by_user_state', ['userId', 'state']),

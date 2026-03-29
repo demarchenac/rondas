@@ -80,11 +80,14 @@ export const create = mutation({
       ...item,
       id: crypto.randomUUID(),
     }));
+    const now = Date.now();
     return await ctx.db.insert('bills', {
       ...args,
       items,
       state: 'draft',
       contacts: [],
+      createdAt: now,
+      updatedAt: now,
     });
   },
 });
@@ -163,6 +166,7 @@ export const update = mutation({
       ...defined,
       contacts,
       total: newTotal,
+      updatedAt: Date.now(),
     });
   },
 });
