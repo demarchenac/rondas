@@ -14,6 +14,7 @@ import { ConvexProvider } from 'convex/react';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { convex } from '@/lib/convex';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import OfflineBanner from '@/components/OfflineBanner';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
@@ -54,6 +55,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>
+        <OfflineBanner />
         <KeyboardProvider>
           <AuthProvider>
             <RootLayoutNav />

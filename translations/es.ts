@@ -38,6 +38,7 @@ export const es: typeof en = {
   home_noBillsHint: 'Escanea un recibo para comenzar',
   home_addFirstBill: 'Agrega tu primera factura',
   home_loadMore: 'Cargar más',
+  offline_banner: 'Sin conexión a internet',
   home_addBill: 'Agregar factura',
   home_addBillHow: '¿Cómo quieres agregar la factura?',
   home_takePhoto: 'Tomar foto',

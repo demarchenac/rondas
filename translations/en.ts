@@ -36,6 +36,7 @@ export const en = {
   home_noBillsHint: 'Scan a receipt to get started',
   home_addFirstBill: 'Add your first bill',
   home_loadMore: 'Load more',
+  offline_banner: 'No internet connection',
   home_addBill: 'Add Bill',
   home_addBillHow: 'How would you like to add a bill?',
   home_takePhoto: 'Take Photo',
