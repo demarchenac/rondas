@@ -299,12 +299,12 @@ export default function HomeScreen() {
         text: t.delete,
         style: 'destructive',
         onPress: async () => {
-          await removeBill({ id: billId as any });
+          await removeBill({ id: billId as any, userId: user!.id });
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         },
       },
     ]);
-  }, [removeBill, t]);
+  }, [removeBill, t, user]);
 
   const { extractPhotoTime, useLocation: useLocationSetting, country } = useSettingsStore();
 

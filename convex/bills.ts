@@ -36,9 +36,11 @@ export const listByState = query({
 });
 
 export const get = query({
-  args: { id: v.id('bills') },
+  args: { id: v.id('bills'), userId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const bill = await ctx.db.get(args.id);
+    if (bill && bill.userId !== args.userId) return null;
+    return bill;
   },
 });
 
@@ -83,8 +85,11 @@ export const create = mutation({
 });
 
 export const remove = mutation({
-  args: { id: v.id('bills') },
+  args: { id: v.id('bills'), userId: v.string() },
   handler: async (ctx, args) => {
+    const bill = await ctx.db.get(args.id);
+    if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
     await ctx.db.delete(args.id);
   },
 });
@@ -94,6 +99,7 @@ export const remove = mutation({
 export const update = mutation({
   args: {
     id: v.id('bills'),
+    userId: v.string(),
     name: v.optional(v.string()),
     state: v.optional(
       v.union(v.literal('draft'), v.literal('unsplit'), v.literal('split'), v.literal('unresolved'))
@@ -116,7 +122,7 @@ export const update = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const { id, ...patches } = args;
+    const { id, userId, ...patches } = args;
     const defined = Object.fromEntries(
       Object.entries(patches).filter(([, val]) => val !== undefined)
     );
@@ -125,6 +131,7 @@ export const update = mutation({
     // If items, tax, or tip changed, recalculate contact amounts and total
     const bill = await ctx.db.get(id);
     if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== userId) throw new Error('Not authorized');
 
     // Backfill IDs for items created before the id field was added
     const billItems = bill.items.map((item) => ({
@@ -205,6 +212,7 @@ function recalculateAmounts(
 export const assignContactToItem = mutation({
   args: {
     id: v.id('bills'),
+    userId: v.string(),
     itemId: v.string(),
     contact: v.object({
       name: v.string(),
@@ -215,6 +223,7 @@ export const assignContactToItem = mutation({
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
 
     const contacts = [...bill.contacts];
 
@@ -255,6 +264,7 @@ export const assignContactToItem = mutation({
 export const assignContactToItems = mutation({
   args: {
     id: v.id('bills'),
+    userId: v.string(),
     itemIds: v.array(v.string()),
     contact: v.object({
       name: v.string(),
@@ -265,6 +275,7 @@ export const assignContactToItems = mutation({
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
 
     const contacts = [...bill.contacts];
 
@@ -305,12 +316,14 @@ export const assignContactToItems = mutation({
 export const removeContactFromItem = mutation({
   args: {
     id: v.id('bills'),
+    userId: v.string(),
     itemId: v.string(),
     contactIndex: v.number(),
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
 
     let contacts = [...bill.contacts];
     const contact = contacts[args.contactIndex];
@@ -335,12 +348,14 @@ export const removeContactFromItem = mutation({
 export const removeContactsFromItems = mutation({
   args: {
     id: v.id('bills'),
+    userId: v.string(),
     itemIds: v.array(v.string()),
     contactNames: v.array(v.string()),
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
 
     let contacts = bill.contacts.map((c) => ({
       ...c,
@@ -359,11 +374,13 @@ export const removeContactsFromItems = mutation({
 export const togglePaymentStatus = mutation({
   args: {
     id: v.id('bills'),
+    userId: v.string(),
     contactIndex: v.number(),
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
 
     const contacts = [...bill.contacts];
     const contact = contacts[args.contactIndex];

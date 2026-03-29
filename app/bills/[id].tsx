@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { api } from '@/convex/_generated/api';
+import { useAuth } from '@/lib/AuthContext';
 import { formatCurrency, parseCurrency } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import type { Translations } from '@/lib/i18n';
@@ -92,8 +93,10 @@ export default function BillDetailScreen() {
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const t = useT();
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
 
-  const bill = useQuery(api.bills.get, { id: id as Id<'bills'> });
+  const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
   const updateBill = useMutation(api.bills.update);
   const assignContact = useMutation(api.bills.assignContactToItem);
   const removeContact = useMutation(api.bills.removeContactFromItem);
@@ -126,7 +129,7 @@ export default function BillDetailScreen() {
     const remaining = currentBill.items.filter((i) => i.id !== itemId);
     setDeletingId(itemId);
     setTimeout(() => {
-      updateBill({ id: id as Id<'bills'>, items: remaining });
+      updateBill({ id: id as Id<'bills'>, userId, items: remaining });
       setDeletingId(null);
     }, 300);
   }, [id, updateBill]);
@@ -151,15 +154,15 @@ export default function BillDetailScreen() {
       }
       return updated;
     });
-    updateBill({ id: id as Id<'bills'>, items });
+    updateBill({ id: id as Id<'bills'>, userId, items });
   }, [bill, id, updateBill]);
 
   const handleUpdateTax = useCallback((value: string) => {
-    updateBill({ id: id as Id<'bills'>, tax: parseCurrency(value) });
+    updateBill({ id: id as Id<'bills'>, userId, tax: parseCurrency(value) });
   }, [id, updateBill]);
 
   const handleUpdateTip = useCallback((value: string) => {
-    updateBill({ id: id as Id<'bills'>, tip: parseCurrency(value) });
+    updateBill({ id: id as Id<'bills'>, userId, tip: parseCurrency(value) });
   }, [id, updateBill]);
 
   const toggleItemSelection = useCallback((itemId: string) => {
@@ -211,6 +214,7 @@ export default function BillDetailScreen() {
 
       await assignContactToItems({
         id: id as Id<'bills'>,
+        userId,
         itemIds,
         contact: { name, phone: phone ?? undefined, imageUri: imageUri ?? undefined },
       });
@@ -235,7 +239,7 @@ export default function BillDetailScreen() {
           style: 'destructive',
           onPress: () => {
             const remaining = bill.items.filter((i) => !selectedItemIds.has(i.id!));
-            updateBill({ id: id as Id<'bills'>, items: remaining });
+            updateBill({ id: id as Id<'bills'>, userId, items: remaining });
             setSelectedItemIds(new Set());
             setMultiSelectMode(false);
           },
@@ -267,6 +271,7 @@ export default function BillDetailScreen() {
           onPress: async () => {
             await removeContactsBatch({
               id: id as Id<'bills'>,
+              userId,
               itemIds: selectedIds.filter((i): i is string => !!i),
               contactNames: [c.name],
             });
@@ -294,6 +299,7 @@ export default function BillDetailScreen() {
 
     await removeContactsBatch({
       id: id as Id<'bills'>,
+      userId,
       itemIds,
       contactNames,
     });
@@ -328,13 +334,13 @@ export default function BillDetailScreen() {
       {
         text: t.remove,
         style: 'destructive',
-        onPress: () => removeContact({ id: id as Id<'bills'>, itemId, contactIndex }),
+        onPress: () => removeContact({ id: id as Id<'bills'>, userId, itemId, contactIndex }),
       },
     ]);
   }, [id, removeContact, t]);
 
   const handleTogglePaid = useCallback(async (contactIndex: number) => {
-    await togglePaid({ id: id as Id<'bills'>, contactIndex });
+    await togglePaid({ id: id as Id<'bills'>, userId, contactIndex });
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [id, togglePaid]);
 
@@ -445,7 +451,7 @@ export default function BillDetailScreen() {
         <View className="flex-1">
           <Input
             value={bill.name}
-            onChangeText={(text) => updateBill({ id: id as Id<'bills'>, name: text })}
+            onChangeText={(text) => updateBill({ id: id as Id<'bills'>, userId, name: text })}
             className="h-auto border-0 bg-transparent px-0 py-0 text-xl font-bold shadow-none"
           />
         </View>
@@ -475,7 +481,7 @@ export default function BillDetailScreen() {
                     text: t.delete,
                     style: 'destructive',
                     onPress: async () => {
-                      await removeBill({ id: id as Id<'bills'> });
+                      await removeBill({ id: id as Id<'bills'>, userId });
                       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                       router.back();
                     },
@@ -1298,7 +1304,7 @@ export default function BillDetailScreen() {
                       key={pct}
                       onPress={async () => {
                         const newTip = Math.round(subtotal * (pct / 100));
-                        await updateBill({ id: id as Id<'bills'>, tipPercent: pct, tip: newTip });
+                        await updateBill({ id: id as Id<'bills'>, userId, tipPercent: pct, tip: newTip });
                         setShowTipDialog(false);
                       }}
                       style={{
@@ -1356,7 +1362,7 @@ export default function BillDetailScreen() {
                     <Pressable
                       key={option.code}
                       onPress={async () => {
-                        await updateBill({ id: id as Id<'bills'>, country: option.code });
+                        await updateBill({ id: id as Id<'bills'>, userId, country: option.code });
                         setShowCountryDialog(false);
                       }}
                       style={{
@@ -1476,7 +1482,7 @@ export default function BillDetailScreen() {
         <View className="border-t border-border/30 px-7 pb-2 pt-3">
           <Pressable
             onPress={async () => {
-              await updateBill({ id: id as Id<'bills'>, state: 'unsplit' });
+              await updateBill({ id: id as Id<'bills'>, userId, state: 'unsplit' });
               await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               router.back();
             }}
