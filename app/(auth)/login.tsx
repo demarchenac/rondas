@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/lib/AuthContext';
+import { useT } from '@/lib/i18n';
 import { ICON_COLORS } from '@/constants/colors';
 
 export default function LoginScreen() {
@@ -16,6 +17,7 @@ export default function LoginScreen() {
   const { signIn, loading } = useAuth();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
 
   const handleSignIn = async (provider?: string) => {
@@ -41,10 +43,10 @@ export default function LoginScreen() {
             <IconSymbol name="receipt" size={48} color={iconColors.primary} />
           </View>
           <Text className="text-4xl font-extrabold tracking-tight text-foreground">
-            Rondas
+            {t.auth_appName}
           </Text>
           <Text className="text-center text-base text-muted-foreground">
-            Split bills, not friendships
+            {t.auth_tagline}
           </Text>
         </View>
 
@@ -59,13 +61,13 @@ export default function LoginScreen() {
             onPress={() => handleSignIn()}
           >
             <IconSymbol name="envelope.fill" size={18} color="#fff" />
-            <Text>Sign in with Email</Text>
+            <Text>{t.auth_signInEmail}</Text>
           </Button>
 
           {/* Divider */}
           <View className="flex-row items-center gap-3 py-1">
             <View className="h-px flex-1 bg-border" />
-            <Text className="text-xs text-muted-foreground">or</Text>
+            <Text className="text-xs text-muted-foreground">{t.or}</Text>
             <View className="h-px flex-1 bg-border" />
           </View>
 
@@ -82,7 +84,7 @@ export default function LoginScreen() {
               size={18}
               color={colorScheme === 'dark' ? '#e8ecf4' : '#0f172a'}
             />
-            <Text>Sign in with Apple</Text>
+            <Text>{t.auth_signInApple}</Text>
           </Button>
 
           {/* Google */}
@@ -98,7 +100,7 @@ export default function LoginScreen() {
               size={16}
               color={colorScheme === 'dark' ? '#e8ecf4' : '#0f172a'}
             />
-            <Text>Sign in with Google</Text>
+            <Text>{t.auth_signInGoogle}</Text>
           </Button>
         </View>
 
@@ -115,7 +117,7 @@ export default function LoginScreen() {
       {/* Footer */}
       <View className="items-center pb-4">
         <Text className="text-xs text-muted-foreground">
-          By continuing, you agree to our Terms of Service
+          {t.auth_terms}
         </Text>
       </View>
 

@@ -16,18 +16,30 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
-import { formatCOP } from '@/lib/format';
+import { formatCurrency } from '@/lib/format';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useT } from '@/lib/i18n';
+import type { Translations } from '@/lib/i18n';
 
 type Bill = Doc<'bills'>;
 type BillState = 'draft' | 'unsplit' | 'split' | 'unresolved';
 
-const STATE_STYLES: Record<BillState, { label: string; color: string; bg: string }> = {
-  draft: { label: 'Draft', color: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
-  unsplit: { label: 'Unsplit', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
-  split: { label: 'Split', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
-  unresolved: { label: 'Unresolved', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+const STATE_STYLES: Record<BillState, { color: string; bg: string }> = {
+  draft: { color: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
+  unsplit: { color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
+  split: { color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
+  unresolved: { color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
 };
+
+function stateLabel(t: Translations, state: BillState): string {
+  const map: Record<BillState, string> = {
+    draft: t.state_draft,
+    unsplit: t.state_unsplit,
+    split: t.state_split,
+    unresolved: t.state_unresolved,
+  };
+  return map[state];
+}
 
 function relativeTime(timestamp: number): string {
   const now = Date.now();
@@ -47,12 +59,15 @@ function BillCard({
   bill,
   iconColors,
   onPress,
+  t,
 }: {
   bill: Bill;
   iconColors: typeof ICON_COLORS.light;
   onPress: () => void;
+  t: Translations;
 }) {
   const stateStyle = STATE_STYLES[bill.state];
+  const label = stateLabel(t, bill.state);
   const contactCount = bill.contacts.length;
   const itemCount = bill.items.length;
   const assignedItems = bill.state !== 'unsplit' && bill.state !== 'draft'
@@ -84,7 +99,7 @@ function BillCard({
         >
           <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: stateStyle.color }} />
           <Text style={{ fontSize: 10, fontWeight: '600', color: stateStyle.color }}>
-            {stateStyle.label}
+            {label}
           </Text>
         </View>
       </View>
@@ -93,10 +108,10 @@ function BillCard({
       <View className="mt-2 flex-row items-end justify-between">
         <View>
           <Text className="text-xl font-extrabold tracking-tight text-foreground">
-            {formatCOP(bill.total)}
+            {formatCurrency(bill.total, bill.country)}
           </Text>
           <Text className="mt-0.5 text-xs text-muted-foreground">
-            {relativeTime(bill._creationTime)} · {itemCount} {itemCount === 1 ? 'item' : 'items'}
+            {relativeTime(bill._creationTime)} · {t.billCard_items(itemCount)}
           </Text>
         </View>
 
@@ -182,7 +197,7 @@ function BillCard({
             />
           </View>
           <Text style={{ fontSize: 10, color: '#8b9cc0', marginTop: 3 }}>
-            {assignedItems}/{itemCount} items assigned
+            {t.billCard_assigned(assignedItems, itemCount)}
           </Text>
         </View>
       )}
@@ -248,6 +263,7 @@ export default function HomeScreen() {
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const router = useRouter();
   const { user } = useAuth();
+  const t = useT();
   const [activeFilter, setActiveFilter] = useState<BillState | 'all'>('all');
 
   const bills = useQuery(api.bills.list, user ? { userId: user.id } : 'skip');
@@ -277,10 +293,10 @@ export default function HomeScreen() {
   };
 
   const handleDeleteBill = useCallback((billId: string) => {
-    Alert.alert('Delete bill', 'Are you sure? This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t.home_deleteBill, t.home_deleteConfirm, [
+      { text: t.cancel, style: 'cancel' },
       {
-        text: 'Delete',
+        text: t.delete,
         style: 'destructive',
         onPress: async () => {
           await removeBill({ id: billId as any });
@@ -288,9 +304,9 @@ export default function HomeScreen() {
         },
       },
     ]);
-  }, [removeBill]);
+  }, [removeBill, t]);
 
-  const { extractPhotoTime, useLocation: useLocationSetting } = useSettingsStore();
+  const { extractPhotoTime, useLocation: useLocationSetting, country } = useSettingsStore();
 
   const pickImage = useCallback(async (source: 'camera' | 'library') => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -298,7 +314,7 @@ export default function HomeScreen() {
     if (source === 'camera') {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission needed', 'Camera access is required to take photos of bills.');
+        Alert.alert(t.home_permissionNeeded, t.home_permissionCamera);
         return;
       }
 
@@ -320,7 +336,7 @@ export default function HomeScreen() {
     } else {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission needed', 'Photo library access is required to select bill photos.');
+        Alert.alert(t.home_permissionNeeded, t.home_permissionLibrary);
         return;
       }
 
@@ -348,13 +364,13 @@ export default function HomeScreen() {
         router.push({ pathname: '/bills/new', params } as Href);
       }
     }
-  }, [router, extractPhotoTime, useLocationSetting]);
+  }, [router, extractPhotoTime, useLocationSetting, t]);
 
   const handleFABPress = useCallback(() => {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          options: [t.cancel, t.home_takePhoto, t.home_chooseLibrary],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
@@ -363,13 +379,13 @@ export default function HomeScreen() {
         }
       );
     } else {
-      Alert.alert('Add Bill', 'How would you like to add a bill?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Take Photo', onPress: () => pickImage('camera') },
-        { text: 'Choose from Library', onPress: () => pickImage('library') },
+      Alert.alert(t.home_addBill, t.home_addBillHow, [
+        { text: t.cancel, style: 'cancel' },
+        { text: t.home_takePhoto, onPress: () => pickImage('camera') },
+        { text: t.home_chooseLibrary, onPress: () => pickImage('library') },
       ]);
     }
-  }, [pickImage]);
+  }, [pickImage, t]);
 
   const firstName = user?.firstName ?? user?.email?.split('@')[0] ?? 'there';
 
@@ -380,20 +396,20 @@ export default function HomeScreen() {
         <View className="flex-row items-center justify-between">
           <View>
             <Text className="text-2xl font-extrabold tracking-tight text-foreground">
-              Hey {firstName} 👋
+              {t.home_greeting(firstName)}
             </Text>
             <View className="mt-1 flex-row items-center gap-3">
               <Text className="text-xs text-muted-foreground">
-                {nonDraftBills.length} {nonDraftBills.length === 1 ? 'bill' : 'bills'}
+                {t.home_billCount(nonDraftBills.length)}
               </Text>
               <Text className="text-xs font-semibold text-foreground">
-                {formatCOP(totalAmount)}
+                {formatCurrency(totalAmount, country)}
               </Text>
               {unpaidAmount > 0 && (
                 <>
                   <View className="h-3 w-px bg-border" />
                   <Text style={{ fontSize: 11, fontWeight: '600', color: '#f59e0b' }}>
-                    {formatCOP(unpaidAmount)} pending
+                    {t.home_pending(formatCurrency(unpaidAmount, country))}
                   </Text>
                 </>
               )}
@@ -421,13 +437,13 @@ export default function HomeScreen() {
       <View className="px-5 py-2.5">
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
-            <FilterChip label="All" active={activeFilter === 'all'} onPress={() => setActiveFilter('all')} count={nonDraftBills.length} />
+            <FilterChip label={t.filter_all} active={activeFilter === 'all'} onPress={() => setActiveFilter('all')} count={nonDraftBills.length} />
             {counts.draft > 0 && (
-              <FilterChip label="Draft" active={activeFilter === 'draft'} onPress={() => setActiveFilter('draft')} count={counts.draft} />
+              <FilterChip label={t.filter_draft} active={activeFilter === 'draft'} onPress={() => setActiveFilter('draft')} count={counts.draft} />
             )}
-            <FilterChip label="Unsplit" active={activeFilter === 'unsplit'} onPress={() => setActiveFilter('unsplit')} count={counts.unsplit} />
-            <FilterChip label="Unresolved" active={activeFilter === 'unresolved'} onPress={() => setActiveFilter('unresolved')} count={counts.unresolved} />
-            <FilterChip label="Split" active={activeFilter === 'split'} onPress={() => setActiveFilter('split')} count={counts.split} />
+            <FilterChip label={t.filter_unsplit} active={activeFilter === 'unsplit'} onPress={() => setActiveFilter('unsplit')} count={counts.unsplit} />
+            <FilterChip label={t.filter_unresolved} active={activeFilter === 'unresolved'} onPress={() => setActiveFilter('unresolved')} count={counts.unresolved} />
+            <FilterChip label={t.filter_split} active={activeFilter === 'split'} onPress={() => setActiveFilter('split')} count={counts.split} />
             {activeFilter !== 'all' && (
               <Pressable
                 onPress={() => setActiveFilter('all')}
@@ -443,7 +459,7 @@ export default function HomeScreen() {
       {/* Bill List */}
       {bills === undefined ? (
         <View className="flex-1 items-center justify-center">
-          <Text className="text-sm text-muted-foreground">Loading bills...</Text>
+          <Text className="text-sm text-muted-foreground">{t.loading}</Text>
         </View>
       ) : filteredBills.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
@@ -460,13 +476,13 @@ export default function HomeScreen() {
           >
             <IconSymbol name="receipt" size={32} color={iconColors.primary} />
           </View>
-          <Text className="text-lg font-bold text-foreground">No bills yet</Text>
+          <Text className="text-lg font-bold text-foreground">{t.home_noBills}</Text>
           <Text className="mt-1.5 text-center text-sm text-muted-foreground">
-            Scan a receipt to get started
+            {t.home_noBillsHint}
           </Text>
           <Button variant="default" className="mt-5" onPress={handleFABPress}>
             <IconSymbol name="plus" size={16} color={colorScheme === 'dark' ? '#0c1a2a' : '#fff'} />
-            <Text>Add your first bill</Text>
+            <Text>{t.home_addFirstBill}</Text>
           </Button>
         </View>
       ) : (
@@ -489,7 +505,7 @@ export default function HomeScreen() {
                     }}
                   >
                     <IconSymbol name="xmark" size={18} color="#fff" />
-                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500', marginTop: 2 }}>Delete</Text>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500', marginTop: 2 }}>{t.delete}</Text>
                   </Pressable>
                 )}
                 rightThreshold={80}
@@ -499,6 +515,7 @@ export default function HomeScreen() {
                   bill={item}
                   iconColors={iconColors}
                   onPress={() => router.push(`/bills/${item._id}` as Href)}
+                  t={t}
                 />
               </Swipeable>
             </View>
