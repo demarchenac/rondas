@@ -19,8 +19,6 @@ export async function resolvePlace(
   latitude: number,
   longitude: number
 ): Promise<PlaceResult | null> {
-  console.log(`[Places] Resolving ${latitude.toFixed(4)}, ${longitude.toFixed(4)} | Google key: ${GOOGLE_PLACES_API_KEY ? 'set' : 'NOT SET'}`);
-
   // Step 1: Try native reverse geocode
   try {
     const [geo] = await Location.reverseGeocodeAsync({ latitude, longitude });
@@ -44,11 +42,9 @@ export async function resolvePlace(
         if (GOOGLE_PLACES_API_KEY) {
           const gResult = await searchGooglePlaces(geo.name!, city, latitude, longitude);
           if (gResult) {
-            console.log(`[Places] Google > Native | Native: ${geo.name} | Google: ${gResult.name}`);
             return { name: gResult.name, address: gResult.address || address, city: gResult.city || city, country: gResult.country || country };
           }
         }
-        console.log(`[Places] Native business | ${geo.name}`);
         return { name: geo.name!, address, city, country };
       }
 
@@ -56,27 +52,19 @@ export async function resolvePlace(
       if (GOOGLE_PLACES_API_KEY) {
         const gResult = await searchGooglePlaces(geo.name ?? geo.street ?? '', city, latitude, longitude);
         if (gResult) {
-          console.log(`[Places] Google found | ${gResult.name} | from: ${geo.name}`);
           return { name: gResult.name, address: gResult.address || address, city: gResult.city || city, country: gResult.country || country };
         }
-        console.log(`[Places] Google: no result | Native: ${geo.name}`);
       }
 
-      // Return native result as fallback
-      console.log(`[Places] Fallback to native | ${geo.name}`);
       return { name: geo.name ?? geo.street ?? 'Unknown', address, city, country };
     }
   } catch (err) {
-    console.log(`[Places] Native geocode failed: ${err}`);
   }
 
   // Step 2: If native fails entirely, try Google directly
   if (GOOGLE_PLACES_API_KEY) {
     const gResult = await searchGooglePlaces('', undefined, latitude, longitude);
-    if (gResult) {
-      console.log(`[Places] Google direct | ${gResult.name}`);
-      return gResult;
-    }
+    if (gResult) return gResult;
   }
 
   return null;
