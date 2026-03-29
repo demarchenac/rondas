@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2026-03-29 (session 3)
+> Last updated: 2026-03-29 (session 4 — codebase review)
 
 ---
 
@@ -39,8 +39,9 @@
 ### 1.4 State & Data Layer
 
 - [x] Install and configure Zustand
-- [x] Install and configure TanStack Query with QueryClientProvider
+- [x] ~~Install and configure TanStack Query with QueryClientProvider~~ (removed — Convex handles all data)
 - [x] Install TanStack Form and Zod
+- [x] Add env validation via `requireEnv()` in `constants/env.ts`
 
 ### 1.5 Backend — Convex
 
@@ -121,6 +122,7 @@
 - [x] Build `BillCard` component (name, date, total, state badge)
 - [x] Render bills list using `FlashList`
 - [x] Add empty state UI when no bills exist
+- [x] Add paginated bill queries with `usePaginatedQuery` + "Load more"
 
 ### 3.3 Bill State Badge
 
@@ -233,6 +235,11 @@
 - [x] Create `update` mutation for name, items, tax, tip, state
 - [x] `computeBillState` helper for auto state transitions
 - [x] `recalculateAmounts` helper for proportional splitting
+- [x] Add ownership verification (`userId`) to all bill queries/mutations
+- [x] Add input sanitization (max string lengths) to mutations
+- [x] Fix rounding remainder distribution in `recalculateAmounts`
+- [x] Extract shared validators to `convex/validators.ts`
+- [x] Add `createdAt`/`updatedAt` timestamps to bills
 
 ---
 
@@ -330,7 +337,7 @@
 ### 8.4 Billing Settings
 
 - [x] Country picker (Colombia / USA) with segmented control
-- [x] US state selector (51 options via Alert)
+- [x] US state selector (modal picker with search — replaced Alert)
 - [x] Default tip percentage chips (0%, 5%, 10%, 15%, 18%, 20%)
 - [x] Tax constants per country + receipt category
 - [x] Per-bill currency formatting (COP / USD suffix)
@@ -387,10 +394,12 @@
 
 ### 10.1 Error Handling
 
-- [ ] Add global error boundary
-- [ ] Add empty states for all list screens
+- [x] Add global error boundary
+- [x] Add empty states for all list screens
 - [ ] Add error states for failed API calls with retry buttons
-- [ ] Add offline detection banner
+- [x] Add offline detection banner
+- [x] Add retry logic to email/WhatsApp notifications
+- [x] Add 60s timeout to Gemini API calls
 
 ### 10.2 Loading States
 
@@ -417,18 +426,67 @@
 
 ---
 
+## Codebase Review Refactoring (Session 4)
+
+### Component Decomposition
+
+- [x] Decompose `[id].tsx` from 1757→875 lines (8 extracted components)
+- [x] Extract BillCard, FilterChip from home screen to `components/bills/`
+- [x] Extract SwipeableItem, KeyboardDoneButton from new bill screen
+- [x] Extract TipSelector shared component (dedup setup + settings)
+- [x] Extract relativeTime, parseExifDate to `lib/date.ts`
+- [x] Extract STATE_STYLES, getTaxLabel, getCategoryLabel to `lib/billHelpers.ts`
+- [x] Create Avatar component with CVA size variants
+- [x] Add bill-state CVA variants to Badge component
+- [x] Convert FilterChip to CVA-based active/inactive variants
+- [x] Create USStatePicker modal (replaced Alert.alert)
+- [x] Create ErrorBoundary component
+- [x] Create OfflineBanner component
+- [x] Extract auth redirect logic to `hooks/useAuthRedirect.ts`
+- [x] Consolidate 5 dialog booleans into single `activeDialog` state
+
+### Styling Cleanup
+
+- [x] Convert ~130 inline `style` instances to `cn()` + Tailwind classes
+- [x] Replace all hardcoded hex/rgba colors with CSS token classes
+- [x] Eliminate all `colorScheme === 'dark'` ternary patterns
+- [x] Extend ICON_COLORS with primaryForeground, foreground, destructive, pro
+- [x] Add `--color-state-draft` tokens to global.css
+- [x] STATE_STYLES now provides Tailwind class strings (borderClass, bgClass, etc.)
+- [x] Use `cn()` consistently for all conditional classNames
+- [x] Replace inline fontSize/fontWeight with Tailwind text/font classes
+- [x] Add React.memo to BillCard, FilterChip, SettingsRow, TipSelector
+
+### Code Quality
+
+- [x] Rename single-letter variables (ci→contactIdx, n→contactName, i→billItem)
+- [x] Replace nested ternaries with switch-based `getScanStatusLabel()` helper
+- [x] Split 56-line `pickImage` into `pickFromCamera`/`pickFromLibrary`
+- [x] Add `useMemo` for derived bill computations in `[id].tsx`
+- [x] Remove deprecated `constants/theme.ts` and unused `use-theme-color` hook
+- [x] Unify IconSymbol style prop type to `StyleProp<ViewStyle>`
+- [x] Add image compression constants (`IMAGE_MAX_WIDTH`, `IMAGE_QUALITY`)
+- [x] Add Gemini model env var fallback
+- [x] Internationalize tab titles (Home/Settings)
+- [x] Document all env vars in `.env.example`
+- [x] Move redirect URI to `constants/env.ts`
+- [x] Update all rules docs (project-structure, styling, backend, state-data)
+
+---
+
 ## Progress Summary
 
 | Phase                             | Total Tasks | Done  |
 | --------------------------------- | ----------- | ----- |
-| Phase 1 — Setup                   | 37          | 34    |
+| Phase 1 — Setup                   | 38          | 35    |
 | Phase 2 — Auth Screens            | 11          | 11    |
-| Phase 3 — Home Screen             | 18          | 16    |
+| Phase 3 — Home Screen             | 19          | 17    |
 | Phase 4 — Bill Creation & AI      | 34          | 33    |
-| Phase 5 — Bill Splitting          | 16          | 14    |
+| Phase 5 — Bill Splitting          | 21          | 19    |
 | Phase 6 — Summary & Notifications | 10          | 8     |
 | Phase 7 — Bill Detail & History   | 28          | 26    |
 | Phase 8 — Settings                | 24          | 23    |
 | Phase 9 — Subscriptions           | 12          | 0     |
-| Phase 10 — Polish & Launch        | 14          | 0     |
-| **Total**                         | **204**     | **165**|
+| Phase 10 — Polish & Launch        | 16          | 5     |
+| Codebase Review Refactoring       | 48          | 48    |
+| **Total**                         | **261**     | **225**|
