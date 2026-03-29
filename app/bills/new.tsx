@@ -21,7 +21,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useAction, useMutation } from 'convex/react';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import { randomUUID } from 'expo-crypto';
 
 import { Text } from '@/components/ui/text';
@@ -32,8 +32,10 @@ import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
 import { resolvePlace } from '@/lib/places';
-import { getTaxConfig } from '@/constants/taxes';
+import { computeTax, getTaxConfig } from '@/constants/taxes';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { formatCurrency, parseCurrency } from '@/lib/format';
+import { useT } from '@/lib/i18n';
 
 interface BillItem {
   id: string;
@@ -55,36 +57,15 @@ interface ExtractedBill {
   total: number;
 }
 
-function formatCOP(amount: number): string {
-  return `$${amount.toLocaleString('es-CO')}`;
-}
-
-function parseCOP(text: string): number {
-  return Math.round(Number(text.replace(/[^0-9]/g, '')) || 0);
-}
-
-function deduplicateItems(items: BillItem[]): BillItem[] {
-  const grouped = new Map<string, BillItem>();
-
-  for (const item of items) {
-    const key = item.name.toLowerCase().trim();
-    if (!key) continue;
-
-    const existing = grouped.get(key);
-    if (existing) {
-      existing.quantity += item.quantity;
-      existing.subtotal += item.subtotal;
-    } else {
-      grouped.set(key, { ...item });
-    }
-  }
-
-  return Array.from(grouped.values()).map((item) => ({
-    ...item,
-    id: item.id || generateItemId(),
-    name: item.name.trim().toLowerCase().replace(/^\w/, (c) => c.toUpperCase()),
-    unitPrice: Math.round(item.subtotal / item.quantity),
-  }));
+function prepareItems(items: BillItem[]): BillItem[] {
+  return items
+    .filter((item) => item.name.trim() !== '')
+    .map((item) => ({
+      ...item,
+      id: item.id || generateItemId(),
+      name: item.name.trim().replace(/^\w/, (c) => c.toUpperCase()),
+      unitPrice: item.quantity > 0 ? Math.round(item.subtotal / item.quantity) : item.subtotal,
+    }));
 }
 
 export default function NewBillScreen() {
@@ -100,9 +81,18 @@ export default function NewBillScreen() {
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { user } = useAuth();
+  const t = useT();
+  const { country } = useSettingsStore();
 
   const extractItems = useAction(api.ai.extractBillItems);
+  const createScan = useMutation(api.scans.createScan);
+  const deleteScan = useMutation(api.scans.deleteScan);
   const createBill = useMutation(api.bills.create);
+  const [scanId, setScanId] = useState<string | null>(null);
+  const scanProgress = useQuery(
+    api.scans.getScan,
+    scanId ? { id: scanId as any } : 'skip'
+  );
 
   // Resolve place name in background
   const [placeData, setPlaceData] = useState<{
@@ -173,12 +163,12 @@ export default function NewBillScreen() {
   // Prevent dismiss when bill data exists — shows confirmation alert
   usePreventRemove(!!bill, ({ data }) => {
     Alert.alert(
-      'Discard changes?',
-      'You have unsaved items. Leaving will discard your progress and you\'ll need to scan the bill again, which uses your available scans.',
+      t.scan_discardTitle,
+      t.scan_discardMessage,
       [
-        { text: 'Keep editing', style: 'cancel' },
+        { text: t.scan_keepEditing, style: 'cancel' },
         {
-          text: 'Discard',
+          text: t.scan_discard,
           style: 'destructive',
           onPress: () => navigation.dispatch(data.action),
         },
@@ -213,19 +203,22 @@ export default function NewBillScreen() {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg' });
-      const dedupedItems = deduplicateItems(
+      const newScanId = await createScan({ userId: user!.id });
+      setScanId(newScanId);
+
+      const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg', scanId: newScanId });
+      const preparedItems = prepareItems(
         result.items.map((item) => ({ ...item, id: generateItemId() }))
       );
 
       const { country, defaultTipPercent } = useSettingsStore.getState();
       const category = result.category || 'dining';
-      const subtotal = dedupedItems.reduce((sum, i) => sum + i.subtotal, 0);
+      const subtotal = preparedItems.reduce((sum, i) => sum + i.subtotal, 0);
       const taxConfig = getTaxConfig(country, category);
 
-      // Tax: computed from subtotal for CO (informational), from Gemini for US
+      // Tax: extracted from tax-inclusive subtotal for CO, from Gemini for US
       const tax = taxConfig.taxIncluded
-        ? Math.round(subtotal * taxConfig.taxRate)
+        ? computeTax(subtotal, taxConfig)
         : (result.tax || 0);
 
       // Tip: always computed from user's default tip percent
@@ -237,7 +230,7 @@ export default function NewBillScreen() {
         : subtotal + tax + tip;
 
       // Strip client IDs — server generates them
-      const itemsForDB = dedupedItems.map(({ id: _id, ...rest }) => rest);
+      const itemsForDB = preparedItems.map(({ id: _id, ...rest }) => rest);
 
       // Create bill as draft in DB and navigate to detail
       const billId = await createBill({
@@ -246,11 +239,13 @@ export default function NewBillScreen() {
         total: calculatedTotal,
         tax,
         tip,
+        tipPercent: defaultTipPercent,
         items: itemsForDB,
         category,
         country,
         ...metadataParams,
       });
+      if (newScanId) deleteScan({ id: newScanId }).catch(() => {});
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace(`/bills/${billId}` as Href);
     } catch (err) {
@@ -259,6 +254,7 @@ export default function NewBillScreen() {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setScanning(false);
+      setScanId(null);
     }
   };
 
@@ -268,7 +264,7 @@ export default function NewBillScreen() {
     if (field === 'name') {
       items[index] = { ...items[index], name: value };
     } else {
-      const num = parseCOP(value);
+      const num = parseCurrency(value);
       items[index] = { ...items[index], [field]: num };
       if (field === 'quantity' || field === 'unitPrice') {
         items[index].subtotal = items[index].quantity * items[index].unitPrice;
@@ -321,7 +317,7 @@ export default function NewBillScreen() {
       router.replace('/(tabs)' as Href);
     } catch (err) {
       console.error('[Save] Error:', err);
-      Alert.alert('Error', 'Failed to save bill. Please try again.');
+      Alert.alert(t.error, t.scan_saveError);
     } finally {
       setSaving(false);
     }
@@ -335,10 +331,10 @@ export default function NewBillScreen() {
         style={{ paddingTop: insets.top }}
       >
         <Text className="text-lg font-semibold text-foreground">
-          No image selected
+          {t.scan_noImage}
         </Text>
         <Button variant="outline" className="mt-4" onPress={() => router.back()}>
-          <Text>Go Back</Text>
+          <Text>{t.back}</Text>
         </Button>
       </View>
     );
@@ -392,7 +388,7 @@ export default function NewBillScreen() {
                   {error}
                 </Text>
                 <Text style={{ color: '#fca5a5', fontSize: 12, textAlign: 'center', marginTop: 4, fontWeight: '600' }}>
-                  Tap to retry
+                  {t.scan_tapRetry}
                 </Text>
               </Pressable>
             )}
@@ -423,7 +419,7 @@ export default function NewBillScreen() {
                   >
                     <IconSymbol name="doc.text.viewfinder" size={22} color="#38bdf8" />
                     <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }}>
-                      Scan Bill
+                      {t.scan_scanBill}
                     </Text>
                   </BlurView>
                 </Pressable>
@@ -444,7 +440,7 @@ export default function NewBillScreen() {
                   style={{ alignItems: 'center', paddingVertical: 16 }}
                 >
                   <Text style={{ color: '#8b9cc0', fontSize: 14, fontWeight: '500' }}>
-                    Enter Manually
+                    {t.scan_enterManually}
                   </Text>
                 </Pressable>
               </>
@@ -471,7 +467,7 @@ export default function NewBillScreen() {
                 backgroundColor: 'rgba(18,26,46,0.7)',
               }}
             />
-            <View style={{ alignItems: 'center', zIndex: 1 }}>
+            <View style={{ alignItems: 'center', zIndex: 1, width: '100%', paddingHorizontal: 32 }}>
               <View
                 style={{
                   width: 80,
@@ -487,11 +483,43 @@ export default function NewBillScreen() {
                 <ActivityIndicator size="large" color="#38bdf8" />
               </View>
               <Text style={{ color: '#e8ecf4', fontSize: 17, fontWeight: '700', marginTop: 20 }}>
-                Analyzing bill...
+                {scanProgress?.status === 'thinking'
+                  ? t.scan_reading
+                  : scanProgress?.status === 'extracting'
+                    ? t.scan_extracting
+                    : t.scan_analyzing}
               </Text>
               <Text style={{ color: '#8b9cc0', fontSize: 13, marginTop: 6 }}>
-                This may take a few seconds
+                {scanProgress?.status === 'thinking'
+                  ? t.scan_readingHint
+                  : scanProgress?.status === 'extracting'
+                    ? t.scan_itemsFound(scanProgress.result?.items?.length ?? 0)
+                    : t.scan_analyzeHint}
               </Text>
+              {/* Stream items as they arrive */}
+              {scanProgress?.result?.items && scanProgress.result.items.length > 0 && (
+                <View style={{ marginTop: 20, width: '100%', maxHeight: 200 }}>
+                  {scanProgress.result.items.map((item, i) => (
+                    <View
+                      key={i}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        paddingVertical: 6,
+                        borderBottomWidth: i < scanProgress.result!.items.length - 1 ? 1 : 0,
+                        borderBottomColor: 'rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      <Text style={{ color: '#e8ecf4', fontSize: 13, flex: 1 }} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={{ color: '#38bdf8', fontSize: 13, fontWeight: '600', marginLeft: 12 }}>
+                        {formatCurrency(item.subtotal, country)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -530,12 +558,12 @@ export default function NewBillScreen() {
         <View>
           <View className="flex-row items-center justify-between">
             <Text className="text-2xl font-extrabold tracking-tight text-foreground">
-              Review Items
+              {t.scan_reviewTitle}
             </Text>
               <View className="flex-row items-center gap-2.5">
                 <View className="rounded-full bg-primary/10 px-3 py-1">
                   <Text className="text-xs font-bold text-primary">
-                    {bill.items.length} items
+                    {t.scan_itemCount(bill.items.length)}
                   </Text>
                 </View>
                 <Pressable
@@ -550,7 +578,7 @@ export default function NewBillScreen() {
             value={bill.name}
             onChangeText={(text) => setBill({ ...bill, name: text })}
             className="mt-0.5 h-auto border-0 bg-transparent px-0 py-0 text-sm text-muted-foreground shadow-none"
-            placeholder="Restaurant name..."
+            placeholder={t.scan_restaurantPlaceholder}
             placeholderTextColor={iconColors.mutedLight}
 
 
@@ -567,7 +595,7 @@ export default function NewBillScreen() {
       >
         {/* Hint */}
         <Text className="mb-1 px-7 text-xs text-muted-foreground">
-          Tap to edit · Swipe left to delete
+          {t.scan_tapToEdit}
         </Text>
 
         {/* Items list — flat rows, no card wrapper */}
@@ -588,7 +616,7 @@ export default function NewBillScreen() {
                     value={item.name}
                     onChangeText={(v) => updateItem(index, 'name', v)}
                     className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-[15px] font-semibold shadow-none"
-                    placeholder="Item name"
+                    placeholder={t.scan_itemName}
                     placeholderTextColor={iconColors.mutedLight}
                     autoFocus
                   />
@@ -596,12 +624,12 @@ export default function NewBillScreen() {
                     onPress={() => setEditingIndex(null)}
                     className="ml-3 rounded-full bg-destructive/15 px-3 py-1"
                   >
-                    <Text className="text-xs font-semibold text-destructive">Cancel</Text>
+                    <Text className="text-xs font-semibold text-destructive">{t.cancel}</Text>
                   </Pressable>
                 </View>
                 <View className="flex-row gap-2.5">
                   <View className="flex-1">
-                    <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Qty</Text>
+                    <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_qty}</Text>
                     <Input
                       value={String(item.quantity)}
                       onChangeText={(v) => updateItem(index, 'quantity', v)}
@@ -610,19 +638,19 @@ export default function NewBillScreen() {
                     />
                   </View>
                   <View className="flex-[2]">
-                    <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Unit Price</Text>
+                    <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
                     <Input
-                      value={formatCOP(item.unitPrice)}
+                      value={formatCurrency(item.unitPrice, country)}
                       onChangeText={(v) => updateItem(index, 'unitPrice', v)}
                       className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
                       keyboardType="number-pad"
                     />
                   </View>
                   <View className="flex-[2]">
-                    <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Subtotal</Text>
+                    <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_subtotalLabel}</Text>
                     <View className="h-9 items-end justify-center rounded-lg px-3 py-1">
                       <Text className="text-sm font-bold text-primary">
-                        {formatCOP(item.subtotal)}
+                        {formatCurrency(item.subtotal, country)}
                       </Text>
                     </View>
                   </View>
@@ -631,7 +659,7 @@ export default function NewBillScreen() {
                   onPress={() => setEditingIndex(null)}
                   className="mt-3 items-center rounded-lg bg-primary/10 py-2"
                 >
-                  <Text className="text-sm font-semibold text-primary">Done</Text>
+                  <Text className="text-sm font-semibold text-primary">{t.done}</Text>
                 </Pressable>
               </View>
             ) : (
@@ -646,14 +674,14 @@ export default function NewBillScreen() {
                       className="text-[15px] font-semibold leading-5 text-foreground"
                       numberOfLines={1}
                     >
-                      {item.name || 'Unnamed item'}
+                      {item.name || t.scan_unnamed}
                     </Text>
                     <Text className="mt-0.5 text-xs text-muted-foreground">
-                      {item.quantity} × {formatCOP(item.unitPrice)}
+                      {item.quantity} × {formatCurrency(item.unitPrice, country)}
                     </Text>
                   </View>
                   <Text className="mr-1.5 text-[15px] font-bold tabular-nums text-foreground">
-                    {formatCOP(item.subtotal)}
+                    {formatCurrency(item.subtotal, country)}
                   </Text>
                   <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
                 </Pressable>
@@ -675,7 +703,7 @@ export default function NewBillScreen() {
           <View className="h-5 w-5 items-center justify-center rounded-full bg-primary/15">
             <IconSymbol name="plus" size={12} color={iconColors.primary} />
           </View>
-          <Text className="text-sm font-semibold text-primary">Add Item</Text>
+          <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
         </Pressable>
 
         {/* Divider before summary */}
@@ -683,25 +711,25 @@ export default function NewBillScreen() {
 
         {/* Summary — flat rows, no card */}
         <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-muted-foreground">Subtotal</Text>
+          <Text className="text-sm text-muted-foreground">{t.scan_subtotal}</Text>
           <Text className="text-sm font-semibold tabular-nums text-foreground">
-            {formatCOP(bill.items.reduce((sum, i) => sum + i.subtotal, 0))}
+            {formatCurrency(bill.items.reduce((sum, i) => sum + i.subtotal, 0), country)}
           </Text>
         </View>
         <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-foreground">Tax (IVA)</Text>
+          <Text className="text-sm text-foreground">{t.scan_taxIva}</Text>
           <Input
-            value={formatCOP(bill.tax)}
-            onChangeText={(v) => setBill({ ...bill, tax: parseCOP(v) })}
+            value={formatCurrency(bill.tax, country)}
+            onChangeText={(v) => setBill({ ...bill, tax: parseCurrency(v) })}
             className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
             keyboardType="number-pad"
           />
         </View>
         <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-foreground">Tip (Propina)</Text>
+          <Text className="text-sm text-foreground">{t.scan_tipPropina}</Text>
           <Input
-            value={bill.tip === 0 ? '' : formatCOP(bill.tip)}
-            onChangeText={(v) => setBill({ ...bill, tip: parseCOP(v) })}
+            value={bill.tip === 0 ? '' : formatCurrency(bill.tip, country)}
+            onChangeText={(v) => setBill({ ...bill, tip: parseCurrency(v) })}
             className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
             placeholder="$0"
             placeholderTextColor={iconColors.mutedLight}
@@ -713,15 +741,15 @@ export default function NewBillScreen() {
         <View className="mx-7 h-px bg-border/40" />
         <View className="flex-row items-center justify-between px-7 py-4">
           <View>
-            <Text className="text-sm font-bold text-foreground">Total</Text>
+            <Text className="text-sm font-bold text-foreground">{t.scan_total}</Text>
             {bill.total > 0 && bill.total !== calculatedTotal && (
               <Text className="mt-0.5 text-[11px] text-muted-foreground">
-                Bill: {formatCOP(bill.total)}
+                Bill: {formatCurrency(bill.total, country)}
               </Text>
             )}
           </View>
           <Text className="text-2xl font-extrabold tracking-tight text-primary">
-            {formatCOP(calculatedTotal)}
+            {formatCurrency(calculatedTotal, country)}
           </Text>
         </View>
       </KeyboardAwareScrollView>
@@ -729,8 +757,8 @@ export default function NewBillScreen() {
       {/* Confirm Button */}
       <View className="border-t border-border/30 px-7 pb-2 pt-2">
         <View className="mb-2 flex-row items-center justify-between">
-          <Text className="text-xs text-muted-foreground">Total</Text>
-          <Text className="text-base font-bold text-primary">{formatCOP(calculatedTotal)}</Text>
+          <Text className="text-xs text-muted-foreground">{t.scan_total}</Text>
+          <Text className="text-base font-bold text-primary">{formatCurrency(calculatedTotal, country)}</Text>
         </View>
         <Button
           variant="default"
@@ -742,12 +770,12 @@ export default function NewBillScreen() {
           {saving ? (
             <>
               <ActivityIndicator size="small" color="#fff" />
-              <Text>Saving...</Text>
+              <Text>{t.scan_saving}</Text>
             </>
           ) : (
             <>
               <IconSymbol name="checkmark" size={18} color={colorScheme === 'dark' ? '#0c1a2a' : '#ffffff'} />
-              <Text>Confirm Items</Text>
+              <Text>{t.scan_confirmItems}</Text>
             </>
           )}
         </Button>
@@ -784,6 +812,7 @@ function SwipeableItem({ children, isDeleting }: { children: React.ReactNode; is
 }
 
 function KeyboardDoneButton() {
+  const t = useT();
   const height = useSharedValue(0);
 
   const opening = useSharedValue(false);
@@ -835,7 +864,7 @@ function KeyboardDoneButton() {
             backgroundColor: 'rgba(56, 189, 248, 0.1)',
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#38bdf8' }}>Done</Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#38bdf8' }}>{t.done}</Text>
         </Pressable>
       </View>
     </Animated.View>
