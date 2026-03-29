@@ -1,5 +1,6 @@
 import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
+import { scanStatusValidator, scanResultValidator } from './validators';
 
 export const createScan = mutation({
   args: { userId: v.string() },
@@ -14,25 +15,8 @@ export const createScan = mutation({
 export const updateScan = mutation({
   args: {
     id: v.id('scans'),
-    status: v.union(
-      v.literal('analyzing'),
-      v.literal('thinking'),
-      v.literal('extracting'),
-      v.literal('complete'),
-      v.literal('error')
-    ),
-    result: v.optional(v.object({
-      category: v.string(),
-      items: v.array(v.object({
-        name: v.string(),
-        quantity: v.number(),
-        unitPrice: v.number(),
-        subtotal: v.number(),
-      })),
-      tax: v.number(),
-      tip: v.number(),
-      total: v.number(),
-    })),
+    status: scanStatusValidator,
+    result: v.optional(scanResultValidator),
     error: v.optional(v.string()),
   },
   handler: async (ctx, args) => {

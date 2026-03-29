@@ -1,5 +1,13 @@
 import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
+import {
+  billStateValidator,
+  splitStrategyValidator,
+  categoryValidator,
+  billItemValidator,
+  locationValidator,
+  contactArgValidator,
+} from './validators';
 
 export const list = query({
   args: {
@@ -17,12 +25,7 @@ export const list = query({
 export const listByState = query({
   args: {
     userId: v.string(),
-    state: v.union(
-      v.literal('draft'),
-      v.literal('unsplit'),
-      v.literal('split'),
-      v.literal('unresolved')
-    ),
+    state: billStateValidator,
   },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -53,22 +56,16 @@ export const create = mutation({
     tax: v.optional(v.number()),
     tip: v.optional(v.number()),
     tipPercent: v.optional(v.number()),
-    items: v.array(
-      v.object({
-        name: v.string(),
-        quantity: v.number(),
-        unitPrice: v.number(),
-        subtotal: v.number(),
-      })
-    ),
-    category: v.optional(v.union(v.literal('dining'), v.literal('retail'), v.literal('service'))),
+    items: v.array(v.object({
+      name: v.string(),
+      quantity: v.number(),
+      unitPrice: v.number(),
+      subtotal: v.number(),
+    })),
+    category: v.optional(categoryValidator),
     country: v.optional(v.string()),
     photoTakenAt: v.optional(v.string()),
-    location: v.optional(v.object({
-      latitude: v.number(),
-      longitude: v.number(),
-      address: v.optional(v.string()),
-    })),
+    location: v.optional(locationValidator),
   },
   handler: async (ctx, args) => {
     const items = args.items.map((item) => ({
@@ -101,25 +98,13 @@ export const update = mutation({
     id: v.id('bills'),
     userId: v.string(),
     name: v.optional(v.string()),
-    state: v.optional(
-      v.union(v.literal('draft'), v.literal('unsplit'), v.literal('split'), v.literal('unresolved'))
-    ),
-    splitStrategy: v.optional(v.union(v.literal('equal'), v.literal('by_item'))),
+    state: v.optional(billStateValidator),
+    splitStrategy: v.optional(splitStrategyValidator),
     tax: v.optional(v.number()),
     tip: v.optional(v.number()),
     tipPercent: v.optional(v.number()),
     country: v.optional(v.string()),
-    items: v.optional(
-      v.array(
-        v.object({
-          id: v.optional(v.string()),
-          name: v.string(),
-          quantity: v.number(),
-          unitPrice: v.number(),
-          subtotal: v.number(),
-        })
-      )
-    ),
+    items: v.optional(v.array(billItemValidator)),
   },
   handler: async (ctx, args) => {
     const { id, userId, ...patches } = args;
@@ -214,11 +199,7 @@ export const assignContactToItem = mutation({
     id: v.id('bills'),
     userId: v.string(),
     itemId: v.string(),
-    contact: v.object({
-      name: v.string(),
-      phone: v.optional(v.string()),
-      imageUri: v.optional(v.string()),
-    }),
+    contact: contactArgValidator,
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
@@ -266,11 +247,7 @@ export const assignContactToItems = mutation({
     id: v.id('bills'),
     userId: v.string(),
     itemIds: v.array(v.string()),
-    contact: v.object({
-      name: v.string(),
-      phone: v.optional(v.string()),
-      imageUri: v.optional(v.string()),
-    }),
+    contact: contactArgValidator,
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
