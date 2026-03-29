@@ -15,6 +15,7 @@ import { ConvexProvider } from 'convex/react';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { convex } from '@/lib/convex';
 import { queryClient } from '@/lib/queryClient';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 
@@ -71,11 +72,13 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <KeyboardProvider>
-        <AuthProvider>
-          <RootLayoutNav />
-        </AuthProvider>
-      </KeyboardProvider>
+      <ErrorBoundary>
+        <KeyboardProvider>
+          <AuthProvider>
+            <RootLayoutNav />
+          </AuthProvider>
+        </KeyboardProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }

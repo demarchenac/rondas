@@ -113,30 +113,48 @@ export const extractBillItems = action({
       throw new Error('GEMINI_API_KEY not configured. Run: npx convex env set GEMINI_API_KEY <key>');
     }
 
-    const response = await fetch(`${GEMINI_STREAM_URL}&key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                inline_data: {
-                  mime_type: args.mimeType,
-                  data: args.imageBase64,
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60_000);
+
+    let response: Response;
+    try {
+      response = await fetch(`${GEMINI_STREAM_URL}&key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  inline_data: {
+                    mime_type: args.mimeType,
+                    data: args.imageBase64,
+                  },
                 },
-              },
-              { text: EXTRACTION_PROMPT },
-            ],
+                { text: EXTRACTION_PROMPT },
+              ],
+            },
+          ],
+          generationConfig: {
+            thinking_config: { thinking_budget: 1024 },
           },
-        ],
-        generationConfig: {
-          thinking_config: { thinking_budget: 1024 },
-        },
-      }),
-    });
+        }),
+      });
+    } catch (err) {
+      clearTimeout(timeout);
+      const isTimeout = err instanceof DOMException && err.name === 'AbortError';
+      const errorMsg = isTimeout ? 'Gemini API request timed out after 60s' : `Gemini API request failed: ${err}`;
+      await ctx.runMutation(api.scans.updateScan, {
+        id: args.scanId,
+        status: 'error',
+        error: errorMsg,
+      });
+      throw new Error(errorMsg);
+    }
 
     if (!response.ok) {
+      clearTimeout(timeout);
       const error = await response.text();
       await ctx.runMutation(api.scans.updateScan, {
         id: args.scanId,
@@ -156,7 +174,10 @@ export const extractBillItems = action({
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        clearTimeout(timeout);
+        break;
+      }
 
       sseBuffer += decoder.decode(value, { stream: true });
 

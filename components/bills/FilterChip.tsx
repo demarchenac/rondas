@@ -1,5 +1,6 @@
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/cn';
 
 export interface FilterChipProps {
   label: string;
@@ -12,14 +13,16 @@ export default function FilterChip({ label, isActive, onPress, count }: FilterCh
   return (
     <Pressable
       onPress={onPress}
-      className={`flex-row items-center gap-1.5 rounded-full px-3.5 py-1.5 ${
-        isActive ? 'bg-primary' : 'border border-border bg-card'
-      }`}
+      className={cn(
+        'flex-row items-center gap-1.5 rounded-full px-3.5 py-1.5',
+        isActive ? 'bg-primary' : 'border border-border bg-card',
+      )}
     >
       <Text
-        className={`text-xs font-semibold ${
-          isActive ? 'text-primary-foreground' : 'text-muted-foreground'
-        }`}
+        className={cn(
+          'text-xs font-semibold',
+          isActive ? 'text-primary-foreground' : 'text-muted-foreground',
+        )}
       >
         {label}
       </Text>

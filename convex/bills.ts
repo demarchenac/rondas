@@ -9,6 +9,10 @@ import {
   contactArgValidator,
 } from './validators';
 
+function assertMaxLength(value: string, max: number, field: string) {
+  if (value.length > max) throw new Error(`${field} exceeds maximum length of ${max}`);
+}
+
 export const list = query({
   args: {
     userId: v.string(),
@@ -68,6 +72,10 @@ export const create = mutation({
     location: v.optional(locationValidator),
   },
   handler: async (ctx, args) => {
+    assertMaxLength(args.name, 200, 'Bill name');
+    for (const item of args.items) {
+      assertMaxLength(item.name, 200, 'Item name');
+    }
     const items = args.items.map((item) => ({
       ...item,
       id: crypto.randomUUID(),
@@ -107,6 +115,12 @@ export const update = mutation({
     items: v.optional(v.array(billItemValidator)),
   },
   handler: async (ctx, args) => {
+    if (args.name !== undefined) assertMaxLength(args.name, 200, 'Bill name');
+    if (args.items) {
+      for (const item of args.items) {
+        assertMaxLength(item.name, 200, 'Item name');
+      }
+    }
     const { id, userId, ...patches } = args;
     const defined = Object.fromEntries(
       Object.entries(patches).filter(([, val]) => val !== undefined)
@@ -191,7 +205,19 @@ function recalculateAmounts(
   }
 
   // Remove contacts with no items left
-  return contacts.filter((c) => c.items.length > 0);
+  const active = contacts.filter((c) => c.items.length > 0);
+
+  // Distribute rounding remainder to first contact so amounts sum correctly
+  if (active.length > 0) {
+    const expectedTotal = itemsTotal + tax + tip;
+    const roundedSum = active.reduce((sum, c) => sum + c.amount, 0);
+    const remainder = Math.round(expectedTotal) - roundedSum;
+    if (remainder !== 0) {
+      active[0].amount += remainder;
+    }
+  }
+
+  return active;
 }
 
 export const assignContactToItem = mutation({
@@ -202,6 +228,7 @@ export const assignContactToItem = mutation({
     contact: contactArgValidator,
   },
   handler: async (ctx, args) => {
+    assertMaxLength(args.contact.name, 100, 'Contact name');
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new Error('Bill not found');
     if (bill.userId !== args.userId) throw new Error('Not authorized');
@@ -250,6 +277,7 @@ export const assignContactToItems = mutation({
     contact: contactArgValidator,
   },
   handler: async (ctx, args) => {
+    assertMaxLength(args.contact.name, 100, 'Contact name');
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new Error('Bill not found');
     if (bill.userId !== args.userId) throw new Error('Not authorized');

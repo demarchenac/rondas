@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { cn } from '@/lib/cn';
 
 export function SettingsRow({
   icon,
@@ -24,10 +25,10 @@ export function SettingsRow({
   const Wrapper = onPress ? Pressable : View;
 
   return (
-    <View className={!last ? 'border-b border-border' : ''}>
+    <View className={cn(!last && 'border-b border-border')}>
       <Wrapper
         onPress={onPress}
-        className={`flex-row items-center gap-3 px-4 py-3.5 ${onPress ? 'active:bg-muted' : ''}`}
+        className={cn('flex-row items-center gap-3 px-4 py-3.5', onPress && 'active:bg-muted')}
       >
         <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted">
           <IconSymbol name={icon} size={18} color={iconColor} />

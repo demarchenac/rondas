@@ -1,5 +1,6 @@
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/cn';
 
 export function SegmentedControl<T extends string>({
   options,
@@ -16,18 +17,16 @@ export function SegmentedControl<T extends string>({
         <Pressable
           key={opt.value}
           onPress={() => onChange(opt.value)}
-          className={`rounded-md px-3 py-1.5 ${
-            value === opt.value
-              ? 'bg-card shadow-sm shadow-black/10'
-              : ''
-          }`}
+          className={cn(
+            'rounded-md px-3 py-1.5',
+            value === opt.value && 'bg-card shadow-sm shadow-black/10',
+          )}
         >
           <Text
-            className={`text-xs font-medium ${
-              value === opt.value
-                ? 'text-foreground'
-                : 'text-muted-foreground'
-            }`}
+            className={cn(
+              'text-xs font-medium',
+              value === opt.value ? 'text-foreground' : 'text-muted-foreground',
+            )}
           >
             {opt.label}
           </Text>
