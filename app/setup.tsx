@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SegmentedControl, SettingsSection, SettingsRow } from '@/components/settings';
+import { TipSelector } from '@/components/TipSelector';
 import { useSettingsStore, type Language } from '@/stores/useSettingsStore';
 import { useThemeStore, type ThemeMode } from '@/stores/useThemeStore';
 import { useAuth } from '@/lib/AuthContext';
@@ -105,39 +106,7 @@ export default function SetupScreen() {
         {/* Default Tip */}
         <SettingsSection title={t.settings_defaultTip}>
           <View className="px-4 py-3.5">
-            <View className="flex-row items-center gap-3 mb-3">
-              <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted">
-                <IconSymbol name="percent" size={18} color="#f59e0b" />
-              </View>
-              <Text className="text-base text-foreground">{t.settings_tipPercentage}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {[0, 5, 10, 15, 18, 20].map((pct) => (
-                <Pressable
-                  key={pct}
-                  onPress={() => setTip(pct)}
-                  style={{
-                    flex: 1,
-                    alignItems: 'center',
-                    paddingVertical: 8,
-                    borderRadius: 10,
-                    backgroundColor: tip === pct ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
-                    borderWidth: 1.5,
-                    borderColor: tip === pct ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148,163,184,0.12)',
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '700',
-                      color: tip === pct ? '#38bdf8' : '#64748b',
-                    }}
-                  >
-                    {pct}%
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <TipSelector value={tip} onSelect={setTip} />
           </View>
         </SettingsSection>
 
