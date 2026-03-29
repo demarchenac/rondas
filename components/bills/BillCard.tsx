@@ -3,6 +3,7 @@ import { Image, Pressable, View } from 'react-native';
 import type { Doc } from '@/convex/_generated/dataModel';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import { relativeTime } from '@/lib/date';
 import { STATE_STYLES, stateLabel, type BillState } from '@/lib/billHelpers';
@@ -29,8 +30,7 @@ function BillCard({ bill, onPress, t }: BillCardProps) {
   return (
     <Pressable
       onPress={onPress}
-      style={{ borderLeftWidth: 3, borderLeftColor: stateStyle.color }}
-      className="rounded-xl bg-card px-4 py-3.5 active:opacity-80"
+      className={cn('rounded-xl border-l-[3px] bg-card px-4 py-3.5 active:opacity-80', stateStyle.borderClass)}
     >
       {/* Top row: name + badge */}
       <View className="flex-row items-center justify-between">
@@ -61,31 +61,16 @@ function BillCard({ bill, onPress, t }: BillCardProps) {
                 <Image
                   key={i}
                   source={{ uri: c.imageUri }}
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 13,
-                    marginLeft: i > 0 ? -8 : 0,
-                    borderWidth: 2,
-                    borderColor: '#1a2540',
-                  }}
+                  className="h-[26px] w-[26px] rounded-full border-2 border-[#1a2540]"
+                  style={{ marginLeft: i > 0 ? -8 : 0 }}
                 />
               ) : (
                 <View
                   key={i}
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 13,
-                    backgroundColor: stateStyle.bg,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginLeft: i > 0 ? -8 : 0,
-                    borderWidth: 2,
-                    borderColor: '#1a2540',
-                  }}
+                  className={cn('h-[26px] w-[26px] rounded-full items-center justify-center border-2 border-[#1a2540]', stateStyle.bgClass)}
+                  style={{ marginLeft: i > 0 ? -8 : 0 }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: stateStyle.color }}>
+                  <Text className={cn('text-[10px] font-bold', stateStyle.textClass)}>
                     {c.name[0]?.toUpperCase() ?? '?'}
                   </Text>
                 </View>
@@ -93,19 +78,9 @@ function BillCard({ bill, onPress, t }: BillCardProps) {
             ))}
             {contactCount > 3 && (
               <View
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  backgroundColor: 'rgba(148,163,184,0.15)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginLeft: -8,
-                  borderWidth: 2,
-                  borderColor: '#1a2540',
-                }}
+                className="-ml-2 h-[26px] w-[26px] rounded-full items-center justify-center border-2 border-[#1a2540] bg-muted-foreground/15"
               >
-                <Text style={{ fontSize: 9, fontWeight: '700', color: '#8b9cc0' }}>
+                <Text className="text-[9px] font-bold text-muted-foreground">
                   +{contactCount - 3}
                 </Text>
               </View>
@@ -117,24 +92,13 @@ function BillCard({ bill, onPress, t }: BillCardProps) {
       {/* Progress bar for unresolved bills */}
       {bill.state === 'unresolved' && itemCount > 0 && (
         <View className="mt-2.5">
-          <View
-            style={{
-              height: 3,
-              borderRadius: 2,
-              backgroundColor: 'rgba(148,163,184,0.15)',
-              overflow: 'hidden',
-            }}
-          >
+          <View className="h-[3px] rounded-sm bg-muted-foreground/15 overflow-hidden">
             <View
-              style={{
-                height: '100%',
-                width: `${Math.round(progress * 100)}%`,
-                backgroundColor: stateStyle.color,
-                borderRadius: 2,
-              }}
+              className={cn('h-full rounded-sm', stateStyle.progressClass)}
+              style={{ width: `${Math.round(progress * 100)}%` }}
             />
           </View>
-          <Text style={{ fontSize: 10, color: '#8b9cc0', marginTop: 3 }}>
+          <Text className="mt-[3px] text-[10px] text-muted-foreground">
             {t.billCard_assigned(assignedItems, itemCount)}
           </Text>
         </View>

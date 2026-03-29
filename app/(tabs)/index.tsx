@@ -183,7 +183,7 @@ export default function HomeScreen() {
               {unpaidAmount > 0 && (
                 <>
                   <View className="h-3 w-px bg-border" />
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#f59e0b' }}>
+                  <Text className="text-[11px] font-semibold text-amber-500">
                     {t.home_pending(formatCurrency(unpaidAmount, country))}
                   </Text>
                 </>
@@ -192,16 +192,9 @@ export default function HomeScreen() {
           </View>
           <Pressable
             onPress={() => router.push('/(tabs)/settings' as Href)}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: 'rgba(56, 189, 248, 0.1)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="h-10 w-10 items-center justify-center rounded-full bg-primary/10"
           >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: iconColors.primary }}>
+            <Text className="text-base font-bold text-primary">
               {(user?.firstName?.[0] ?? user?.email?.[0] ?? '?').toUpperCase()}
             </Text>
           </Pressable>
@@ -238,17 +231,7 @@ export default function HomeScreen() {
         </View>
       ) : filteredBills.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <View
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              backgroundColor: 'rgba(56, 189, 248, 0.08)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 16,
-            }}
-          >
+          <View className="mb-4 h-[72px] w-[72px] items-center justify-center rounded-full bg-primary/[0.08]">
             <IconSymbol name="receipt" size={32} color={iconColors.primary} />
           </View>
           <Text className="text-lg font-bold text-foreground">{t.home_noBills}</Text>
@@ -270,17 +253,10 @@ export default function HomeScreen() {
                 renderRightActions={() => (
                   <Pressable
                     onPress={() => handleDeleteBill(item._id)}
-                    style={{
-                      width: 80,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: '#ef4444',
-                      borderRadius: 12,
-                      marginLeft: 8,
-                    }}
+                    className="ml-2 w-20 items-center justify-center rounded-xl bg-destructive"
                   >
                     <IconSymbol name="xmark" size={18} color="#fff" />
-                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500', marginTop: 2 }}>{t.delete}</Text>
+                    <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
                   </Pressable>
                 )}
                 rightThreshold={80}

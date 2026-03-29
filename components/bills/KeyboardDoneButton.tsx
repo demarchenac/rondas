@@ -37,28 +37,12 @@ function KeyboardDoneButton() {
 
   return (
     <Animated.View style={animatedStyle}>
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          backgroundColor: '#1a2540',
-          borderTopWidth: 1,
-          borderTopColor: '#263354',
-        }}
-      >
+      <View className="flex-row items-center justify-end px-4 py-2 bg-[#1a2540] border-t border-[#263354]">
         <Pressable
           onPress={() => Keyboard.dismiss()}
-          style={{
-            paddingHorizontal: 20,
-            paddingVertical: 6,
-            borderRadius: 8,
-            backgroundColor: 'rgba(56, 189, 248, 0.1)',
-          }}
+          className="rounded-lg bg-primary/10 px-5 py-1.5"
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#38bdf8' }}>{t.done}</Text>
+          <Text className="text-sm font-semibold text-primary">{t.done}</Text>
         </Pressable>
       </View>
     </Animated.View>

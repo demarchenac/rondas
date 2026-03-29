@@ -5,6 +5,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
 import { ICON_COLORS } from '@/constants/colors';
 import { useColorScheme } from 'nativewind';
+import { cn } from '@/lib/cn';
 
 interface UnassignPickerSheetProps {
   visible: boolean;
@@ -71,8 +72,8 @@ function UnassignPickerSheet({
                 {c.imageUri ? (
                   <Image source={{ uri: c.imageUri }} className="w-9 h-9 rounded-full" />
                 ) : (
-                  <View className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(56,189,248,0.1)' }}>
-                    <Text className="text-sm font-bold" style={{ color: '#38bdf8' }}>
+                  <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
+                    <Text className="text-sm font-bold text-primary">
                       {(c.name[0] ?? '?').toUpperCase()}
                     </Text>
                   </View>
@@ -101,13 +102,9 @@ function UnassignPickerSheet({
                   ]
                 );
               }}
-              className="items-center py-4 rounded-xl border"
-              style={{
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                borderColor: 'rgba(239, 68, 68, 0.3)',
-              }}
+              className="items-center py-4 rounded-xl border bg-destructive/15 border-destructive/30"
             >
-              <Text className="text-base font-semibold" style={{ color: '#ef4444' }}>
+              <Text className="text-base font-semibold text-destructive">
                 {t.unassignPicker_remove(selectedContactIds.size)}
               </Text>
             </Pressable>

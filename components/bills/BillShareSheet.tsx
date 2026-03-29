@@ -10,6 +10,7 @@ import { formatCurrency } from '@/lib/format';
 import { computeTax, type TaxConfig } from '@/constants/taxes';
 import { ICON_COLORS } from '@/constants/colors';
 import { useColorScheme } from 'nativewind';
+import { cn } from '@/lib/cn';
 import BillInfographic from './BillInfographic';
 import type { Doc } from '@/convex/_generated/dataModel';
 
@@ -90,8 +91,7 @@ function BillShareSheet({
                     <Image source={{ uri: contact.imageUri }} className="w-10 h-10 rounded-full" />
                   ) : (
                     <View
-                      className="w-10 h-10 rounded-full items-center justify-center"
-                      style={{ backgroundColor: 'rgba(56, 189, 248, 0.1)' }}
+                      className="w-10 h-10 rounded-full items-center justify-center bg-primary/10"
                     >
                       <Text className="text-base font-bold" style={{ color: iconColors.primary }}>
                         {contact.name[0]?.toUpperCase() ?? '?'}
@@ -145,18 +145,19 @@ function BillShareSheet({
                 {/* Paid toggle */}
                 <Pressable
                   onPress={() => onTogglePaid(ci)}
-                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border"
-                  style={{
-                    backgroundColor: contact.paid ? 'rgba(16,185,129,0.15)' : 'rgba(148,163,184,0.1)',
-                    borderColor: contact.paid ? 'rgba(16,185,129,0.3)' : 'rgba(148,163,184,0.2)',
-                  }}
+                  className={cn(
+                    'flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border',
+                    contact.paid
+                      ? 'bg-emerald-500/15 border-emerald-500/30'
+                      : 'bg-muted-foreground/10 border-muted-foreground/20',
+                  )}
                 >
                   <IconSymbol
                     name={contact.paid ? 'checkmark.circle.fill' : 'circle'}
                     size={16}
                     color={contact.paid ? '#10b981' : '#94a3b8'}
                   />
-                  <Text className="text-[13px] font-semibold" style={{ color: contact.paid ? '#10b981' : '#94a3b8' }}>
+                  <Text className={cn('text-[13px] font-semibold', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
                     {contact.paid ? t.share_paid : t.share_unpaid}
                   </Text>
                 </Pressable>
@@ -165,33 +166,25 @@ function BillShareSheet({
                 {contact.phone && (
                   <Pressable
                     onPress={() => onSendWhatsApp(contact)}
-                    className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border"
-                    style={{
-                      backgroundColor: 'rgba(37,211,102,0.15)',
-                      borderColor: 'rgba(37,211,102,0.3)',
-                    }}
+                    className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border bg-green-500/15 border-green-500/30"
                   >
                     <WhatsAppIcon size={16} color="#25d366" />
-                    <Text className="text-[13px] font-semibold" style={{ color: '#25d366' }}>{t.share_whatsapp}</Text>
+                    <Text className="text-[13px] font-semibold text-green-500">{t.share_whatsapp}</Text>
                   </Pressable>
                 )}
 
                 {/* Share infographic */}
                 <Pressable
                   onPress={() => onShareInfographic(contact, ci)}
-                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border"
-                  style={{
-                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                    borderColor: 'rgba(56, 189, 248, 0.2)',
-                  }}
+                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border bg-primary/10 border-primary/20"
                 >
                   <Share2 size={14} color="#38bdf8" />
-                  <Text className="text-[13px] font-semibold" style={{ color: '#38bdf8' }}>{t.share_share}</Text>
+                  <Text className="text-[13px] font-semibold text-primary">{t.share_share}</Text>
                 </Pressable>
               </View>
 
               {/* Hidden infographic for capture */}
-              <View style={{ position: 'absolute', left: -9999 }}>
+              <View className="absolute -left-[9999px]">
                 <ViewShot
                   ref={(ref) => { infographicRefs.current[ci] = ref; }}
                   options={{ format: 'png', quality: 1 }}

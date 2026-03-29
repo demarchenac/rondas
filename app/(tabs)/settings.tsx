@@ -170,17 +170,9 @@ export default function SettingsScreen() {
             <SettingsRow icon="map.fill" iconColor="#6366f1" label={t.settings_state}>
               <Pressable
                 onPress={() => setStatePickerVisible(true)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4,
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 8,
-                  backgroundColor: 'rgba(148,163,184,0.1)',
-                }}
+                className="flex-row items-center gap-1 rounded-lg bg-muted-foreground/10 px-2.5 py-1"
               >
-                <Text style={{ fontSize: 13, fontWeight: '600', color: iconColors.primary }}>
+                <Text className="text-[13px] font-semibold text-primary">
                   {US_STATE_RATES[usState]?.name ?? usState}
                 </Text>
                 <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />

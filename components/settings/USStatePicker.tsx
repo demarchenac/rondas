@@ -44,9 +44,9 @@ function USStatePicker({ visible, selected, onSelect, onClose }: USStatePickerPr
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+        <View className="flex-1 items-center justify-center bg-black/50">
           <TouchableWithoutFeedback>
-            <View className="mx-8 w-80 rounded-2xl border border-border bg-card p-6" style={{ maxHeight: '70%' }}>
+            <View className="mx-8 w-80 max-h-[70%] rounded-2xl border border-border bg-card p-6">
               <Text className="mb-3 text-center text-lg font-bold text-foreground">
                 {t.settings_selectState}
               </Text>
@@ -57,16 +57,7 @@ function USStatePicker({ visible, selected, onSelect, onClose }: USStatePickerPr
                 onChangeText={setSearch}
                 placeholder={t.settings_selectState}
                 placeholderTextColor={iconColors.mutedLight}
-                style={{
-                  fontSize: 14,
-                  color: iconColors.foreground,
-                  borderWidth: 1,
-                  borderColor: iconColors.mutedLight,
-                  borderRadius: 10,
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  marginBottom: 12,
-                }}
+                className="mb-3 rounded-[10px] border border-muted-foreground/40 px-3 py-2 text-sm text-foreground"
               />
 
               {/* List */}
@@ -86,26 +77,19 @@ function USStatePicker({ visible, selected, onSelect, onClose }: USStatePickerPr
                     )}
                   >
                     <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: selected === item.code ? '600' : '400',
-                        color: selected === item.code ? iconColors.primary : iconColors.foreground,
-                      }}
+                      className={cn(
+                        'text-sm',
+                        selected === item.code ? 'font-semibold text-primary' : 'font-normal text-foreground',
+                      )}
                     >
                       {item.name}
                     </Text>
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: '500',
-                        color: iconColors.mutedLight,
-                      }}
-                    >
+                    <Text className="text-xs font-medium text-muted-foreground">
                       {item.code}
                     </Text>
                   </Pressable>
                 )}
-                ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
+                ItemSeparatorComponent={() => <View className="h-1" />}
               />
 
               <Pressable onPress={handleClose} className="mt-4 items-center rounded-xl bg-muted py-3">

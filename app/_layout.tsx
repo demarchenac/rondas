@@ -53,7 +53,7 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView className="flex-1">
       <ErrorBoundary>
         <OfflineBanner />
         <KeyboardProvider>

@@ -26,6 +26,7 @@ import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { cn } from '@/lib/cn';
 import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
@@ -358,7 +359,7 @@ export default function NewBillScreen() {
   // --- Scan state (no items yet) ---
   if (!bill) {
     return (
-      <View className="flex-1" style={{ backgroundColor: '#121a2e' }}>
+      <View className="flex-1 bg-background">
         {/* Full-screen image background */}
         <Image
           source={{ uri: imageUri }}
@@ -367,19 +368,12 @@ export default function NewBillScreen() {
         />
 
         {/* Drag indicator */}
-        <View style={{ alignItems: 'center', paddingTop: 12, zIndex: 10 }}>
-          <View
-            style={{
-              height: 4,
-              width: 40,
-              borderRadius: 2,
-              backgroundColor: 'rgba(255,255,255,0.5)',
-            }}
-          />
+        <View className="z-10 items-center pt-3">
+          <View className="h-1 w-10 rounded-sm bg-white/50" />
         </View>
 
         {/* Bottom gradient + controls */}
-        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+        <View className="flex-1 justify-end">
           <LinearGradient
             colors={['transparent', 'rgba(18,26,46,0.85)', 'rgba(18,26,46,0.95)']}
             locations={[0, 0.5, 1]}
@@ -389,20 +383,12 @@ export default function NewBillScreen() {
             {error && (
               <Pressable
                 onPress={handleScan}
-                style={{
-                  backgroundColor: 'rgba(239,68,68,0.15)',
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: 'rgba(239,68,68,0.25)',
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  marginBottom: 16,
-                }}
+                className="mb-4 rounded-[14px] border border-destructive/25 bg-destructive/15 px-4 py-3"
               >
-                <Text style={{ color: '#fca5a5', fontSize: 13, textAlign: 'center' }}>
+                <Text className="text-center text-[13px] text-red-300">
                   {error}
                 </Text>
-                <Text style={{ color: '#fca5a5', fontSize: 12, textAlign: 'center', marginTop: 4, fontWeight: '600' }}>
+                <Text className="mt-1 text-center text-xs font-semibold text-red-300">
                   {t.scan_tapRetry}
                 </Text>
               </Pressable>
@@ -413,12 +399,7 @@ export default function NewBillScreen() {
               <>
                 <Pressable
                   onPress={handleScan}
-                  style={{
-                    overflow: 'hidden',
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    borderColor: 'rgba(56, 189, 248, 0.3)',
-                  }}
+                  className="overflow-hidden rounded-2xl border border-primary/30"
                 >
                   <BlurView
                     intensity={60}
@@ -433,7 +414,7 @@ export default function NewBillScreen() {
                     }}
                   >
                     <IconSymbol name="doc.text.viewfinder" size={22} color="#38bdf8" />
-                    <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }}>
+                    <Text className="text-[17px] font-semibold text-white">
                       {t.scan_scanBill}
                     </Text>
                   </BlurView>
@@ -452,9 +433,9 @@ export default function NewBillScreen() {
                     });
                     router.replace(`/bills/${billId}` as Href);
                   }}
-                  style={{ alignItems: 'center', paddingVertical: 16 }}
+                  className="items-center py-4"
                 >
-                  <Text style={{ color: '#8b9cc0', fontSize: 14, fontWeight: '500' }}>
+                  <Text className="text-sm font-medium text-muted-foreground">
                     {t.scan_enterManually}
                   </Text>
                 </Pressable>
@@ -465,14 +446,7 @@ export default function NewBillScreen() {
 
         {/* Scanning overlay */}
         {scanning && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 0, left: 0, right: 0, bottom: 0,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <View className="absolute bottom-0 left-0 right-0 top-0 items-center justify-center">
             <BlurView
               intensity={30}
               tint="dark"
@@ -482,19 +456,8 @@ export default function NewBillScreen() {
                 backgroundColor: 'rgba(18,26,46,0.7)',
               }}
             />
-            <View style={{ alignItems: 'center', zIndex: 1, width: '100%', paddingHorizontal: 32 }}>
-              <View
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 40,
-                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                  borderWidth: 1,
-                  borderColor: 'rgba(56, 189, 248, 0.2)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+            <View className="z-[1] w-full items-center px-8">
+              <View className="h-20 w-20 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
                 <ActivityIndicator size="large" color="#38bdf8" />
               </View>
               {(() => {
@@ -505,10 +468,10 @@ export default function NewBillScreen() {
                 );
                 return (
                   <>
-                    <Text style={{ color: '#e8ecf4', fontSize: 17, fontWeight: '700', marginTop: 20 }}>
+                    <Text className="mt-5 text-[17px] font-bold text-foreground">
                       {title}
                     </Text>
-                    <Text style={{ color: '#8b9cc0', fontSize: 13, marginTop: 6 }}>
+                    <Text className="mt-1.5 text-[13px] text-muted-foreground">
                       {hint}
                     </Text>
                   </>
@@ -516,22 +479,19 @@ export default function NewBillScreen() {
               })()}
               {/* Stream items as they arrive */}
               {scanProgress?.result?.items && scanProgress.result.items.length > 0 && (
-                <View style={{ marginTop: 20, width: '100%', maxHeight: 200 }}>
+                <View className="mt-5 max-h-[200px] w-full">
                   {scanProgress.result.items.map((item, i) => (
                     <View
                       key={i}
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        paddingVertical: 6,
-                        borderBottomWidth: i < scanProgress.result!.items.length - 1 ? 1 : 0,
-                        borderBottomColor: 'rgba(255,255,255,0.08)',
-                      }}
+                      className={cn(
+                        'flex-row justify-between py-1.5',
+                        i < scanProgress.result!.items.length - 1 && 'border-b border-white/[0.08]',
+                      )}
                     >
-                      <Text style={{ color: '#e8ecf4', fontSize: 13, flex: 1 }} numberOfLines={1}>
+                      <Text className="flex-1 text-[13px] text-foreground" numberOfLines={1}>
                         {item.name}
                       </Text>
-                      <Text style={{ color: '#38bdf8', fontSize: 13, fontWeight: '600', marginLeft: 12 }}>
+                      <Text className="ml-3 text-[13px] font-semibold text-primary">
                         {formatCurrency(item.subtotal, country)}
                       </Text>
                     </View>
@@ -547,17 +507,9 @@ export default function NewBillScreen() {
 
   // --- Review state (items extracted) ---
   const renderDeleteAction = () => (
-    <Animated.View
-      style={{
-        flex: 1,
-        backgroundColor: '#ef4444',
-        justifyContent: 'center',
-        alignItems: 'flex-end',
-        paddingRight: 24,
-      }}
-    >
+    <Animated.View className="flex-1 items-end justify-center bg-destructive pr-6">
       <IconSymbol name="xmark" size={18} color="#fff" />
-      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500', marginTop: 2 }}>Delete</Text>
+      <Text className="mt-0.5 text-[10px] font-medium text-white">Delete</Text>
     </Animated.View>
   );
 

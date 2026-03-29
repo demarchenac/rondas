@@ -24,6 +24,7 @@ import type { Translations } from '@/lib/i18n';
 import { toE164 } from '@/lib/phone';
 import { CATEGORY_LABELS, computeTax, getTaxConfig, type TaxConfig } from '@/constants/taxes';
 import { relativeTime, parseExifDate } from '@/lib/date';
+import { cn } from '@/lib/cn';
 import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel, getCategoryLabel, type BillState } from '@/lib/billHelpers';
 
 import SwipeableItem from '@/components/bills/SwipeableItem';
@@ -409,19 +410,9 @@ export default function BillDetailScreen() {
           />
         </View>
         <View className="flex-row items-center gap-2">
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: 999,
-              backgroundColor: stateStyle.bg,
-            }}
-          >
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateStyle.dot }} />
-            <Text style={{ fontSize: 11, fontWeight: '600', color: stateStyle.text }}>{stateLabel}</Text>
+          <View className={cn('flex-row items-center gap-1.5 rounded-full px-2.5 py-1', stateStyle.bgClass)}>
+            <View className={cn('h-1.5 w-1.5 rounded-full', stateStyle.dotClass)} />
+            <Text className={cn('text-[11px] font-semibold', stateStyle.textClass)}>{stateLabel}</Text>
           </View>
           <Pressable
             onPress={() => {
@@ -442,14 +433,7 @@ export default function BillDetailScreen() {
                 ]
               );
             }}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: 'rgba(239,68,68,0.1)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="h-8 w-8 items-center justify-center rounded-full bg-destructive/10"
           >
             <IconSymbol name="xmark" size={14} color="#ef4444" />
           </Pressable>
@@ -465,7 +449,7 @@ export default function BillDetailScreen() {
         <View className="mb-1 gap-1 px-7">
           {bill.category && (
             <View className="flex-row items-center gap-1.5">
-              <Text style={{ fontSize: 12 }}>{CATEGORY_LABELS[bill.category]?.emoji ?? '📋'}</Text>
+              <Text className="text-xs">{CATEGORY_LABELS[bill.category]?.emoji ?? '📋'}</Text>
               <Text className="text-xs text-muted-foreground">
                 {getCategoryLabel(bill.category, t)}
               </Text>
@@ -476,14 +460,14 @@ export default function BillDetailScreen() {
           <View className="mb-1 gap-1 px-7">
             {bill.location?.address && (
               <View className="flex-row items-center gap-1.5">
-                <Text style={{ fontSize: 12 }}>📍</Text>
+                <Text className="text-xs">📍</Text>
                 <Text className="flex-1 text-xs text-muted-foreground" numberOfLines={1}>
                   {bill.location.address}
                 </Text>
               </View>
             )}
             <View className="flex-row items-center gap-1.5">
-              <Text style={{ fontSize: 12 }}>🕐</Text>
+              <Text className="text-xs">🕐</Text>
               <Text className="text-xs text-muted-foreground">
                 {(() => {
                   const photoTime = bill.photoTakenAt ? relativeTime(bill.photoTakenAt, t) : null;
@@ -507,7 +491,7 @@ export default function BillDetailScreen() {
           className="mb-1 px-7"
         >
           <View className="flex-row items-center gap-1.5">
-            <Text style={{ fontSize: 12 }}>{billCountry === 'CO' ? '🇨🇴' : '🇺🇸'}</Text>
+            <Text className="text-xs">{billCountry === 'CO' ? '🇨🇴' : '🇺🇸'}</Text>
             <Text className="text-xs text-muted-foreground">
               {billCountry === 'CO' ? t.settings_countryColombia : t.settings_countryUSA}
             </Text>
@@ -519,7 +503,7 @@ export default function BillDetailScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 28, gap: 6, paddingBottom: 8 }}
+          contentContainerClassName="gap-1.5 px-7 pb-2"
         >
           {([
             { key: 'original', label: t.sort_receipt },
@@ -531,16 +515,14 @@ export default function BillDetailScreen() {
             <Pressable
               key={opt.key}
               onPress={() => setSortStrategy(opt.key)}
-              style={{
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: 999,
-                backgroundColor: sortStrategy === opt.key ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
-                borderWidth: 1,
-                borderColor: sortStrategy === opt.key ? 'rgba(56, 189, 248, 0.3)' : 'rgba(148,163,184,0.12)',
-              }}
+              className={cn(
+                'rounded-full border px-2.5 py-1.5',
+                sortStrategy === opt.key
+                  ? 'border-primary/30 bg-primary/15'
+                  : 'border-muted-foreground/12 bg-muted-foreground/[0.06]',
+              )}
             >
-              <Text style={{ fontSize: 11, fontWeight: '600', color: sortStrategy === opt.key ? '#38bdf8' : '#8b9cc0' }}>
+              <Text className={cn('text-[11px] font-semibold', sortStrategy === opt.key ? 'text-primary' : 'text-muted-foreground')}>
                 {opt.label}
               </Text>
             </Pressable>
@@ -560,16 +542,14 @@ export default function BillDetailScreen() {
               setSelectedItemIds(new Set());
               setEditingItemId(null);
             }}
-            style={{
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: 999,
-              backgroundColor: multiSelectMode ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.1)',
-              borderWidth: 1,
-              borderColor: multiSelectMode ? 'rgba(56, 189, 248, 0.3)' : 'rgba(148,163,184,0.2)',
-            }}
+            className={cn(
+              'rounded-full border px-2.5 py-1',
+              multiSelectMode
+                ? 'border-primary/30 bg-primary/15'
+                : 'border-muted-foreground/20 bg-muted-foreground/10',
+            )}
           >
-            <Text style={{ fontSize: 11, fontWeight: '600', color: multiSelectMode ? '#38bdf8' : '#8b9cc0' }}>
+            <Text className={cn('text-[11px] font-semibold', multiSelectMode ? 'text-primary' : 'text-muted-foreground')}>
               {multiSelectMode ? t.cancel : t.bill_bulkEdit}
             </Text>
           </Pressable>
@@ -587,17 +567,9 @@ export default function BillDetailScreen() {
             <SwipeableItem key={item.id ?? `legacy-${index}`} isDeleting={deletingId === item.id}>
             <Swipeable
               renderRightActions={(_progress, dragX) => (
-                <Animated.View
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#ef4444',
-                    justifyContent: 'center',
-                    alignItems: 'flex-end',
-                    paddingRight: 24,
-                  }}
-                >
+                <Animated.View className="flex-1 items-end justify-center bg-destructive pr-6">
                   <IconSymbol name="xmark" size={18} color="#fff" />
-                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500', marginTop: 2 }}>{t.delete}</Text>
+                  <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
                 </Animated.View>
               )}
               rightThreshold={80}
@@ -689,24 +661,14 @@ export default function BillDetailScreen() {
                           <Pressable
                             key={c.contactIndex}
                             onPress={() => item.id && handleRemoveContact(item.id, c.contactIndex)}
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              gap: 4,
-                              paddingHorizontal: 8,
-                              paddingVertical: 4,
-                              borderRadius: 999,
-                              backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                              borderWidth: 1,
-                              borderColor: 'rgba(56, 189, 248, 0.2)',
-                            }}
+                            className="flex-row items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-1"
                           >
                             {c.imageUri ? (
                               <Image source={{ uri: c.imageUri }} style={{ width: 14, height: 14, borderRadius: 7 }} />
                             ) : (
                               <IconSymbol name="person.crop.circle" size={12} color={iconColors.primary} />
                             )}
-                            <Text style={{ fontSize: 11, fontWeight: '500', color: iconColors.primary }}>
+                            <Text className="text-[11px] font-medium text-primary">
                               {c.name}
                             </Text>
                             <IconSymbol name="xmark" size={8} color={iconColors.primary} />
@@ -723,16 +685,7 @@ export default function BillDetailScreen() {
                     {!multiSelectMode && (
                       <Pressable
                         onPress={() => handleAssignContact(itemId)}
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 14,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                          borderWidth: 1,
-                          borderColor: 'rgba(56, 189, 248, 0.2)',
-                        }}
+                        className="h-7 w-7 items-center justify-center rounded-full border border-primary/20 bg-primary/10"
                       >
                         <IconSymbol name="plus" size={14} color={iconColors.primary} />
                       </Pressable>
@@ -797,20 +750,10 @@ export default function BillDetailScreen() {
         <View className="border-t border-border/30 px-7 pb-2 pt-3">
           <Pressable
             onPress={() => setActiveDialog('share')}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              paddingVertical: 14,
-              borderRadius: 14,
-              backgroundColor: 'rgba(56, 189, 248, 0.1)',
-              borderWidth: 1,
-              borderColor: 'rgba(56, 189, 248, 0.2)',
-            }}
+            className="flex-row items-center justify-center gap-2 rounded-[14px] border border-primary/20 bg-primary/10 py-3.5"
           >
             <IconSymbol name="person.crop.circle" size={18} color={iconColors.primary} />
-            <Text style={{ fontSize: 15, fontWeight: '600', color: iconColors.primary }}>
+            <Text className="text-[15px] font-semibold text-primary">
               {t.share_button(bill.contacts.length)}
             </Text>
           </Pressable>
@@ -918,7 +861,7 @@ export default function BillDetailScreen() {
           >
             <View className="flex-row items-center gap-2">
               <IconSymbol name="checkmark" size={18} color={iconColors.primaryForeground} />
-              <Text style={{ fontSize: 16, fontWeight: '600', color: iconColors.primaryForeground }}>
+              <Text className="text-base font-semibold text-primary-foreground">
                 {t.bill_confirmItems}
               </Text>
             </View>

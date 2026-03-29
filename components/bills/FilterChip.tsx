@@ -42,22 +42,16 @@ function FilterChip({ label, isActive, onPress, count }: FilterChipProps) {
       </Text>
       {count !== undefined && count > 0 && (
         <View
-          style={{
-            minWidth: 16,
-            height: 16,
-            borderRadius: 8,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(148,163,184,0.2)',
-            paddingHorizontal: 4,
-          }}
+          className={cn(
+            'min-w-[16px] h-4 rounded-full items-center justify-center px-1',
+            isActive ? 'bg-white/25' : 'bg-muted-foreground/20',
+          )}
         >
           <Text
-            style={{
-              fontSize: 9,
-              fontWeight: '700',
-              color: isActive ? '#fff' : '#8b9cc0',
-            }}
+            className={cn(
+              'text-[9px] font-bold',
+              isActive ? 'text-white' : 'text-muted-foreground',
+            )}
           >
             {count}
           </Text>

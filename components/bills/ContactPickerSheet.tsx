@@ -5,6 +5,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
 import { useColorScheme } from 'nativewind';
 import { ICON_COLORS } from '@/constants/colors';
+import { cn } from '@/lib/cn';
 import type * as Contacts from 'expo-contacts';
 
 interface ContactPickerSheetProps {
@@ -59,14 +60,7 @@ function ContactPickerSheet({
             onChangeText={onSearchChange}
             placeholder={t.contactPicker_search}
             placeholderTextColor="#64748b"
-            style={{
-              backgroundColor: 'rgba(148,163,184,0.08)',
-              borderRadius: 12,
-              paddingHorizontal: 16,
-              paddingVertical: 10,
-              fontSize: 15,
-              color: '#e8ecf4',
-            }}
+            className="rounded-xl bg-muted-foreground/[0.08] px-4 py-2.5 text-[15px] text-foreground"
           />
         </View>
 
@@ -93,8 +87,8 @@ function ContactPickerSheet({
                   {c.image?.uri ? (
                     <Image source={{ uri: c.image.uri }} className="w-9 h-9 rounded-full" />
                   ) : (
-                    <View className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(56,189,248,0.1)' }}>
-                      <Text className="text-sm font-bold" style={{ color: '#38bdf8' }}>
+                    <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
+                      <Text className="text-sm font-bold text-primary">
                         {(c.firstName?.[0] ?? '?').toUpperCase()}
                       </Text>
                     </View>

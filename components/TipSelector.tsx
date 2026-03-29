@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { cn } from '@/lib/cn';
 import { useT } from '@/lib/i18n';
 
 const TIP_OPTIONS = [0, 5, 10, 15, 18, 20] as const;
@@ -23,27 +24,23 @@ export const TipSelector = React.memo(function TipSelector({ value, onSelect }: 
         </View>
         <Text className="text-base text-foreground">{t.settings_tipPercentage}</Text>
       </View>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View className="flex-row gap-2">
         {TIP_OPTIONS.map((pct) => (
           <Pressable
             key={pct}
             onPress={() => onSelect(pct)}
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              paddingVertical: 8,
-              borderRadius: 10,
-              backgroundColor: value === pct ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
-              borderWidth: 1.5,
-              borderColor: value === pct ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148,163,184,0.12)',
-            }}
+            className={cn(
+              'flex-1 items-center rounded-[10px] border-[1.5px] py-2',
+              value === pct
+                ? 'bg-primary/15 border-primary/35'
+                : 'bg-muted-foreground/[0.06] border-muted-foreground/12',
+            )}
           >
             <Text
-              style={{
-                fontSize: 13,
-                fontWeight: '700',
-                color: value === pct ? '#38bdf8' : '#64748b',
-              }}
+              className={cn(
+                'text-[13px] font-bold',
+                value === pct ? 'text-primary' : 'text-muted-foreground',
+              )}
             >
               {pct}%
             </Text>
