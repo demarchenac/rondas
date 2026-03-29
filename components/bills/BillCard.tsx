@@ -1,3 +1,4 @@
+import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 import type { Doc } from '@/convex/_generated/dataModel';
 import { Text } from '@/components/ui/text';
@@ -14,7 +15,7 @@ export interface BillCardProps {
   t: Translations;
 }
 
-export default function BillCard({ bill, onPress, t }: BillCardProps) {
+function BillCard({ bill, onPress, t }: BillCardProps) {
   const stateStyle = STATE_STYLES[bill.state as BillState];
   const label = stateLabel(t, bill.state as BillState);
   const contactCount = bill.contacts.length;
@@ -153,3 +154,5 @@ export default function BillCard({ bill, onPress, t }: BillCardProps) {
     </Pressable>
   );
 }
+
+export default React.memo(BillCard);

@@ -2,7 +2,7 @@ import { action } from './_generated/server';
 import { v } from 'convex/values';
 import { api } from './_generated/api';
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash';
 const GEMINI_STREAM_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse`;
 
 const EXTRACTION_PROMPT = `You are an OCR assistant specialized in bills and receipts.

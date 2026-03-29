@@ -20,6 +20,7 @@ import { formatCurrency } from '@/lib/format';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useT } from '@/lib/i18n';
 import type { BillState } from '@/lib/billHelpers';
+import { IMAGE_QUALITY } from '@/constants/media';
 import BillCard from '@/components/bills/BillCard';
 import FilterChip from '@/components/bills/FilterChip';
 
@@ -76,63 +77,65 @@ export default function HomeScreen() {
 
   const { extractPhotoTime, useLocation: useLocationSetting, country } = useSettingsStore();
 
-  const pickImage = useCallback(async (source: 'camera' | 'library') => {
+  const pickFromCamera = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    if (source === 'camera') {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(t.home_permissionNeeded, t.home_permissionCamera);
-        return;
-      }
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t.home_permissionNeeded, t.home_permissionCamera);
+      return;
+    }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        quality: 0.8,
-        exif: extractPhotoTime,
-      });
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        const photoTakenAt = extractPhotoTime ? (asset.exif?.DateTimeOriginal ?? asset.exif?.DateTime) : undefined;
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: IMAGE_QUALITY,
+      exif: extractPhotoTime,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const photoTakenAt = extractPhotoTime ? (asset.exif?.DateTimeOriginal ?? asset.exif?.DateTime) : undefined;
 
-        // Navigate immediately, resolve location in background
-        const params: Record<string, string> = { imageUri: asset.uri };
-        if (photoTakenAt) params.photoTakenAt = String(photoTakenAt);
-        if (useLocationSetting) params.resolveLocation = 'device';
-        router.push({ pathname: '/bills/new', params } as Href);
-      }
-    } else {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(t.home_permissionNeeded, t.home_permissionLibrary);
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.8,
-        exif: true,
-      });
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        const photoTakenAt = extractPhotoTime ? (asset.exif?.DateTimeOriginal ?? asset.exif?.DateTime) : undefined;
-        const gpsLat = asset.exif?.GPSLatitude;
-        const gpsLng = asset.exif?.GPSLongitude;
-        const gpsLatRef = asset.exif?.GPSLatitudeRef;
-        const gpsLngRef = asset.exif?.GPSLongitudeRef;
-
-        // Navigate immediately with raw GPS, resolve place name in new.tsx
-        const params: Record<string, string> = { imageUri: asset.uri };
-        if (photoTakenAt) params.photoTakenAt = String(photoTakenAt);
-        if (gpsLat != null && gpsLng != null) {
-          params.latitude = String(gpsLatRef === 'S' ? -gpsLat : gpsLat);
-          params.longitude = String(gpsLngRef === 'W' ? -gpsLng : gpsLng);
-          params.resolveLocation = 'exif';
-        }
-        router.push({ pathname: '/bills/new', params } as Href);
-      }
+      // Navigate immediately, resolve location in background
+      const params: Record<string, string> = { imageUri: asset.uri };
+      if (photoTakenAt) params.photoTakenAt = String(photoTakenAt);
+      if (useLocationSetting) params.resolveLocation = 'device';
+      router.push({ pathname: '/bills/new', params } as Href);
     }
   }, [router, extractPhotoTime, useLocationSetting, t]);
+
+  const pickFromLibrary = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t.home_permissionNeeded, t.home_permissionLibrary);
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: IMAGE_QUALITY,
+      exif: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const photoTakenAt = extractPhotoTime ? (asset.exif?.DateTimeOriginal ?? asset.exif?.DateTime) : undefined;
+      const gpsLat = asset.exif?.GPSLatitude;
+      const gpsLng = asset.exif?.GPSLongitude;
+      const gpsLatRef = asset.exif?.GPSLatitudeRef;
+      const gpsLngRef = asset.exif?.GPSLongitudeRef;
+
+      // Navigate immediately with raw GPS, resolve place name in new.tsx
+      const params: Record<string, string> = { imageUri: asset.uri };
+      if (photoTakenAt) params.photoTakenAt = String(photoTakenAt);
+      if (gpsLat != null && gpsLng != null) {
+        params.latitude = String(gpsLatRef === 'S' ? -gpsLat : gpsLat);
+        params.longitude = String(gpsLngRef === 'W' ? -gpsLng : gpsLng);
+        params.resolveLocation = 'exif';
+      }
+      router.push({ pathname: '/bills/new', params } as Href);
+    }
+  }, [router, extractPhotoTime, t]);
 
   const handleFABPress = useCallback(() => {
     if (Platform.OS === 'ios') {
@@ -142,18 +145,18 @@ export default function HomeScreen() {
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
-          if (buttonIndex === 1) pickImage('camera');
-          if (buttonIndex === 2) pickImage('library');
+          if (buttonIndex === 1) pickFromCamera();
+          if (buttonIndex === 2) pickFromLibrary();
         }
       );
     } else {
       Alert.alert(t.home_addBill, t.home_addBillHow, [
         { text: t.cancel, style: 'cancel' },
-        { text: t.home_takePhoto, onPress: () => pickImage('camera') },
-        { text: t.home_chooseLibrary, onPress: () => pickImage('library') },
+        { text: t.home_takePhoto, onPress: pickFromCamera },
+        { text: t.home_chooseLibrary, onPress: pickFromLibrary },
       ]);
     }
-  }, [pickImage, t]);
+  }, [pickFromCamera, pickFromLibrary, t]);
 
   const firstName = user?.firstName ?? user?.email?.split('@')[0] ?? 'there';
 

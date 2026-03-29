@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { cn } from '@/lib/cn';
 
-export function SettingsRow({
+export const SettingsRow = React.memo(function SettingsRow({
   icon,
   iconColor,
   label,
@@ -58,4 +58,4 @@ export function SettingsRow({
       )}
     </View>
   );
-}
+});

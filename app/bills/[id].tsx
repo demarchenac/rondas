@@ -346,6 +346,34 @@ export default function BillDetailScreen() {
     }
   }, [bill, sortStrategy]);
 
+  const billDerived = useMemo(() => {
+    if (!bill) return null;
+    const subtotal = bill.items.reduce((sum, billItem) => sum + billItem.subtotal, 0);
+    const billCountry = (bill.country as 'CO' | 'US') || 'CO';
+    const billCategory = bill.category || 'dining';
+    const taxConfig = getTaxConfig(billCountry, billCategory);
+    const translatedTaxLabel = getTaxLabel(taxConfig, t);
+
+    // Tax: extracted from tax-inclusive subtotal for CO, stored value for US
+    const computedTax = taxConfig.taxIncluded
+      ? computeTax(subtotal, taxConfig)
+      : (bill.tax ?? 0);
+
+    // Tip: computed from the bill's own tip percent
+    const tipPercent = bill.tipPercent ?? 0;
+    const computedTip = Math.round(subtotal * (tipPercent / 100));
+
+    // Total: CO = subtotal + tip (tax already in prices), US = subtotal + tax + tip
+    const total = taxConfig.taxIncluded
+      ? subtotal + computedTip
+      : subtotal + computedTax + computedTip;
+
+    const stateStyle = STATE_STYLES[bill.state];
+    const stateLabel = t[STATE_LABEL_KEYS[bill.state]] as string;
+
+    return { subtotal, billCountry, billCategory, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, total, stateStyle, stateLabel };
+  }, [bill, t]);
+
   // Loading state
   if (bill === undefined) {
     return (
@@ -355,7 +383,7 @@ export default function BillDetailScreen() {
     );
   }
 
-  if (!bill) {
+  if (!bill || !billDerived) {
     return (
       <View className="flex-1 items-center justify-center bg-background" style={{ paddingTop: insets.top }}>
         <Text className="text-lg font-semibold text-foreground">{t.error}</Text>
@@ -366,27 +394,7 @@ export default function BillDetailScreen() {
     );
   }
 
-  const stateStyle = STATE_STYLES[bill.state];
-  const stateLabel = t[STATE_LABEL_KEYS[bill.state]] as string;
-  const subtotal = bill.items.reduce((sum, billItem) => sum + billItem.subtotal, 0);
-  const billCountry = (bill.country as 'CO' | 'US') || 'CO';
-  const billCategory = bill.category || 'dining';
-  const taxConfig = getTaxConfig(billCountry, billCategory);
-  const translatedTaxLabel = getTaxLabel(taxConfig, t);
-
-  // Tax: extracted from tax-inclusive subtotal for CO, stored value for US
-  const computedTax = taxConfig.taxIncluded
-    ? computeTax(subtotal, taxConfig)
-    : (bill.tax ?? 0);
-
-  // Tip: computed from the bill's own tip percent
-  const tipPercent = bill.tipPercent ?? 0;
-  const computedTip = Math.round(subtotal * (tipPercent / 100));
-
-  // Total: CO = subtotal + tip (tax already in prices), US = subtotal + tax + tip
-  const total = taxConfig.taxIncluded
-    ? subtotal + computedTip
-    : subtotal + computedTax + computedTip;
+  const { subtotal, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, total, stateStyle, stateLabel } = billDerived;
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>

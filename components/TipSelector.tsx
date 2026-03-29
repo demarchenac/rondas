@@ -1,3 +1,4 @@
+import React from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
@@ -11,7 +12,7 @@ interface TipSelectorProps {
   onSelect: (percent: number) => void;
 }
 
-export function TipSelector({ value, onSelect }: TipSelectorProps) {
+export const TipSelector = React.memo(function TipSelector({ value, onSelect }: TipSelectorProps) {
   const t = useT();
 
   return (
@@ -51,4 +52,4 @@ export function TipSelector({ value, onSelect }: TipSelectorProps) {
       </View>
     </View>
   );
-}
+});

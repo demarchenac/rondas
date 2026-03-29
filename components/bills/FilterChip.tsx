@@ -1,3 +1,4 @@
+import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/cn';
@@ -9,7 +10,7 @@ export interface FilterChipProps {
   onPress: () => void;
 }
 
-export default function FilterChip({ label, isActive, onPress, count }: FilterChipProps) {
+function FilterChip({ label, isActive, onPress, count }: FilterChipProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -52,3 +53,5 @@ export default function FilterChip({ label, isActive, onPress, count }: FilterCh
     </Pressable>
   );
 }
+
+export default React.memo(FilterChip);
