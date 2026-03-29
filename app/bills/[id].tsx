@@ -23,6 +23,8 @@ import { useT } from '@/lib/i18n';
 import type { Translations } from '@/lib/i18n';
 import { toE164 } from '@/lib/phone';
 import { CATEGORY_LABELS, computeTax, getTaxConfig, type TaxConfig } from '@/constants/taxes';
+import { relativeTime, parseExifDate } from '@/lib/date';
+import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel, getCategoryLabel, type BillState } from '@/lib/billHelpers';
 
 import SwipeableItem from '@/components/bills/SwipeableItem';
 import TipDialog from '@/components/bills/TipDialog';
@@ -31,66 +33,6 @@ import BulkToolbar from '@/components/bills/BulkToolbar';
 import ContactPickerSheet from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import BillShareSheet from '@/components/bills/BillShareSheet';
-
-type BillState = 'draft' | 'unsplit' | 'split' | 'unresolved';
-
-function parseExifDate(value: string): Date {
-  // EXIF format: "2026:03:11 19:30:00" → "2026-03-11T19:30:00"
-  const fixed = value.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3').replace(' ', 'T');
-  return new Date(fixed);
-}
-
-function relativeTime(timestamp: string | number, t: Translations): string | null {
-  const time = typeof timestamp === 'string' ? parseExifDate(timestamp).getTime() : timestamp;
-  if (isNaN(time)) return null;
-  const now = Date.now();
-  const diff = now - time;
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return t.time_justNow;
-  if (minutes < 60) return t.time_minutesAgo(minutes);
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return t.time_hoursAgo(hours);
-  const days = Math.floor(hours / 24);
-  if (days === 1) return t.time_yesterday;
-  if (days < 7) return t.time_daysAgo(days);
-  return new Date(time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-const STATE_STYLES: Record<BillState, { dot: string; bg: string; text: string }> = {
-  draft: { dot: '#6366f1', bg: 'rgba(99,102,241,0.15)', text: '#6366f1' },
-  unsplit: { dot: '#94a3b8', bg: 'rgba(148,163,184,0.15)', text: '#94a3b8' },
-  split: { dot: '#10b981', bg: 'rgba(16,185,129,0.15)', text: '#10b981' },
-  unresolved: { dot: '#f59e0b', bg: 'rgba(245,158,11,0.15)', text: '#f59e0b' },
-};
-
-const STATE_LABEL_KEYS: Record<BillState, keyof Translations> = {
-  draft: 'state_draft',
-  unsplit: 'state_unsplit',
-  split: 'state_split',
-  unresolved: 'state_unresolved',
-};
-
-const TAX_LABEL_MAP: Record<string, keyof Translations> = {
-  'Impoconsumo (included)': 'tax_impoconsumo',
-  'IVA (included)': 'tax_iva',
-  'Sales Tax': 'tax_salesTax',
-};
-
-const CATEGORY_KEY_MAP: Record<string, keyof Translations> = {
-  dining: 'category_dining',
-  retail: 'category_retail',
-  service: 'category_service',
-};
-
-function getTaxLabel(taxConfig: TaxConfig, t: Translations): string {
-  const key = TAX_LABEL_MAP[taxConfig.taxLabel];
-  return key ? (t[key] as string) : taxConfig.taxLabel;
-}
-
-function getCategoryLabel(category: string, t: Translations): string {
-  const key = CATEGORY_KEY_MAP[category];
-  return key ? (t[key] as string) : category;
-}
 
 export default function BillDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

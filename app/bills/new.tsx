@@ -3,13 +3,11 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Keyboard,
   Pressable,
-  ScrollView,
   View,
 } from 'react-native';
-import { KeyboardAwareScrollView, useKeyboardHandler } from 'react-native-keyboard-controller';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import Animated from 'react-native-reanimated';
 import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-router';
 import { usePreventRemove } from '@react-navigation/core';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,6 +34,8 @@ import { computeTax, getTaxConfig } from '@/constants/taxes';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { formatCurrency, parseCurrency } from '@/lib/format';
 import { useT } from '@/lib/i18n';
+import SwipeableItem from '@/components/bills/SwipeableItem';
+import KeyboardDoneButton from '@/components/bills/KeyboardDoneButton';
 
 interface BillItem {
   id: string;
@@ -786,87 +786,3 @@ export default function NewBillScreen() {
   );
 }
 
-function SwipeableItem({ children, isDeleting }: { children: React.ReactNode; isDeleting: boolean }) {
-  const height = useSharedValue<number | null>(null);
-  const animatedStyle = useAnimatedStyle(() => {
-    if (!isDeleting || height.value === null) return {};
-    return {
-      height: withTiming(0, { duration: 300 }),
-      opacity: withTiming(0, { duration: 200 }),
-      overflow: 'hidden' as const,
-    };
-  }, [isDeleting]);
-
-  return (
-    <Animated.View
-      style={animatedStyle}
-      onLayout={(e) => {
-        if (height.value === null) {
-          height.value = e.nativeEvent.layout.height;
-        }
-      }}
-    >
-      {children}
-    </Animated.View>
-  );
-}
-
-function KeyboardDoneButton() {
-  const t = useT();
-  const height = useSharedValue(0);
-
-  const opening = useSharedValue(false);
-
-  useKeyboardHandler({
-    onStart: (e) => {
-      'worklet';
-      opening.value = e.height > 0;
-    },
-    onMove: (e) => {
-      'worklet';
-      height.value = e.height;
-    },
-    onEnd: (e) => {
-      'worklet';
-      height.value = e.height;
-    },
-  });
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    position: 'absolute' as const,
-    left: 0,
-    right: 0,
-    bottom: height.value,
-    opacity: opening.value ? 1 : 0,
-    pointerEvents: opening.value ? 'auto' as const : 'none' as const,
-  }));
-
-  return (
-    <Animated.View style={animatedStyle}>
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          backgroundColor: '#1a2540',
-          borderTopWidth: 1,
-          borderTopColor: '#263354',
-        }}
-      >
-        <Pressable
-          onPress={() => Keyboard.dismiss()}
-          style={{
-            paddingHorizontal: 20,
-            paddingVertical: 6,
-            borderRadius: 8,
-            backgroundColor: 'rgba(56, 189, 248, 0.1)',
-          }}
-        >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#38bdf8' }}>{t.done}</Text>
-        </Pressable>
-      </View>
-    </Animated.View>
-  );
-}

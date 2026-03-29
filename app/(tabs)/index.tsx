@@ -19,243 +19,11 @@ import { api } from '@/convex/_generated/api';
 import { formatCurrency } from '@/lib/format';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useT } from '@/lib/i18n';
-import type { Translations } from '@/lib/i18n';
+import type { BillState } from '@/lib/billHelpers';
+import BillCard from '@/components/bills/BillCard';
+import FilterChip from '@/components/bills/FilterChip';
 
 type Bill = Doc<'bills'>;
-type BillState = 'draft' | 'unsplit' | 'split' | 'unresolved';
-
-const STATE_STYLES: Record<BillState, { color: string; bg: string }> = {
-  draft: { color: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
-  unsplit: { color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
-  split: { color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
-  unresolved: { color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-};
-
-function stateLabel(t: Translations, state: BillState): string {
-  const map: Record<BillState, string> = {
-    draft: t.state_draft,
-    unsplit: t.state_unsplit,
-    split: t.state_split,
-    unresolved: t.state_unresolved,
-  };
-  return map[state];
-}
-
-function relativeTime(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days}d ago`;
-  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function BillCard({
-  bill,
-  iconColors,
-  onPress,
-  t,
-}: {
-  bill: Bill;
-  iconColors: typeof ICON_COLORS.light;
-  onPress: () => void;
-  t: Translations;
-}) {
-  const stateStyle = STATE_STYLES[bill.state];
-  const label = stateLabel(t, bill.state);
-  const contactCount = bill.contacts.length;
-  const itemCount = bill.items.length;
-  const assignedItems = bill.state !== 'unsplit' && bill.state !== 'draft'
-    ? new Set(bill.contacts.flatMap((c) => c.items)).size
-    : 0;
-  const progress = itemCount > 0 ? assignedItems / itemCount : 0;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{ borderLeftWidth: 3, borderLeftColor: stateStyle.color }}
-      className="rounded-xl bg-card px-4 py-3.5 active:opacity-80"
-    >
-      {/* Top row: name + badge */}
-      <View className="flex-row items-center justify-between">
-        <Text className="flex-1 text-base font-bold text-foreground" numberOfLines={1}>
-          {bill.name}
-        </Text>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 5,
-            paddingHorizontal: 8,
-            paddingVertical: 3,
-            borderRadius: 999,
-            backgroundColor: stateStyle.bg,
-          }}
-        >
-          <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: stateStyle.color }} />
-          <Text style={{ fontSize: 10, fontWeight: '600', color: stateStyle.color }}>
-            {label}
-          </Text>
-        </View>
-      </View>
-
-      {/* Bottom row: amount + meta */}
-      <View className="mt-2 flex-row items-end justify-between">
-        <View>
-          <Text className="text-xl font-extrabold tracking-tight text-foreground">
-            {formatCurrency(bill.total, bill.country)}
-          </Text>
-          <Text className="mt-0.5 text-xs text-muted-foreground">
-            {relativeTime(bill._creationTime)} · {t.billCard_items(itemCount)}
-          </Text>
-        </View>
-
-        {/* Contact avatars or item count */}
-        {contactCount > 0 ? (
-          <View className="flex-row items-center">
-            {bill.contacts.slice(0, 3).map((c, i) => (
-              c.imageUri ? (
-                <Image
-                  key={i}
-                  source={{ uri: c.imageUri }}
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 13,
-                    marginLeft: i > 0 ? -8 : 0,
-                    borderWidth: 2,
-                    borderColor: '#1a2540',
-                  }}
-                />
-              ) : (
-                <View
-                  key={i}
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 13,
-                    backgroundColor: stateStyle.bg,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginLeft: i > 0 ? -8 : 0,
-                    borderWidth: 2,
-                    borderColor: '#1a2540',
-                  }}
-                >
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: stateStyle.color }}>
-                    {c.name[0]?.toUpperCase() ?? '?'}
-                  </Text>
-                </View>
-              )
-            ))}
-            {contactCount > 3 && (
-              <View
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  backgroundColor: 'rgba(148,163,184,0.15)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginLeft: -8,
-                  borderWidth: 2,
-                  borderColor: '#1a2540',
-                }}
-              >
-                <Text style={{ fontSize: 9, fontWeight: '700', color: '#8b9cc0' }}>
-                  +{contactCount - 3}
-                </Text>
-              </View>
-            )}
-          </View>
-        ) : null}
-      </View>
-
-      {/* Progress bar for unresolved bills */}
-      {bill.state === 'unresolved' && itemCount > 0 && (
-        <View className="mt-2.5">
-          <View
-            style={{
-              height: 3,
-              borderRadius: 2,
-              backgroundColor: 'rgba(148,163,184,0.15)',
-              overflow: 'hidden',
-            }}
-          >
-            <View
-              style={{
-                height: '100%',
-                width: `${Math.round(progress * 100)}%`,
-                backgroundColor: stateStyle.color,
-                borderRadius: 2,
-              }}
-            />
-          </View>
-          <Text style={{ fontSize: 10, color: '#8b9cc0', marginTop: 3 }}>
-            {t.billCard_assigned(assignedItems, itemCount)}
-          </Text>
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-function FilterChip({
-  label,
-  active,
-  onPress,
-  count,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  count?: number;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`flex-row items-center gap-1.5 rounded-full px-3.5 py-1.5 ${
-        active ? 'bg-primary' : 'border border-border bg-card'
-      }`}
-    >
-      <Text
-        className={`text-xs font-semibold ${
-          active ? 'text-primary-foreground' : 'text-muted-foreground'
-        }`}
-      >
-        {label}
-      </Text>
-      {count !== undefined && count > 0 && (
-        <View
-          style={{
-            minWidth: 16,
-            height: 16,
-            borderRadius: 8,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: active ? 'rgba(255,255,255,0.25)' : 'rgba(148,163,184,0.2)',
-            paddingHorizontal: 4,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 9,
-              fontWeight: '700',
-              color: active ? '#fff' : '#8b9cc0',
-            }}
-          >
-            {count}
-          </Text>
-        </View>
-      )}
-    </Pressable>
-  );
-}
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -437,13 +205,13 @@ export default function HomeScreen() {
       <View className="px-5 py-2.5">
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
-            <FilterChip label={t.filter_all} active={activeFilter === 'all'} onPress={() => setActiveFilter('all')} count={nonDraftBills.length} />
+            <FilterChip label={t.filter_all} isActive={activeFilter === 'all'} onPress={() => setActiveFilter('all')} count={nonDraftBills.length} />
             {counts.draft > 0 && (
-              <FilterChip label={t.filter_draft} active={activeFilter === 'draft'} onPress={() => setActiveFilter('draft')} count={counts.draft} />
+              <FilterChip label={t.filter_draft} isActive={activeFilter === 'draft'} onPress={() => setActiveFilter('draft')} count={counts.draft} />
             )}
-            <FilterChip label={t.filter_unsplit} active={activeFilter === 'unsplit'} onPress={() => setActiveFilter('unsplit')} count={counts.unsplit} />
-            <FilterChip label={t.filter_unresolved} active={activeFilter === 'unresolved'} onPress={() => setActiveFilter('unresolved')} count={counts.unresolved} />
-            <FilterChip label={t.filter_split} active={activeFilter === 'split'} onPress={() => setActiveFilter('split')} count={counts.split} />
+            <FilterChip label={t.filter_unsplit} isActive={activeFilter === 'unsplit'} onPress={() => setActiveFilter('unsplit')} count={counts.unsplit} />
+            <FilterChip label={t.filter_unresolved} isActive={activeFilter === 'unresolved'} onPress={() => setActiveFilter('unresolved')} count={counts.unresolved} />
+            <FilterChip label={t.filter_split} isActive={activeFilter === 'split'} onPress={() => setActiveFilter('split')} count={counts.split} />
             {activeFilter !== 'all' && (
               <Pressable
                 onPress={() => setActiveFilter('all')}
@@ -513,7 +281,6 @@ export default function HomeScreen() {
               >
                 <BillCard
                   bill={item}
-                  iconColors={iconColors}
                   onPress={() => router.push(`/bills/${item._id}` as Href)}
                   t={t}
                 />
