@@ -50,6 +50,7 @@ export const create = mutation({
     total: v.number(),
     tax: v.optional(v.number()),
     tip: v.optional(v.number()),
+    tipPercent: v.optional(v.number()),
     items: v.array(
       v.object({
         name: v.string(),
@@ -100,6 +101,8 @@ export const update = mutation({
     splitStrategy: v.optional(v.union(v.literal('equal'), v.literal('by_item'))),
     tax: v.optional(v.number()),
     tip: v.optional(v.number()),
+    tipPercent: v.optional(v.number()),
+    country: v.optional(v.string()),
     items: v.optional(
       v.array(
         v.object({
@@ -136,13 +139,19 @@ export const update = mutation({
     const newItems = (defined.items as typeof bill.items) ?? billItems;
     const newTax = (defined.tax as number) ?? bill.tax ?? 0;
     const newTip = (defined.tip as number) ?? bill.tip ?? 0;
+    const billCountry = bill.country as string | undefined;
 
     let contacts = bill.contacts;
     if (contacts.length > 0 && (defined.items || defined.tax !== undefined || defined.tip !== undefined)) {
       contacts = recalculateAmounts(newItems, [...contacts], newTax, newTip);
     }
 
-    const newTotal = newItems.reduce((sum, i) => sum + i.subtotal, 0) + newTax + newTip;
+    // For tax-included countries (CO), tax is already in item prices — don't add it again
+    const isTaxIncluded = billCountry === 'CO';
+    const subtotal = newItems.reduce((sum, i) => sum + i.subtotal, 0);
+    const newTotal = isTaxIncluded
+      ? subtotal + newTip
+      : subtotal + newTax + newTip;
 
     await ctx.db.patch(id, {
       ...defined,

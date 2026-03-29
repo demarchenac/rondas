@@ -98,3 +98,14 @@ export function getSuggestedTip(country: Country, category: ReceiptCategory, sub
   const config = getTaxConfig(country, category);
   return Math.round(subtotal * config.suggestedTip);
 }
+
+/**
+ * Extract the tax amount from a tax-inclusive total.
+ * When tax is included in item prices: base = total / (1 + rate), tax = base * rate
+ * When tax is separate: returns the tax amount directly.
+ */
+export function computeTax(amount: number, taxConfig: TaxConfig): number {
+  if (!taxConfig.taxIncluded) return 0;
+  const base = amount / (1 + taxConfig.taxRate);
+  return Math.round(base * taxConfig.taxRate);
+}

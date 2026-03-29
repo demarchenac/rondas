@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, ScrollView, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,36 +17,73 @@ import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { api } from '@/convex/_generated/api';
-import { formatCOP, parseCOP } from '@/lib/format';
+import { formatCurrency, parseCurrency } from '@/lib/format';
+import { useT } from '@/lib/i18n';
+import type { Translations } from '@/lib/i18n';
 import { toE164 } from '@/lib/phone';
-import { CATEGORY_LABELS, getTaxConfig, type TaxConfig } from '@/constants/taxes';
-import { useSettingsStore } from '@/stores/useSettingsStore';
+import { CATEGORY_LABELS, computeTax, getTaxConfig, type TaxConfig } from '@/constants/taxes';
 import { WhatsAppIcon } from '@/components/icons/whatsapp';
 import { Share2 } from 'lucide-react-native';
 
 type BillState = 'draft' | 'unsplit' | 'split' | 'unresolved';
 
-function relativeTime(timestamp: string | number): string {
-  const time = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp;
+function parseExifDate(value: string): Date {
+  // EXIF format: "2026:03:11 19:30:00" → "2026-03-11T19:30:00"
+  const fixed = value.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3').replace(' ', 'T');
+  return new Date(fixed);
+}
+
+function relativeTime(timestamp: string | number, t: Translations): string | null {
+  const time = typeof timestamp === 'string' ? parseExifDate(timestamp).getTime() : timestamp;
+  if (isNaN(time)) return null;
   const now = Date.now();
   const diff = now - time;
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t.time_justNow;
+  if (minutes < 60) return t.time_minutesAgo(minutes);
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t.time_hoursAgo(hours);
   const days = Math.floor(hours / 24);
-  if (days === 1) return 'yesterday';
-  if (days < 7) return `${days}d ago`;
+  if (days === 1) return t.time_yesterday;
+  if (days < 7) return t.time_daysAgo(days);
   return new Date(time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-const STATE_STYLES: Record<BillState, { label: string; dot: string; bg: string; text: string }> = {
-  draft: { label: 'Draft', dot: '#6366f1', bg: 'rgba(99,102,241,0.15)', text: '#6366f1' },
-  unsplit: { label: 'Unsplit', dot: '#94a3b8', bg: 'rgba(148,163,184,0.15)', text: '#94a3b8' },
-  split: { label: 'Split', dot: '#10b981', bg: 'rgba(16,185,129,0.15)', text: '#10b981' },
-  unresolved: { label: 'Unresolved', dot: '#f59e0b', bg: 'rgba(245,158,11,0.15)', text: '#f59e0b' },
+const STATE_STYLES: Record<BillState, { dot: string; bg: string; text: string }> = {
+  draft: { dot: '#6366f1', bg: 'rgba(99,102,241,0.15)', text: '#6366f1' },
+  unsplit: { dot: '#94a3b8', bg: 'rgba(148,163,184,0.15)', text: '#94a3b8' },
+  split: { dot: '#10b981', bg: 'rgba(16,185,129,0.15)', text: '#10b981' },
+  unresolved: { dot: '#f59e0b', bg: 'rgba(245,158,11,0.15)', text: '#f59e0b' },
 };
+
+const STATE_LABEL_KEYS: Record<BillState, keyof Translations> = {
+  draft: 'state_draft',
+  unsplit: 'state_unsplit',
+  split: 'state_split',
+  unresolved: 'state_unresolved',
+};
+
+const TAX_LABEL_MAP: Record<string, keyof Translations> = {
+  'Impoconsumo (included)': 'tax_impoconsumo',
+  'IVA (included)': 'tax_iva',
+  'Sales Tax': 'tax_salesTax',
+};
+
+const CATEGORY_KEY_MAP: Record<string, keyof Translations> = {
+  dining: 'category_dining',
+  retail: 'category_retail',
+  service: 'category_service',
+};
+
+function getTaxLabel(taxConfig: TaxConfig, t: Translations): string {
+  const key = TAX_LABEL_MAP[taxConfig.taxLabel];
+  return key ? (t[key] as string) : taxConfig.taxLabel;
+}
+
+function getCategoryLabel(category: string, t: Translations): string {
+  const key = CATEGORY_KEY_MAP[category];
+  return key ? (t[key] as string) : category;
+}
 
 export default function BillDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -54,6 +91,7 @@ export default function BillDetailScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
+  const t = useT();
 
   const bill = useQuery(api.bills.get, { id: id as Id<'bills'> });
   const updateBill = useMutation(api.bills.update);
@@ -62,85 +100,82 @@ export default function BillDetailScreen() {
   const togglePaid = useMutation(api.bills.togglePaymentStatus);
   const removeBill = useMutation(api.bills.remove);
   const removeContactsBatch = useMutation(api.bills.removeContactsFromItems);
-  const { defaultTipPercent } = useSettingsStore();
-
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [showTipDialog, setShowTipDialog] = useState(false);
+  const [showCountryDialog, setShowCountryDialog] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [sortStrategy, setSortStrategy] = useState<SortStrategy>('original');
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showUnassignPicker, setShowUnassignPicker] = useState(false);
   const [phoneContacts, setPhoneContacts] = useState<(Contacts.Contact & { id: string })[]>([]);
   const [contactSearch, setContactSearch] = useState('');
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
-  const [singleAssignItemIndex, setSingleAssignItemIndex] = useState<number | null>(null);
+  const [singleAssignItemId, setSingleAssignItemId] = useState<string | null>(null);
   const swipeOpenRef = useRef(false);
   const assignContactToItems = useMutation(api.bills.assignContactToItems);
   const billRef = useRef(bill);
   billRef.current = bill;
 
-  const handleRemoveItem = useCallback((itemIndex: number) => {
+  const handleRemoveItem = useCallback((itemId: string) => {
     const currentBill = billRef.current;
     if (!currentBill) return;
-    const item = currentBill.items[itemIndex];
-    if (!item) return;
-    const itemId = item.id;
-    const remaining = itemId
-      ? currentBill.items.filter((i) => i.id !== itemId)
-      : currentBill.items.filter((_, i) => i !== itemIndex);
-    setDeletingId(itemId ?? `idx-${itemIndex}`);
+    const remaining = currentBill.items.filter((i) => i.id !== itemId);
+    setDeletingId(itemId);
     setTimeout(() => {
       updateBill({ id: id as Id<'bills'>, items: remaining });
       setDeletingId(null);
     }, 300);
   }, [id, updateBill]);
 
-  const handleItemPress = useCallback((index: number) => {
+  const handleItemPress = useCallback((itemId: string) => {
     if (swipeOpenRef.current) {
       swipeOpenRef.current = false;
       return;
     }
-    setEditingIndex(index);
+    setEditingItemId(itemId);
   }, []);
 
-  const handleUpdateItem = useCallback((itemIndex: number, field: 'name' | 'quantity' | 'unitPrice', value: string) => {
+  const handleUpdateItem = useCallback((itemId: string, field: 'name' | 'quantity' | 'unitPrice', value: string) => {
     if (!bill) return;
-    const items = [...bill.items];
-    if (field === 'name') {
-      items[itemIndex] = { ...items[itemIndex], name: value };
-    } else {
-      const num = parseCOP(value);
-      items[itemIndex] = { ...items[itemIndex], [field]: num };
+    const items = bill.items.map((item) => {
+      if (item.id !== itemId) return item;
+      if (field === 'name') return { ...item, name: value };
+      const num = parseCurrency(value);
+      const updated = { ...item, [field]: num };
       if (field === 'quantity' || field === 'unitPrice') {
-        items[itemIndex].subtotal = items[itemIndex].quantity * items[itemIndex].unitPrice;
+        updated.subtotal = updated.quantity * updated.unitPrice;
       }
-    }
+      return updated;
+    });
     updateBill({ id: id as Id<'bills'>, items });
   }, [bill, id, updateBill]);
 
   const handleUpdateTax = useCallback((value: string) => {
-    updateBill({ id: id as Id<'bills'>, tax: parseCOP(value) });
+    updateBill({ id: id as Id<'bills'>, tax: parseCurrency(value) });
   }, [id, updateBill]);
 
   const handleUpdateTip = useCallback((value: string) => {
-    updateBill({ id: id as Id<'bills'>, tip: parseCOP(value) });
+    updateBill({ id: id as Id<'bills'>, tip: parseCurrency(value) });
   }, [id, updateBill]);
 
-  const toggleItemSelection = useCallback((index: number) => {
-    setSelectedItems((prev) => {
+  const toggleItemSelection = useCallback((itemId: string) => {
+    setSelectedItemIds((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
       return next;
     });
   }, []);
 
   const handleMultiAssign = useCallback(async () => {
-    if (selectedItems.size === 0) return;
+    if (selectedItemIds.size === 0) return;
     const { status } = await Contacts.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Contact access is required to assign people to items.');
+      Alert.alert(t.bill_permissionNeeded, t.bill_permissionContacts);
       return;
     }
 
@@ -152,23 +187,17 @@ export default function BillDetailScreen() {
     setContactSearch('');
     setSelectedContactIds(new Set());
     setShowContactPicker(true);
-  }, [selectedItems]);
+  }, [selectedItemIds, t]);
 
   const handleConfirmContactPicker = useCallback(async () => {
     if (selectedContactIds.size === 0 || !bill) return;
 
     // Determine which items to assign to
     let itemIds: string[];
-    if (singleAssignItemIndex !== null) {
-      // Single item assignment via + button
-      const itemId = bill.items[singleAssignItemIndex]?.id;
-      if (!itemId) return;
-      itemIds = [itemId];
+    if (singleAssignItemId !== null) {
+      itemIds = [singleAssignItemId];
     } else {
-      // Bulk assignment via multi-select
-      itemIds = Array.from(selectedItems)
-        .map((idx) => bill.items[idx]?.id)
-        .filter((itemId): itemId is string => !!itemId);
+      itemIds = Array.from(selectedItemIds);
     }
     if (itemIds.length === 0) return;
 
@@ -189,54 +218,51 @@ export default function BillDetailScreen() {
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowContactPicker(false);
-    setSingleAssignItemIndex(null);
-    setSelectedItems(new Set());
+    setSingleAssignItemId(null);
+    setSelectedItemIds(new Set());
     setMultiSelectMode(false);
-  }, [selectedContactIds, selectedItems, singleAssignItemIndex, phoneContacts, bill, id, assignContactToItems]);
+  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, bill, id, assignContactToItems]);
 
   const handleBulkDelete = useCallback(() => {
-    if (selectedItems.size === 0 || !bill) return;
+    if (selectedItemIds.size === 0 || !bill) return;
     Alert.alert(
-      'Delete items',
-      `Delete ${selectedItems.size} selected ${selectedItems.size === 1 ? 'item' : 'items'}?`,
+      t.bill_deleteItems,
+      t.bill_deleteItemsConfirm(selectedItemIds.size),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Delete',
+          text: t.delete,
           style: 'destructive',
           onPress: () => {
-            const selectedIds = new Set(
-              Array.from(selectedItems).map((idx) => bill.items[idx]?.id).filter(Boolean)
-            );
-            const remaining = bill.items.filter((i) => !selectedIds.has(i.id));
+            const remaining = bill.items.filter((i) => !selectedItemIds.has(i.id!));
             updateBill({ id: id as Id<'bills'>, items: remaining });
-            setSelectedItems(new Set());
+            setSelectedItemIds(new Set());
             setMultiSelectMode(false);
           },
         },
       ]
     );
-  }, [selectedItems, bill, id, updateBill]);
+  }, [selectedItemIds, bill, id, updateBill, t]);
 
   const handleBulkRemoveContact = useCallback(() => {
-    if (selectedItems.size === 0 || !bill) return;
+    if (selectedItemIds.size === 0 || !bill) return;
 
-    const selectedIds = Array.from(selectedItems).map((idx) => bill.items[idx]?.id).filter(Boolean);
+    const selectedIds = Array.from(selectedItemIds);
     const contactsOnSelected = bill.contacts
       .map((c, ci) => ({ ...c, contactIndex: ci }))
       .filter((c) => c.items.some((itemId) => selectedIds.includes(itemId)));
 
     if (contactsOnSelected.length === 0) {
-      Alert.alert('No contacts', 'Selected items have no contacts assigned.');
+      Alert.alert(t.bill_noContacts, t.bill_noContactsOnItems);
       return;
     }
 
     if (contactsOnSelected.length === 1) {
       const c = contactsOnSelected[0];
-      Alert.alert('Remove contact', `Remove ${c.name} from selected items?`, [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t.bill_removeContact, t.bill_removeFromSelected(c.name), [
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Remove',
+          text: t.remove,
           style: 'destructive',
           onPress: async () => {
             await removeContactsBatch({
@@ -244,7 +270,7 @@ export default function BillDetailScreen() {
               itemIds: selectedIds.filter((i): i is string => !!i),
               contactNames: [c.name],
             });
-            setSelectedItems(new Set());
+            setSelectedItemIds(new Set());
             setMultiSelectMode(false);
           },
         },
@@ -254,14 +280,12 @@ export default function BillDetailScreen() {
       setSelectedContactIds(new Set());
       setShowUnassignPicker(true);
     }
-  }, [selectedItems, bill, id, removeContact]);
+  }, [selectedItemIds, bill, id, removeContact, t]);
 
   const handleConfirmUnassign = useCallback(async () => {
     if (selectedContactIds.size === 0 || !bill) return;
 
-    const itemIds = Array.from(selectedItems)
-      .map((idx) => bill.items[idx]?.id)
-      .filter((itemId): itemId is string => !!itemId);
+    const itemIds = Array.from(selectedItemIds);
 
     const contactNames = Array.from(selectedContactIds).map((ciStr) => {
       const ci = parseInt(ciStr, 10);
@@ -276,14 +300,14 @@ export default function BillDetailScreen() {
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowUnassignPicker(false);
-    setSelectedItems(new Set());
+    setSelectedItemIds(new Set());
     setMultiSelectMode(false);
-  }, [selectedContactIds, selectedItems, bill, id, removeContactsBatch]);
+  }, [selectedContactIds, selectedItemIds, bill, id, removeContactsBatch]);
 
-  const handleAssignContact = useCallback(async (itemIndex: number) => {
+  const handleAssignContact = useCallback(async (itemId: string) => {
     const { status } = await Contacts.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Contact access is required to assign people to items.');
+      Alert.alert(t.bill_permissionNeeded, t.bill_permissionContacts);
       return;
     }
 
@@ -294,20 +318,20 @@ export default function BillDetailScreen() {
     setPhoneContacts(data.filter((c): c is typeof c & { id: string } => !!c.id));
     setContactSearch('');
     setSelectedContactIds(new Set());
-    setSingleAssignItemIndex(itemIndex);
+    setSingleAssignItemId(itemId);
     setShowContactPicker(true);
-  }, []);
+  }, [t]);
 
   const handleRemoveContact = useCallback((itemId: string, contactIndex: number) => {
-    Alert.alert('Remove contact', 'Remove this person from the item?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t.bill_removeContact, t.bill_removeContactConfirm, [
+      { text: t.cancel, style: 'cancel' },
       {
-        text: 'Remove',
+        text: t.remove,
         style: 'destructive',
         onPress: () => removeContact({ id: id as Id<'bills'>, itemId, contactIndex }),
       },
     ]);
-  }, [id, removeContact]);
+  }, [id, removeContact, t]);
 
   const handleTogglePaid = useCallback(async (contactIndex: number) => {
     await togglePaid({ id: id as Id<'bills'>, contactIndex });
@@ -316,9 +340,11 @@ export default function BillDetailScreen() {
 
   const handleSendWhatsApp = useCallback((contact: { name: string; phone?: string; items: string[]; amount: number }) => {
     if (!bill || !contact.phone) {
-      Alert.alert('No phone number', 'This contact has no phone number to send a message to.');
+      Alert.alert(t.bill_noPhone, t.bill_noPhoneMessage);
       return;
     }
+
+    const billCountry = (bill.country as 'CO' | 'US') || 'CO';
 
     const itemLines = contact.items
       .map((itemId) => {
@@ -326,15 +352,15 @@ export default function BillDetailScreen() {
         if (!item) return null;
         const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
         const share = Math.round(item.subtotal / numContacts);
-        return `- ${item.name}: ${formatCOP(share)}`;
+        return `- ${item.name}: ${formatCurrency(share, billCountry)}`;
       })
       .filter(Boolean)
       .join('\n');
 
-    const message = `🧾 *${bill.name}*\n\nYour items:\n${itemLines}\n\n*Your total: ${formatCOP(contact.amount)}*\n\nResumen generado con la app Rondas`;
+    const message = `🧾 *${bill.name}*\n\n${t.wa_items}\n${itemLines}\n\n${t.wa_total(formatCurrency(contact.amount, billCountry))}\n\n${t.wa_footer}`;
     const url = `https://wa.me/${toE164(contact.phone)}?text=${encodeURIComponent(message)}`;
     Linking.openURL(url);
-  }, [bill]);
+  }, [bill, t]);
 
   const infographicRefs = useRef<Record<number, ViewShot | null>>({});
 
@@ -354,6 +380,18 @@ export default function BillDetailScreen() {
     }
   }, [bill]);
 
+  const sortedItems = useMemo(() => {
+    if (!bill) return [];
+    const items = [...bill.items];
+    switch (sortStrategy) {
+      case 'price-asc': return items.sort((a, b) => a.subtotal - b.subtotal);
+      case 'price-desc': return items.sort((a, b) => b.subtotal - a.subtotal);
+      case 'alpha-asc': return items.sort((a, b) => a.name.localeCompare(b.name));
+      case 'alpha-desc': return items.sort((a, b) => b.name.localeCompare(a.name));
+      default: return items;
+    }
+  }, [bill, sortStrategy]);
+
   // Loading state
   if (bill === undefined) {
     return (
@@ -366,28 +404,30 @@ export default function BillDetailScreen() {
   if (!bill) {
     return (
       <View className="flex-1 items-center justify-center bg-background" style={{ paddingTop: insets.top }}>
-        <Text className="text-lg font-semibold text-foreground">Bill not found</Text>
+        <Text className="text-lg font-semibold text-foreground">{t.error}</Text>
         <Pressable onPress={() => router.back()} className="mt-4">
-          <Text className="text-sm font-medium text-primary">Go back</Text>
+          <Text className="text-sm font-medium text-primary">{t.back}</Text>
         </Pressable>
       </View>
     );
   }
 
   const stateStyle = STATE_STYLES[bill.state];
+  const stateLabel = t[STATE_LABEL_KEYS[bill.state]] as string;
   const subtotal = bill.items.reduce((sum, i) => sum + i.subtotal, 0);
   const billCountry = (bill.country as 'CO' | 'US') || 'CO';
   const billCategory = bill.category || 'dining';
   const taxConfig = getTaxConfig(billCountry, billCategory);
+  const translatedTaxLabel = getTaxLabel(taxConfig, t);
 
-  // Tax: always computed from subtotal for tax-included countries (CO)
-  // For US, use what's stored (from Gemini or user edit)
+  // Tax: extracted from tax-inclusive subtotal for CO, stored value for US
   const computedTax = taxConfig.taxIncluded
-    ? Math.round(subtotal * taxConfig.taxRate)
+    ? computeTax(subtotal, taxConfig)
     : (bill.tax ?? 0);
 
-  // Tip: always computed from subtotal × user's default tip percent
-  const computedTip = Math.round(subtotal * (defaultTipPercent / 100));
+  // Tip: computed from the bill's own tip percent
+  const tipPercent = bill.tipPercent ?? 0;
+  const computedTip = Math.round(subtotal * (tipPercent / 100));
 
   // Total: CO = subtotal + tip (tax already in prices), US = subtotal + tax + tip
   const total = taxConfig.taxIncluded
@@ -422,17 +462,17 @@ export default function BillDetailScreen() {
             }}
           >
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateStyle.dot }} />
-            <Text style={{ fontSize: 11, fontWeight: '600', color: stateStyle.text }}>{stateStyle.label}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: stateStyle.text }}>{stateLabel}</Text>
           </View>
           <Pressable
             onPress={() => {
               Alert.alert(
-                'Delete bill',
-                'Are you sure? This cannot be undone.',
+                t.bill_deleteBill,
+                t.bill_deleteConfirm,
                 [
-                  { text: 'Cancel', style: 'cancel' },
+                  { text: t.cancel, style: 'cancel' },
                   {
-                    text: 'Delete',
+                    text: t.delete,
                     style: 'destructive',
                     onPress: async () => {
                       await removeBill({ id: id as Id<'bills'> });
@@ -468,7 +508,7 @@ export default function BillDetailScreen() {
             <View className="flex-row items-center gap-1.5">
               <Text style={{ fontSize: 12 }}>{CATEGORY_LABELS[bill.category]?.emoji ?? '📋'}</Text>
               <Text className="text-xs text-muted-foreground">
-                {CATEGORY_LABELS[bill.category]?.label ?? bill.category}
+                {getCategoryLabel(bill.category, t)}
               </Text>
             </View>
           )}
@@ -487,33 +527,79 @@ export default function BillDetailScreen() {
               <Text style={{ fontSize: 12 }}>🕐</Text>
               <Text className="text-xs text-muted-foreground">
                 {(() => {
-                  const photoTime = bill.photoTakenAt ? relativeTime(bill.photoTakenAt) : null;
-                  const billTime = relativeTime(bill._creationTime);
+                  const photoTime = bill.photoTakenAt ? relativeTime(bill.photoTakenAt, t) : null;
+                  const billTime = relativeTime(bill._creationTime, t) ?? 'unknown';
                   if (photoTime && photoTime === billTime) {
-                    return `Photo and bill from ${billTime}`;
+                    return t.time_photoAndBill(billTime);
                   }
                   if (photoTime) {
-                    return `Photo ${photoTime} · Bill created ${billTime}`;
+                    return t.time_photoBill(photoTime, billTime);
                   }
-                  return `Created ${billTime}`;
+                  return t.time_created(billTime);
                 })()}
               </Text>
             </View>
           </View>
         )}
 
+        {/* Country row */}
+        <Pressable
+          onPress={() => setShowCountryDialog(true)}
+          className="mb-1 px-7"
+        >
+          <View className="flex-row items-center gap-1.5">
+            <Text style={{ fontSize: 12 }}>{billCountry === 'CO' ? '🇨🇴' : '🇺🇸'}</Text>
+            <Text className="text-xs text-muted-foreground">
+              {billCountry === 'CO' ? t.settings_countryColombia : t.settings_countryUSA}
+            </Text>
+            <IconSymbol name="chevron.right" size={10} color={iconColors.mutedLight} />
+          </View>
+        </Pressable>
+
+        {/* Sort pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 28, gap: 6, paddingBottom: 8 }}
+        >
+          {([
+            { key: 'original', label: t.sort_receipt },
+            { key: 'price-desc', label: t.sort_priceDesc },
+            { key: 'price-asc', label: t.sort_priceAsc },
+            { key: 'alpha-asc', label: t.sort_alphaAsc },
+            { key: 'alpha-desc', label: t.sort_alphaDesc },
+          ] as const).map((opt) => (
+            <Pressable
+              key={opt.key}
+              onPress={() => setSortStrategy(opt.key)}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 999,
+                backgroundColor: sortStrategy === opt.key ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
+                borderWidth: 1,
+                borderColor: sortStrategy === opt.key ? 'rgba(56, 189, 248, 0.3)' : 'rgba(148,163,184,0.12)',
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '600', color: sortStrategy === opt.key ? '#38bdf8' : '#8b9cc0' }}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
         {/* Hint + multi-select toggle */}
         <View className="mb-2 flex-row items-center justify-between px-7">
           <Text className="text-xs text-muted-foreground">
             {multiSelectMode
-              ? `${selectedItems.size} selected`
-              : 'Tap item to edit · Tap + to assign contact'}
+              ? t.bill_selected(selectedItemIds.size)
+              : t.bill_tapToEdit}
           </Text>
           <Pressable
             onPress={() => {
               setMultiSelectMode(!multiSelectMode);
-              setSelectedItems(new Set());
-              setEditingIndex(null);
+              setSelectedItemIds(new Set());
+              setEditingItemId(null);
             }}
             style={{
               paddingHorizontal: 10,
@@ -525,17 +611,18 @@ export default function BillDetailScreen() {
             }}
           >
             <Text style={{ fontSize: 11, fontWeight: '600', color: multiSelectMode ? '#38bdf8' : '#8b9cc0' }}>
-              {multiSelectMode ? 'Cancel' : 'Bulk edit'}
+              {multiSelectMode ? t.cancel : t.bill_bulkEdit}
             </Text>
           </Pressable>
         </View>
 
         {/* Items */}
-        {bill.items.map((item, index) => {
+        {sortedItems.map((item, index) => {
+          const itemId = item.id!;
           const assignedContacts = bill.contacts
             .map((c, ci) => ({ ...c, contactIndex: ci }))
-            .filter((c) => item.id ? c.items.includes(item.id) : false);
-          const isEditing = editingIndex === index;
+            .filter((c) => c.items.includes(itemId));
+          const isEditing = editingItemId === itemId;
 
           return (
             <SwipeableItem key={item.id ?? `legacy-${index}`} isDeleting={deletingId === item.id}>
@@ -551,12 +638,12 @@ export default function BillDetailScreen() {
                   }}
                 >
                   <IconSymbol name="xmark" size={18} color="#fff" />
-                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500', marginTop: 2 }}>Delete</Text>
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500', marginTop: 2 }}>{t.delete}</Text>
                 </Animated.View>
               )}
               rightThreshold={80}
               overshootRight
-              onSwipeableOpen={() => handleRemoveItem(index)}
+              onSwipeableOpen={() => handleRemoveItem(itemId)}
               onSwipeableOpenStartDrag={() => { swipeOpenRef.current = true; }}
             >
               {isEditing ? (
@@ -565,66 +652,66 @@ export default function BillDetailScreen() {
                   <View className="mb-3 flex-row items-center justify-between">
                     <Input
                       value={item.name}
-                      onChangeText={(v) => handleUpdateItem(index, 'name', v)}
+                      onChangeText={(v) => handleUpdateItem(itemId, 'name', v)}
                       className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-[15px] font-semibold shadow-none"
-                      placeholder="Item name"
+                      placeholder={t.scan_itemName}
                       autoFocus
                     />
                     <Pressable
-                      onPress={() => setEditingIndex(null)}
+                      onPress={() => setEditingItemId(null)}
                       className="ml-3 rounded-full bg-destructive/15 px-3 py-1"
                     >
-                      <Text className="text-xs font-semibold text-destructive">Cancel</Text>
+                      <Text className="text-xs font-semibold text-destructive">{t.cancel}</Text>
                     </Pressable>
                   </View>
                   <View className="flex-row gap-2.5">
                     <View className="flex-1">
-                      <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Qty</Text>
+                      <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_qty}</Text>
                       <Input
                         value={String(item.quantity)}
-                        onChangeText={(v) => handleUpdateItem(index, 'quantity', v)}
+                        onChangeText={(v) => handleUpdateItem(itemId, 'quantity', v)}
                         className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
                         keyboardType="number-pad"
                       />
                     </View>
                     <View className="flex-[2]">
-                      <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Unit Price</Text>
+                      <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
                       <Input
-                        value={formatCOP(item.unitPrice)}
-                        onChangeText={(v) => handleUpdateItem(index, 'unitPrice', v)}
+                        value={formatCurrency(item.unitPrice, billCountry)}
+                        onChangeText={(v) => handleUpdateItem(itemId, 'unitPrice', v)}
                         className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
                         keyboardType="number-pad"
                       />
                     </View>
                     <View className="flex-[2]">
-                      <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Subtotal</Text>
+                      <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_subtotalLabel}</Text>
                       <View className="h-9 items-end justify-center rounded-lg px-3 py-1">
                         <Text className="text-sm font-bold text-primary">
-                          {formatCOP(item.subtotal)}
+                          {formatCurrency(item.subtotal, billCountry)}
                         </Text>
                       </View>
                     </View>
                   </View>
                   <Pressable
-                    onPress={() => setEditingIndex(null)}
+                    onPress={() => setEditingItemId(null)}
                     className="mt-3 items-center rounded-lg bg-primary/10 py-2"
                   >
-                    <Text className="text-sm font-semibold text-primary">Done</Text>
+                    <Text className="text-sm font-semibold text-primary">{t.done}</Text>
                   </Pressable>
                 </View>
               ) : (
                 /* Display mode */
                 <Pressable
-                  onPress={() => multiSelectMode ? toggleItemSelection(index) : handleItemPress(index)}
+                  onPress={() => multiSelectMode ? toggleItemSelection(itemId) : handleItemPress(itemId)}
                   className="flex-row items-start bg-background px-7 py-3 active:opacity-80"
                 >
                   {/* Checkbox in multi-select mode */}
                   {multiSelectMode && (
                     <View className="mr-3 justify-center pt-1">
                       <IconSymbol
-                        name={selectedItems.has(index) ? 'checkmark.circle.fill' : 'circle'}
+                        name={selectedItemIds.has(itemId) ? 'checkmark.circle.fill' : 'circle'}
                         size={22}
-                        color={selectedItems.has(index) ? '#38bdf8' : '#64748b'}
+                        color={selectedItemIds.has(itemId) ? '#38bdf8' : '#64748b'}
                       />
                     </View>
                   )}
@@ -633,7 +720,7 @@ export default function BillDetailScreen() {
                       {item.name}
                     </Text>
                     <Text className="mt-0.5 text-xs text-muted-foreground">
-                      {item.quantity} × {formatCOP(item.unitPrice)}
+                      {item.quantity} × {formatCurrency(item.unitPrice, billCountry)}
                     </Text>
 
                     {/* Contact chips */}
@@ -672,11 +759,11 @@ export default function BillDetailScreen() {
 
                   <View className="items-end gap-1">
                     <Text className="text-[15px] font-bold tabular-nums text-foreground">
-                      {formatCOP(item.subtotal)}
+                      {formatCurrency(item.subtotal, billCountry)}
                     </Text>
                     {!multiSelectMode && (
                       <Pressable
-                        onPress={() => handleAssignContact(index)}
+                        onPress={() => handleAssignContact(itemId)}
                         style={{
                           width: 28,
                           height: 28,
@@ -695,7 +782,7 @@ export default function BillDetailScreen() {
                 </Pressable>
               )}
               {/* Divider */}
-              {index < bill.items.length - 1 && (
+              {index < sortedItems.length - 1 && (
                 <View className="ml-7 h-px bg-border/40" />
               )}
             </Swipeable>
@@ -708,34 +795,40 @@ export default function BillDetailScreen() {
 
         {/* Summary */}
         <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-muted-foreground">Subtotal</Text>
-          <Text className="text-sm font-semibold tabular-nums text-foreground">{formatCOP(subtotal)}</Text>
+          <Text className="text-sm text-muted-foreground">{t.bill_subtotal}</Text>
+          <Text className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(subtotal, billCountry)}</Text>
         </View>
         <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-foreground">{taxConfig.taxLabel}</Text>
+          <Text className="text-sm text-foreground">{translatedTaxLabel}</Text>
           {taxConfig.taxIncluded ? (
             <Text className="text-sm font-semibold tabular-nums text-muted-foreground">
-              {formatCOP(computedTax)}
+              {formatCurrency(computedTax, billCountry)}
             </Text>
           ) : (
             <Input
-              value={formatCOP(computedTax)}
+              value={formatCurrency(computedTax, billCountry)}
               onChangeText={handleUpdateTax}
               className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
               keyboardType="number-pad"
             />
           )}
         </View>
-        <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-foreground">Tip ({defaultTipPercent}%)</Text>
+        <Pressable
+          className="flex-row items-center justify-between px-7 py-3 active:bg-muted/30"
+          onPress={() => setShowTipDialog(true)}
+        >
+          <View className="flex-row items-center gap-1">
+            <Text className="text-sm text-foreground">{t.bill_tip(tipPercent)}</Text>
+            <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
+          </View>
           <Text className="text-sm font-semibold tabular-nums text-foreground">
-            {formatCOP(computedTip)}
+            {formatCurrency(computedTip, billCountry)}
           </Text>
-        </View>
+        </Pressable>
         <View className="mx-7 h-px bg-border/40" />
         <View className="flex-row items-center justify-between px-7 py-4">
-          <Text className="text-sm font-bold text-foreground">Total</Text>
-          <Text className="text-2xl font-extrabold tracking-tight text-primary">{formatCOP(total)}</Text>
+          <Text className="text-sm font-bold text-foreground">{t.bill_total}</Text>
+          <Text className="text-2xl font-extrabold tracking-tight text-primary">{formatCurrency(total, billCountry)}</Text>
         </View>
 
       </ScrollView>
@@ -759,7 +852,7 @@ export default function BillDetailScreen() {
           >
             <IconSymbol name="person.crop.circle" size={18} color={iconColors.primary} />
             <Text style={{ fontSize: 15, fontWeight: '600', color: iconColors.primary }}>
-              {bill.contacts.length} {bill.contacts.length === 1 ? 'person' : 'people'} · Share & Pay
+              {t.share_button(bill.contacts.length)}
             </Text>
           </Pressable>
         </View>
@@ -778,7 +871,7 @@ export default function BillDetailScreen() {
             <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </View>
           <View className="flex-row items-center justify-between px-7 pb-4 pt-2">
-            <Text className="text-xl font-bold text-foreground">Share & Pay</Text>
+            <Text className="text-xl font-bold text-foreground">{t.share_title}</Text>
             <Pressable onPress={() => setShowShareSheet(false)} className="rounded-full bg-muted p-2">
               <IconSymbol name="xmark" size={14} color={iconColors.muted} />
             </Pressable>
@@ -794,8 +887,8 @@ export default function BillDetailScreen() {
                 return Math.round(item.subtotal / numContacts);
               });
               const contactSubtotal = contactItemAmounts.reduce((s, a) => s + a, 0);
-              const contactTax = Math.round(contactSubtotal * taxConfig.taxRate);
-              const contactTip = Math.round(contactSubtotal * (defaultTipPercent / 100));
+              const contactTax = computeTax(contactSubtotal, taxConfig);
+              const contactTip = Math.round(contactSubtotal * (tipPercent / 100));
               const contactTotal = taxConfig.taxIncluded
                 ? contactSubtotal + contactTip
                 : contactSubtotal + contactTax + contactTip;
@@ -831,7 +924,7 @@ export default function BillDetailScreen() {
                     </View>
                   </View>
                   <Text className="text-lg font-bold tabular-nums text-foreground">
-                    {formatCOP(contactTotal)}
+                    {formatCurrency(contactTotal, billCountry)}
                   </Text>
                 </View>
 
@@ -845,7 +938,7 @@ export default function BillDetailScreen() {
                     return (
                       <View key={itemId} style={{ width: '50%', paddingRight: 8, marginBottom: 4 }}>
                         <Text className="text-xs text-foreground" numberOfLines={1}>{item.name}</Text>
-                        <Text className="text-[11px] text-muted-foreground">{formatCOP(share)}</Text>
+                        <Text className="text-[11px] text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
                       </View>
                     );
                   })}
@@ -854,13 +947,13 @@ export default function BillDetailScreen() {
                 {/* Tax & Tip breakdown */}
                 <View className="ml-[52px] mt-2 gap-1">
                   <View className="flex-row justify-between">
-                    <Text className="text-[11px] text-muted-foreground">{taxConfig.taxLabel}</Text>
-                    <Text className="text-[11px] text-muted-foreground">{formatCOP(contactTax)}</Text>
+                    <Text className="text-[11px] text-muted-foreground">{translatedTaxLabel}</Text>
+                    <Text className="text-[11px] text-muted-foreground">{formatCurrency(contactTax, billCountry)}</Text>
                   </View>
-                  {defaultTipPercent > 0 && (
+                  {tipPercent > 0 && (
                     <View className="flex-row justify-between">
-                      <Text className="text-[11px] text-muted-foreground">Tip ({defaultTipPercent}%)</Text>
-                      <Text className="text-[11px] text-muted-foreground">{formatCOP(contactTip)}</Text>
+                      <Text className="text-[11px] text-muted-foreground">{t.bill_tip(tipPercent)}</Text>
+                      <Text className="text-[11px] text-muted-foreground">{formatCurrency(contactTip, billCountry)}</Text>
                     </View>
                   )}
                 </View>
@@ -889,7 +982,7 @@ export default function BillDetailScreen() {
                       color={contact.paid ? '#10b981' : '#94a3b8'}
                     />
                     <Text style={{ fontSize: 13, fontWeight: '600', color: contact.paid ? '#10b981' : '#94a3b8' }}>
-                      {contact.paid ? 'Paid' : 'Unpaid'}
+                      {contact.paid ? t.share_paid : t.share_unpaid}
                     </Text>
                   </Pressable>
 
@@ -911,7 +1004,7 @@ export default function BillDetailScreen() {
                       }}
                     >
                       <WhatsAppIcon size={16} color="#25d366" />
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#25d366' }}>WhatsApp</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#25d366' }}>{t.share_whatsapp}</Text>
                     </Pressable>
                   )}
 
@@ -932,7 +1025,7 @@ export default function BillDetailScreen() {
                     }}
                   >
                     <Share2 size={14} color="#38bdf8" />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#38bdf8' }}>Share</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#38bdf8' }}>{t.share_share}</Text>
                   </Pressable>
                 </View>
 
@@ -957,9 +1050,11 @@ export default function BillDetailScreen() {
                         })
                         .filter((i): i is { name: string; amount: number } => i !== null)}
                       taxConfig={taxConfig}
-                      tipPercent={defaultTipPercent}
+                      tipPercent={tipPercent}
                       location={bill.location?.address}
                       date={bill.photoTakenAt ?? new Date(bill._creationTime).toISOString()}
+                      country={billCountry}
+                      t={t}
                     />
                   </ViewShot>
                 </View>
@@ -980,15 +1075,15 @@ export default function BillDetailScreen() {
         visible={showContactPicker}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => { setShowContactPicker(false); setSingleAssignItemIndex(null); }}
+        onRequestClose={() => { setShowContactPicker(false); setSingleAssignItemId(null); }}
       >
         <View className="flex-1 bg-background" style={{ paddingTop: 12, paddingBottom: insets.bottom }}>
           <View className="items-center pb-2">
             <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </View>
           <View className="flex-row items-center justify-between px-7 pb-3 pt-2">
-            <Text className="text-xl font-bold text-foreground">Select Contacts</Text>
-            <Pressable onPress={() => { setShowContactPicker(false); setSingleAssignItemIndex(null); }} className="rounded-full bg-muted p-2">
+            <Text className="text-xl font-bold text-foreground">{t.contactPicker_title}</Text>
+            <Pressable onPress={() => { setShowContactPicker(false); setSingleAssignItemId(null); }} className="rounded-full bg-muted p-2">
               <IconSymbol name="xmark" size={14} color={iconColors.muted} />
             </Pressable>
           </View>
@@ -998,7 +1093,7 @@ export default function BillDetailScreen() {
             <TextInput
               value={contactSearch}
               onChangeText={setContactSearch}
-              placeholder="Search contacts..."
+              placeholder={t.contactPicker_search}
               placeholderTextColor="#64748b"
               style={{
                 backgroundColor: 'rgba(148,163,184,0.08)',
@@ -1072,7 +1167,7 @@ export default function BillDetailScreen() {
                 className="items-center rounded-xl bg-primary py-4 active:opacity-80"
               >
                 <Text style={{ fontSize: 16, fontWeight: '600', color: colorScheme === 'dark' ? '#0c1a2a' : '#ffffff' }}>
-                  Assign {selectedContactIds.size} {selectedContactIds.size === 1 ? 'contact' : 'contacts'}
+                  {t.contactPicker_assign(selectedContactIds.size)}
                 </Text>
               </Pressable>
             </View>
@@ -1093,7 +1188,7 @@ export default function BillDetailScreen() {
               <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
             </View>
             <View className="flex-row items-center justify-between px-7 pb-3 pt-2">
-              <Text className="text-xl font-bold text-foreground">Remove Contacts</Text>
+              <Text className="text-xl font-bold text-foreground">{t.unassignPicker_title}</Text>
               <Pressable onPress={() => setShowUnassignPicker(false)} className="rounded-full bg-muted p-2">
                 <IconSymbol name="xmark" size={14} color={iconColors.muted} />
               </Pressable>
@@ -1101,14 +1196,13 @@ export default function BillDetailScreen() {
 
             <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
               {(() => {
-                const selectedIds = Array.from(selectedItems).map((idx) => bill.items[idx]?.id).filter(Boolean);
                 const contactsOnSelected = bill.contacts
                   .map((c, ci) => ({ ...c, contactIndex: ci }))
-                  .filter((c) => c.items.some((itemId) => selectedIds.includes(itemId)));
+                  .filter((c) => c.items.some((itemId) => selectedItemIds.has(itemId)));
 
                 return contactsOnSelected.map((c) => {
                   const isSelected = selectedContactIds.has(String(c.contactIndex));
-                  const itemCount = c.items.filter((itemId) => selectedIds.includes(itemId)).length;
+                  const itemCount = c.items.filter((itemId) => selectedItemIds.has(itemId)).length;
                   return (
                     <Pressable
                       key={c.contactIndex}
@@ -1145,7 +1239,7 @@ export default function BillDetailScreen() {
                       <View className="flex-1">
                         <Text className="text-sm font-medium text-foreground">{c.name}</Text>
                         <Text className="text-xs text-muted-foreground">
-                          {itemCount} {itemCount === 1 ? 'item' : 'items'} on selection
+                          {t.unassignPicker_itemsOnSelection(itemCount)}
                         </Text>
                       </View>
                     </Pressable>
@@ -1159,11 +1253,11 @@ export default function BillDetailScreen() {
                 <Pressable
                   onPress={() => {
                     Alert.alert(
-                      'Confirm removal',
-                      `Remove ${selectedContactIds.size} ${selectedContactIds.size === 1 ? 'contact' : 'contacts'} from selected items?`,
+                      t.bill_confirmRemoval,
+                      t.bill_removeMultipleConfirm(selectedContactIds.size),
                       [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Remove', style: 'destructive', onPress: handleConfirmUnassign },
+                        { text: t.cancel, style: 'cancel' },
+                        { text: t.remove, style: 'destructive', onPress: handleConfirmUnassign },
                       ]
                     );
                   }}
@@ -1177,7 +1271,7 @@ export default function BillDetailScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 16, fontWeight: '600', color: '#ef4444' }}>
-                    Remove {selectedContactIds.size} {selectedContactIds.size === 1 ? 'contact' : 'contacts'}
+                    {t.unassignPicker_remove(selectedContactIds.size)}
                   </Text>
                 </Pressable>
               </View>
@@ -1186,11 +1280,126 @@ export default function BillDetailScreen() {
         </Modal>
       )}
 
+      {/* Tip dialog */}
+      <Modal
+        visible={showTipDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTipDialog(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowTipDialog(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+            <TouchableWithoutFeedback>
+              <View className="mx-8 w-80 rounded-2xl border border-border bg-card p-6">
+                <Text className="mb-4 text-center text-lg font-bold text-foreground">{t.tipDialog_title}</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {[0, 5, 10, 15, 18, 20].map((pct) => (
+                    <Pressable
+                      key={pct}
+                      onPress={async () => {
+                        const newTip = Math.round(subtotal * (pct / 100));
+                        await updateBill({ id: id as Id<'bills'>, tipPercent: pct, tip: newTip });
+                        setShowTipDialog(false);
+                      }}
+                      style={{
+                        flex: 1,
+                        minWidth: 70,
+                        alignItems: 'center',
+                        paddingVertical: 12,
+                        borderRadius: 12,
+                        backgroundColor: tipPercent === pct ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
+                        borderWidth: 1.5,
+                        borderColor: tipPercent === pct ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148,163,184,0.12)',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: '700',
+                          color: tipPercent === pct ? '#38bdf8' : '#64748b',
+                        }}
+                      >
+                        {pct}%
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Pressable
+                  onPress={() => setShowTipDialog(false)}
+                  className="mt-4 items-center rounded-xl bg-muted py-3"
+                >
+                  <Text className="text-sm font-semibold text-muted-foreground">{t.cancel}</Text>
+                </Pressable>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Country dialog */}
+      <Modal
+        visible={showCountryDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCountryDialog(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowCountryDialog(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+            <TouchableWithoutFeedback>
+              <View className="mx-8 w-80 rounded-2xl border border-border bg-card p-6">
+                <Text className="mb-4 text-center text-lg font-bold text-foreground">{t.countryDialog_title}</Text>
+                <View style={{ gap: 8 }}>
+                  {([
+                    { code: 'CO' as const, flag: '🇨🇴', label: t.settings_countryColombia },
+                    { code: 'US' as const, flag: '🇺🇸', label: t.settings_countryUSA },
+                  ]).map((option) => (
+                    <Pressable
+                      key={option.code}
+                      onPress={async () => {
+                        await updateBill({ id: id as Id<'bills'>, country: option.code });
+                        setShowCountryDialog(false);
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 10,
+                        paddingVertical: 14,
+                        paddingHorizontal: 16,
+                        borderRadius: 12,
+                        backgroundColor: billCountry === option.code ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
+                        borderWidth: 1.5,
+                        borderColor: billCountry === option.code ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148,163,184,0.12)',
+                      }}
+                    >
+                      <Text style={{ fontSize: 20 }}>{option.flag}</Text>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: '600',
+                          color: billCountry === option.code ? '#38bdf8' : '#64748b',
+                        }}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Pressable
+                  onPress={() => setShowCountryDialog(false)}
+                  className="mt-4 items-center rounded-xl bg-muted py-3"
+                >
+                  <Text className="text-sm font-semibold text-muted-foreground">{t.cancel}</Text>
+                </Pressable>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
       {/* Bulk edit toolbar */}
-      {multiSelectMode && selectedItems.size > 0 && (() => {
-        const selectedIds = Array.from(selectedItems).map((idx) => bill.items[idx]?.id).filter(Boolean);
+      {multiSelectMode && selectedItemIds.size > 0 && (() => {
         const hasContacts = bill.contacts.some((c) =>
-          c.items.some((itemId) => selectedIds.includes(itemId))
+          c.items.some((itemId) => selectedItemIds.has(itemId))
         );
 
         return (
@@ -1213,7 +1422,7 @@ export default function BillDetailScreen() {
                 }}
               >
                 <IconSymbol name="person.crop.circle" size={16} color="#38bdf8" />
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#38bdf8' }}>Assign</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#38bdf8' }}>{t.bulk_assign}</Text>
               </Pressable>
 
               {/* Remove contact — only if any selected item has contacts */}
@@ -1234,7 +1443,7 @@ export default function BillDetailScreen() {
                   }}
                 >
                   <IconSymbol name="person.crop.circle" size={16} color="#f59e0b" />
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#f59e0b' }}>Unassign</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#f59e0b' }}>{t.bulk_unassign}</Text>
                 </Pressable>
               )}
 
@@ -1255,7 +1464,7 @@ export default function BillDetailScreen() {
                 }}
               >
                 <IconSymbol name="xmark" size={14} color="#ef4444" />
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#ef4444' }}>Delete</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#ef4444' }}>{t.bulk_delete}</Text>
               </Pressable>
             </View>
           </View>
@@ -1276,7 +1485,7 @@ export default function BillDetailScreen() {
             <View className="flex-row items-center gap-2">
               <IconSymbol name="checkmark" size={18} color={colorScheme === 'dark' ? '#0c1a2a' : '#ffffff'} />
               <Text style={{ fontSize: 16, fontWeight: '600', color: colorScheme === 'dark' ? '#0c1a2a' : '#ffffff' }}>
-                Confirm Items
+                {t.bill_confirmItems}
               </Text>
             </View>
           </Pressable>
@@ -1286,20 +1495,53 @@ export default function BillDetailScreen() {
   );
 }
 
-function ReceiptDashedLine() {
+const RECEIPT_WIDTH = 460;
+const RECEIPT_PADDING = 20;
+const PAPER_WIDTH = RECEIPT_WIDTH - RECEIPT_PADDING * 2;
+const BG_COLOR = '#e8e4df';
+
+const PERF_SIZE = 11;
+const PERF_HEIGHT = PERF_SIZE / 2;
+
+function ReceiptPerforations({ position }: { position: 'top' | 'bottom' }) {
+  const gap = 3;
+  const count = Math.floor(PAPER_WIDTH / (PERF_SIZE + gap));
+  const totalWidth = count * (PERF_SIZE + gap) - gap;
+  const offset = (PAPER_WIDTH - totalWidth) / 2;
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 14 }}>
-      {Array.from({ length: 40 }).map((_, i) => (
-        <View key={i} style={{ flex: 1, height: 2, backgroundColor: i % 2 === 0 ? '#cbd5e1' : 'transparent', marginHorizontal: 1 }} />
+    <View style={{
+      width: PAPER_WIDTH,
+      height: PERF_HEIGHT,
+      backgroundColor: '#fafaf8',
+      overflow: 'hidden',
+    }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <View
+          key={i}
+          style={{
+            width: PERF_SIZE,
+            height: PERF_SIZE,
+            borderRadius: PERF_SIZE / 2,
+            backgroundColor: BG_COLOR,
+            position: 'absolute',
+            left: offset + i * (PERF_SIZE + gap),
+            top: position === 'top' ? -(PERF_SIZE / 2) : 0,
+          }}
+        />
       ))}
     </View>
   );
 }
 
-const PERF_SIZE = 10;
-const PERF_GAP = 6;
-const PERF_COLOR = '#dfe4ea';
-const PERF_STEP = PERF_SIZE + PERF_GAP; // 16px center to center
+function ReceiptDotLine() {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 14 }}>
+      {Array.from({ length: 40 }).map((_, i) => (
+        <View key={i} style={{ height: 1, borderRadius: 0.5, flex: 1, marginHorizontal: 1.5, backgroundColor: '#e2e8f0' }} />
+      ))}
+    </View>
+  );
+}
 
 function BillInfographic({
   billName,
@@ -1310,6 +1552,8 @@ function BillInfographic({
   tipPercent,
   location,
   date,
+  country,
+  t,
 }: {
   billName: string;
   contactName: string;
@@ -1319,70 +1563,63 @@ function BillInfographic({
   tipPercent: number;
   location?: string;
   date: string;
+  country: 'CO' | 'US';
+  t: Translations;
 }) {
   const d = new Date(date);
   const isValidDate = !isNaN(d.getTime());
+  const locale = country === 'US' ? 'en-US' : 'es-CO';
   const dateStr = isValidDate
-    ? d.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+    ? d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
     : '';
 
   const contactSubtotal = items.reduce((sum, i) => sum + i.amount, 0);
-  const contactTax = Math.round(contactSubtotal * infTaxConfig.taxRate);
+  const contactTax = computeTax(contactSubtotal, infTaxConfig);
   const contactTip = Math.round(contactSubtotal * (tipPercent / 100));
   const contactTotal = infTaxConfig.taxIncluded
     ? contactSubtotal + contactTip
     : contactSubtotal + contactTax + contactTip;
 
-  const hCount = Math.floor(408 / PERF_STEP); // horizontal circles count (width - padding)
-  const vCount = 40; // vertical circles — generous, will be clipped by overflow
+  const translatedTaxLabel = getTaxLabel(infTaxConfig, t);
+  const flag = country === 'CO' ? '🇨🇴' : '🇺🇸';
 
   return (
-    <View style={{ width: 420, backgroundColor: PERF_COLOR, padding: PERF_SIZE / 2 + 2 }}>
-      {/* Receipt paper */}
-      <View style={{ backgroundColor: '#ffffff', overflow: 'hidden' }}>
-        {/* Top perforations */}
-        <View style={{ position: 'absolute', top: -(PERF_SIZE / 2), left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-evenly', zIndex: 2 }}>
-          {Array.from({ length: hCount }).map((_, i) => (
-            <View key={`t${i}`} style={{ width: PERF_SIZE, height: PERF_SIZE, borderRadius: PERF_SIZE / 2, backgroundColor: PERF_COLOR }} />
-          ))}
-        </View>
-        {/* Bottom perforations */}
-        <View style={{ position: 'absolute', bottom: -(PERF_SIZE / 2), left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-evenly', zIndex: 2 }}>
-          {Array.from({ length: hCount }).map((_, i) => (
-            <View key={`b${i}`} style={{ width: PERF_SIZE, height: PERF_SIZE, borderRadius: PERF_SIZE / 2, backgroundColor: PERF_COLOR }} />
-          ))}
-        </View>
-        {/* Left perforations */}
-        <View style={{ position: 'absolute', left: -(PERF_SIZE / 2), top: 0, bottom: 0, justifyContent: 'space-evenly', zIndex: 2 }}>
-          {Array.from({ length: vCount }).map((_, i) => (
-            <View key={`l${i}`} style={{ width: PERF_SIZE, height: PERF_SIZE, borderRadius: PERF_SIZE / 2, backgroundColor: PERF_COLOR }} />
-          ))}
-        </View>
-        {/* Right perforations */}
-        <View style={{ position: 'absolute', right: -(PERF_SIZE / 2), top: 0, bottom: 0, justifyContent: 'space-evenly', zIndex: 2 }}>
-          {Array.from({ length: vCount }).map((_, i) => (
-            <View key={`r${i}`} style={{ width: PERF_SIZE, height: PERF_SIZE, borderRadius: PERF_SIZE / 2, backgroundColor: PERF_COLOR }} />
-          ))}
+    <View style={{ width: RECEIPT_WIDTH, backgroundColor: BG_COLOR, paddingVertical: RECEIPT_PADDING }}>
+      <View style={{ position: 'relative', alignSelf: 'center', width: PAPER_WIDTH }}>
+        {/* Perforated top edge — absolute, behind paper */}
+        <View style={{ position: 'absolute', top: 0, left: 0, zIndex: 0 }}>
+          <ReceiptPerforations position="top" />
         </View>
 
-        {/* Content */}
-        <View style={{ paddingHorizontal: 32, paddingTop: 32, paddingBottom: 24 }}>
-          {/* App brand */}
-          <View style={{ alignItems: 'center', marginBottom: 4 }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: '#0a7ea4', letterSpacing: 3, textTransform: 'uppercase' }}>
+        {/* Perforated bottom edge — absolute, behind paper */}
+        <View style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 0 }}>
+          <ReceiptPerforations position="bottom" />
+        </View>
+
+        {/* Receipt paper — on top, overlapping perforations by 1px */}
+        <View style={{ backgroundColor: '#fafaf8', zIndex: 1, marginVertical: PERF_HEIGHT - 1 }}>
+          <View style={{ paddingHorizontal: 28, paddingTop: 22, paddingBottom: 20 }}>
+
+          {/* Header: Brand + Country badge */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#0a7ea4', letterSpacing: 4, textTransform: 'uppercase' }}>
               Rondas
             </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+              <Text style={{ fontSize: 12 }}>{flag}</Text>
+              <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748b', letterSpacing: 0.5 }}>
+                {country === 'CO' ? 'COP' : 'USD'}
+              </Text>
+            </View>
           </View>
 
-          <ReceiptDashedLine />
-
-          {/* Restaurant name */}
-          <View style={{ alignItems: 'center', marginBottom: 4 }}>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: '#0f172a', textAlign: 'center' }}>
+          {/* Venue */}
+          <View style={{ marginBottom: 4 }}>
+            <Text style={{ fontSize: 20, fontWeight: '800', color: '#0f172a' }}>
               {billName}
             </Text>
             {location && !location.startsWith(billName) && (
-              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 4, textAlign: 'center' }} numberOfLines={2}>
+              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }} numberOfLines={2}>
                 {location}
               </Text>
             )}
@@ -1393,29 +1630,29 @@ function BillInfographic({
             )}
           </View>
 
-          <ReceiptDashedLine />
+          <ReceiptDotLine />
 
           {/* Bill for contact */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             {contactImageUri ? (
-              <Image source={{ uri: contactImageUri }} style={{ width: 28, height: 28, borderRadius: 14 }} />
+              <Image source={{ uri: contactImageUri }} style={{ width: 32, height: 32, borderRadius: 16 }} />
             ) : (
-              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b' }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#e0f2fe', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#0a7ea4' }}>
                   {contactName[0]?.toUpperCase() ?? '?'}
                 </Text>
               </View>
             )}
             <View>
-              <Text style={{ fontSize: 8, color: '#94a3b8', fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' }}>Bill for</Text>
+              <Text style={{ fontSize: 8, color: '#94a3b8', fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase' }}>{t.infographic_billFor}</Text>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#0f172a' }}>{contactName}</Text>
             </View>
           </View>
 
           {/* Column headers */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
-            <Text style={{ fontSize: 8, fontWeight: '600', color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase' }}>Item</Text>
-            <Text style={{ fontSize: 8, fontWeight: '600', color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase' }}>Amount</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 6, borderBottomWidth: 1.5, borderBottomColor: '#e2e8f0' }}>
+            <Text style={{ fontSize: 8, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.5, textTransform: 'uppercase' }}>{t.infographic_item}</Text>
+            <Text style={{ fontSize: 8, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.5, textTransform: 'uppercase' }}>{t.infographic_amount}</Text>
           </View>
 
           {/* Items */}
@@ -1426,58 +1663,62 @@ function BillInfographic({
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                paddingVertical: 8,
-                borderBottomWidth: i < items.length - 1 ? 1 : 0,
+                paddingVertical: 9,
+                borderBottomWidth: 1,
                 borderBottomColor: '#f1f5f9',
               }}
             >
               <Text style={{ fontSize: 13, color: '#334155', flex: 1, marginRight: 12 }} numberOfLines={1}>
                 {item.name}
               </Text>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a' }}>
-                {formatCOP(item.amount)}
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', fontVariant: ['tabular-nums'] }}>
+                {formatCurrency(item.amount, country)}
               </Text>
             </View>
           ))}
 
-          {/* Subtotal */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
-            <Text style={{ fontSize: 11, color: '#94a3b8' }}>Subtotal</Text>
-            <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>{formatCOP(contactSubtotal)}</Text>
-          </View>
-
-          {/* Tax */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
-            <Text style={{ fontSize: 11, color: '#94a3b8' }}>{infTaxConfig.taxLabel}</Text>
-            <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>{formatCOP(contactTax)}</Text>
-          </View>
-
-          {/* Tip */}
-          {tipPercent > 0 && (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
-              <Text style={{ fontSize: 11, color: '#94a3b8' }}>Tip ({tipPercent}%)</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>{formatCOP(contactTip)}</Text>
+          {/* Breakdown */}
+          <View style={{ marginTop: 8, gap: 2 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
+              <Text style={{ fontSize: 11, color: '#94a3b8' }}>{t.bill_subtotal}</Text>
+              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactSubtotal, country)}</Text>
             </View>
-          )}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
+              <Text style={{ fontSize: 11, color: '#94a3b8' }}>{translatedTaxLabel}</Text>
+              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTax, country)}</Text>
+            </View>
+            {tipPercent > 0 && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
+                <Text style={{ fontSize: 11, color: '#94a3b8' }}>{t.bill_tip(tipPercent)}</Text>
+                <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTip, country)}</Text>
+              </View>
+            )}
+          </View>
 
-          <ReceiptDashedLine />
+          <ReceiptDotLine />
 
           {/* Total */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: '#0f172a' }}>TOTAL</Text>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: '#0f172a' }}>
-              {formatCOP(contactTotal)}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a', letterSpacing: 1, textTransform: 'uppercase' }}>{t.infographic_total}</Text>
+            <Text
+              style={{ fontSize: 22, fontWeight: '800', color: '#0a7ea4', fontVariant: ['tabular-nums'], flexShrink: 1, textAlign: 'right' }}
+              adjustsFontSizeToFit
+              numberOfLines={1}
+              minimumFontScale={0.7}
+            >
+              {formatCurrency(contactTotal, country)}
             </Text>
           </View>
 
-          <ReceiptDashedLine />
+          <ReceiptDotLine />
 
           {/* Footer */}
-          <View style={{ alignItems: 'center', paddingTop: 4 }}>
-            <Text style={{ fontSize: 9, color: '#94a3b8' }}>Split bills, not friendships</Text>
-            <Text style={{ fontSize: 8, color: '#cbd5e1', marginTop: 4 }}>rondas.app</Text>
+          <View style={{ alignItems: 'center', gap: 4 }}>
+            <Text style={{ fontSize: 9, color: '#94a3b8', fontStyle: 'italic' }}>{t.infographic_tagline}</Text>
+            <Text style={{ fontSize: 8, color: '#cbd5e1' }}>rondas.app</Text>
           </View>
         </View>
+      </View>
       </View>
     </View>
   );
