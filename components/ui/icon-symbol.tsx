@@ -31,6 +31,15 @@ const MAPPING = {
   'line.3.horizontal.decrease': 'filter-list',
   'xmark': 'close',
   'receipt': 'receipt-long',
+  'info.circle': 'info-outline',
+  'globe.americas.fill': 'public',
+  'map.fill': 'map',
+  'clock.fill': 'schedule',
+  'location.fill': 'location-on',
+  'percent': 'percent',
+  'chevron.left': 'chevron-left',
+  'checkmark.circle.fill': 'check-circle',
+  'circle': 'radio-button-unchecked',
 } as IconMapping;
 
 /**

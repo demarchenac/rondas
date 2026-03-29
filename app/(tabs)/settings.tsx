@@ -1,112 +1,57 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
 import { Alert, Pressable, ScrollView, Switch, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { useMutation } from 'convex/react';
 
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SegmentedControl, SettingsRow, SettingsSection } from '@/components/settings';
 import { ICON_COLORS } from '@/constants/colors';
 import { useThemeStore, type ThemeMode } from '@/stores/useThemeStore';
-import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useSettingsStore, type Language } from '@/stores/useSettingsStore';
 import { useAuth } from '@/lib/AuthContext';
+import { useT } from '@/lib/i18n';
+import { api } from '@/convex/_generated/api';
 import { US_STATE_RATES, type Country } from '@/constants/taxes';
-
-type Language = 'en' | 'es';
-
-function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View className="gap-2">
-      <Text className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </Text>
-      <View className="overflow-hidden rounded-2xl border border-border bg-card">
-        {children}
-      </View>
-    </View>
-  );
-}
-
-function SettingsRow({
-  icon,
-  iconColor,
-  label,
-  children,
-  onPress,
-  last = false,
-}: {
-  icon: React.ComponentProps<typeof IconSymbol>['name'];
-  iconColor: string;
-  label: string;
-  children?: React.ReactNode;
-  onPress?: () => void;
-  last?: boolean;
-}) {
-  const Wrapper = onPress ? Pressable : View;
-  return (
-    <Wrapper
-      onPress={onPress}
-      className={`flex-row items-center gap-3 px-4 py-3.5 ${!last ? 'border-b border-border' : ''} ${onPress ? 'active:bg-muted' : ''}`}
-    >
-      <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted">
-        <IconSymbol name={icon} size={18} color={iconColor} />
-      </View>
-      <Text className="flex-1 text-base text-foreground">{label}</Text>
-      {children}
-    </Wrapper>
-  );
-}
-
-function SegmentedControl<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { label: string; value: T }[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <View className="flex-row rounded-lg bg-muted p-0.5">
-      {options.map((opt) => (
-        <Pressable
-          key={opt.value}
-          onPress={() => onChange(opt.value)}
-          className={`rounded-md px-3 py-1.5 ${
-            value === opt.value
-              ? 'bg-card shadow-sm shadow-black/10'
-              : ''
-          }`}
-        >
-          <Text
-            className={`text-xs font-medium ${
-              value === opt.value
-                ? 'text-foreground'
-                : 'text-muted-foreground'
-            }`}
-          >
-            {opt.label}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { colorScheme, setColorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { mode, setMode } = useThemeStore();
-  const { extractPhotoTime, useLocation, country, usState, defaultTipPercent, setExtractPhotoTime, setUseLocation, setCountry, setUsState, setDefaultTipPercent } = useSettingsStore();
+  const {
+    extractPhotoTime, useLocation, country, usState, defaultTipPercent, language,
+    setExtractPhotoTime, setUseLocation, setCountry, setUsState, setDefaultTipPercent, setLanguage,
+  } = useSettingsStore();
   const { user, signOut } = useAuth();
-  const [language, setLanguage] = useState<Language>('en');
+  const t = useT();
+  const updateConfigMutation = useMutation(api.users.updateConfig);
+
+  const syncConfig = useCallback(() => {
+    if (!user) return;
+    const s = useSettingsStore.getState();
+    const ts = useThemeStore.getState();
+    updateConfigMutation({
+      workosId: user.id,
+      config: {
+        country: s.country,
+        usState: s.usState,
+        defaultTipPercent: s.defaultTipPercent,
+        language: s.language,
+        theme: ts.mode,
+        extractPhotoTime: s.extractPhotoTime,
+        useLocation: s.useLocation,
+      },
+    }).catch(() => {}); // fire-and-forget
+  }, [user, updateConfigMutation]);
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t.settings_signOut, t.settings_signOutConfirm, [
+      { text: t.cancel, style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: t.settings_signOut,
         style: 'destructive',
         onPress: async () => {
           await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -119,14 +64,22 @@ export default function SettingsScreen() {
   const handleThemeChange = (newMode: ThemeMode) => {
     setMode(newMode);
     setColorScheme(newMode === 'system' ? undefined : newMode);
+    syncConfig();
   };
+
+  const handleCountryChange = (v: Country) => { setCountry(v); syncConfig(); };
+  const handleUsStateChange = (v: string) => { setUsState(v); syncConfig(); };
+  const handleTipChange = (v: number) => { setDefaultTipPercent(v); syncConfig(); };
+  const handleLanguageChange = (v: Language) => { setLanguage(v); syncConfig(); };
+  const handleExtractPhotoTimeChange = (v: boolean) => { setExtractPhotoTime(v); syncConfig(); };
+  const handleUseLocationChange = (v: boolean) => { setUseLocation(v); syncConfig(); };
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="px-5 pb-2 pt-4">
         <Text className="text-3xl font-extrabold tracking-tight text-foreground">
-          Settings
+          {t.settings_title}
         </Text>
       </View>
 
@@ -162,9 +115,9 @@ export default function SettingsScreen() {
               <IconSymbol name="crown.fill" size={24} color={colorScheme === 'dark' ? '#f59e0b' : '#d97706'} />
             </View>
             <View className="flex-1 gap-1">
-              <Text className="text-base font-bold text-foreground">Upgrade to Pro</Text>
+              <Text className="text-base font-bold text-foreground">{t.settings_upgradePro}</Text>
               <Text className="text-sm text-muted-foreground">
-                Unlimited bills, item splits & more
+                {t.settings_proDescription}
               </Text>
             </View>
             <View className="rounded-full bg-pro px-3 py-1.5">
@@ -174,56 +127,56 @@ export default function SettingsScreen() {
         </Pressable>
 
         {/* Preferences */}
-        <SettingsSection title="Preferences">
-          <SettingsRow icon="sun.max.fill" iconColor="#f59e0b" label="Theme">
+        <SettingsSection title={t.settings_preferences}>
+          <SettingsRow icon="sun.max.fill" iconColor="#f59e0b" label={t.settings_theme}>
             <SegmentedControl
               options={[
-                { label: 'Light', value: 'light' as ThemeMode },
-                { label: 'Dark', value: 'dark' as ThemeMode },
-                { label: 'Auto', value: 'system' as ThemeMode },
+                { label: t.settings_themeLight, value: 'light' as ThemeMode },
+                { label: t.settings_themeDark, value: 'dark' as ThemeMode },
+                { label: t.settings_themeAuto, value: 'system' as ThemeMode },
               ]}
               value={mode}
               onChange={handleThemeChange}
             />
           </SettingsRow>
-          <SettingsRow icon="globe" iconColor={iconColors.primary} label="Language" last>
+          <SettingsRow icon="globe" iconColor={iconColors.primary} label={t.settings_language} last>
             <SegmentedControl
               options={[
-                { label: 'English', value: 'en' as Language },
-                { label: 'Español', value: 'es' as Language },
+                { label: t.settings_langEnglish, value: 'en' as Language },
+                { label: t.settings_langSpanish, value: 'es' as Language },
               ]}
               value={language}
-              onChange={setLanguage}
+              onChange={handleLanguageChange}
             />
           </SettingsRow>
         </SettingsSection>
 
         {/* Billing */}
-        <SettingsSection title="Billing">
-          <SettingsRow icon="globe.americas.fill" iconColor="#0a7ea4" label="Country">
+        <SettingsSection title={t.settings_billing}>
+          <SettingsRow icon="globe.americas.fill" iconColor="#0a7ea4" label={t.settings_country}>
             <SegmentedControl
               options={[
-                { label: 'Colombia', value: 'CO' as Country },
-                { label: 'USA', value: 'US' as Country },
+                { label: t.settings_countryColombia, value: 'CO' as Country },
+                { label: t.settings_countryUSA, value: 'US' as Country },
               ]}
               value={country}
-              onChange={setCountry}
+              onChange={handleCountryChange}
             />
           </SettingsRow>
           {country === 'US' && (
-            <SettingsRow icon="map.fill" iconColor="#6366f1" label="State">
+            <SettingsRow icon="map.fill" iconColor="#6366f1" label={t.settings_state}>
               <Pressable
                 onPress={() => {
                   const states = Object.entries(US_STATE_RATES).map(([code, { name }]) => ({ code, name }));
                   Alert.alert(
-                    'Select State',
+                    t.settings_selectState,
                     undefined,
                     [
                       ...states.map(({ code, name }) => ({
                         text: `${name} (${code})`,
-                        onPress: () => setUsState(code),
+                        onPress: () => handleUsStateChange(code),
                       })),
-                      { text: 'Cancel', style: 'cancel' as const },
+                      { text: t.cancel, style: 'cancel' as const },
                     ]
                   );
                 }}
@@ -249,13 +202,13 @@ export default function SettingsScreen() {
               <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted">
                 <IconSymbol name="percent" size={18} color="#f59e0b" />
               </View>
-              <Text className="text-base text-foreground">Default tip</Text>
+              <Text className="text-base text-foreground">{t.settings_defaultTip}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {[0, 5, 10, 15, 18, 20].map((pct) => (
                 <Pressable
                   key={pct}
-                  onPress={() => setDefaultTipPercent(pct)}
+                  onPress={() => handleTipChange(pct)}
                   style={{
                     flex: 1,
                     alignItems: 'center',
@@ -282,19 +235,30 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         {/* Scanning */}
-        <SettingsSection title="Scanning">
-          <SettingsRow icon="clock.fill" iconColor="#6366f1" label="Auto-extract time">
+        <SettingsSection title={t.settings_scanning}>
+          <SettingsRow
+            icon="clock.fill"
+            iconColor="#6366f1"
+            label={t.settings_extractTime}
+            info={t.settings_extractTimeInfo}
+          >
             <Switch
               value={extractPhotoTime}
-              onValueChange={setExtractPhotoTime}
+              onValueChange={handleExtractPhotoTimeChange}
               trackColor={{ false: '#263354', true: '#38bdf8' }}
               thumbColor="#fff"
             />
           </SettingsRow>
-          <SettingsRow icon="location.fill" iconColor="#10b981" label="Capture location" last>
+          <SettingsRow
+            icon="location.fill"
+            iconColor="#10b981"
+            label={t.settings_captureLocation}
+            info={t.settings_captureLocationInfo}
+            last
+          >
             <Switch
               value={useLocation}
-              onValueChange={setUseLocation}
+              onValueChange={handleUseLocationChange}
               trackColor={{ false: '#263354', true: '#38bdf8' }}
               thumbColor="#fff"
             />
@@ -302,11 +266,11 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         {/* Account */}
-        <SettingsSection title="Account">
+        <SettingsSection title={t.settings_account}>
           <SettingsRow
             icon="rectangle.portrait.and.arrow.right"
             iconColor="#ef4444"
-            label="Sign Out"
+            label={t.settings_signOut}
             onPress={handleSignOut}
             last
           >
@@ -316,8 +280,8 @@ export default function SettingsScreen() {
 
         {/* Footer */}
         <View className="items-center gap-1 pt-4">
-          <Text className="text-xs text-muted-foreground">Rondas v0.1.0</Text>
-          <Text className="text-xs text-muted-foreground">Made with love in Colombia</Text>
+          <Text className="text-xs text-muted-foreground">{t.settings_version}</Text>
+          <Text className="text-xs text-muted-foreground">{t.settings_madeIn}</Text>
         </View>
       </ScrollView>
     </View>

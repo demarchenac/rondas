@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { convex } from '@/lib/convex';
 import { queryClient } from '@/lib/queryClient';
 import { useThemeStore } from '@/stores/useThemeStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 
 function RootLayoutNav() {
   const { user, loading } = useAuth();
@@ -23,6 +24,7 @@ function RootLayoutNav() {
   const segments = useSegments();
   const { colorScheme, setColorScheme } = useColorScheme();
   const mode = useThemeStore((s) => s.mode);
+  const hasCompletedSetup = useSettingsStore((s) => s.hasCompletedSetup);
   const isDark = colorScheme === 'dark';
 
   // Sync persisted theme preference on mount
@@ -37,13 +39,16 @@ function RootLayoutNav() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inSetup = (segments[0] as string) === 'setup';
 
     if (!user && !inAuthGroup) {
       router.replace('/(auth)/login');
-    } else if (user && inAuthGroup) {
+    } else if (user && !hasCompletedSetup && !inSetup) {
+      router.replace('/setup');
+    } else if (user && hasCompletedSetup && (inAuthGroup || inSetup)) {
       router.replace('/(tabs)');
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, hasCompletedSetup]);
 
   return (
     <ConvexProvider client={convex}>
@@ -52,6 +57,7 @@ function RootLayoutNav() {
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="setup" options={{ headerShown: false, presentation: 'modal', gestureEnabled: false }} />
             <Stack.Screen name="bills/new" options={{ headerShown: false, presentation: 'modal' }} />
           </Stack>
           <StatusBar style={isDark ? 'light' : 'dark'} />

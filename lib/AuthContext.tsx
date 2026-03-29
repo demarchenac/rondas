@@ -18,6 +18,10 @@ import {
   REDIRECT_URI,
   type User,
 } from './auth';
+import { convex } from './convex';
+import { api } from '@/convex/_generated/api';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useThemeStore } from '@/stores/useThemeStore';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -30,13 +34,52 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * After login, check if user exists in Convex and has config.
+ * - Exists + has config → load config locally, mark setup complete
+ * - Exists + no config → needs setup
+ * - Doesn't exist → create user, needs setup
+ */
+async function syncAfterLogin(user: User): Promise<void> {
+  const existing = await convex.query(api.users.getByWorkosId, { workosId: user.id });
+
+  if (existing?.config) {
+    // Load remote config into local stores
+    const c = existing.config;
+    const settings = useSettingsStore.getState();
+    settings.setCountry(c.country as 'CO' | 'US');
+    if (c.usState) settings.setUsState(c.usState);
+    settings.setDefaultTipPercent(c.defaultTipPercent);
+    settings.setLanguage(c.language as 'en' | 'es');
+    settings.setExtractPhotoTime(c.extractPhotoTime);
+    settings.setUseLocation(c.useLocation);
+    useThemeStore.getState().setMode(c.theme as 'light' | 'dark' | 'system');
+    settings.setHasCompletedSetup(true);
+  } else {
+    // Create user if doesn't exist (idempotent)
+    await convex.mutation(api.users.createUser, {
+      workosId: user.id,
+      email: user.email,
+      name: [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined,
+      avatarUrl: user.profilePictureUrl ?? undefined,
+    });
+    // hasCompletedSetup stays false → setup dialog will show
+    useSettingsStore.getState().setHasCompletedSetup(false);
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getUser()
-      .then(setUser)
+      .then(async (storedUser) => {
+        if (storedUser) {
+          await syncAfterLogin(storedUser);
+        }
+        setUser(storedUser);
+      })
       .catch((error) => {
         console.error('Failed to load stored session:', error);
       })
@@ -63,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       try {
         const newUser = await handleCallback(code);
+        await syncAfterLogin(newUser);
         setUser(newUser);
       } catch (err) {
         console.error('Auth callback failed:', err);
@@ -109,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('[Auth] Got code, exchanging token...');
       const newUser = await handleCallback(code);
       console.log('[Auth] Authenticated user:', newUser.email);
+      await syncAfterLogin(newUser);
       setUser(newUser);
       return { success: true };
     } catch (error) {

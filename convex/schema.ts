@@ -37,6 +37,15 @@ export default defineSchema({
     email: v.string(),
     name: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
+    config: v.optional(v.object({
+      country: v.string(),
+      usState: v.optional(v.string()),
+      defaultTipPercent: v.number(),
+      language: v.string(),
+      theme: v.string(),
+      extractPhotoTime: v.boolean(),
+      useLocation: v.boolean(),
+    })),
   }).index('by_workos_id', ['workosId']),
 
   bills: defineTable({
@@ -47,6 +56,7 @@ export default defineSchema({
     total: v.number(),
     tax: v.optional(v.number()),
     tip: v.optional(v.number()),
+    tipPercent: v.optional(v.number()),
     items: v.array(billItem),
     splitStrategy: v.optional(splitStrategy),
     contacts: v.array(billContact),
@@ -61,4 +71,28 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_state', ['userId', 'state']),
+
+  scans: defineTable({
+    userId: v.string(),
+    status: v.union(
+      v.literal('analyzing'),
+      v.literal('thinking'),
+      v.literal('extracting'),
+      v.literal('complete'),
+      v.literal('error')
+    ),
+    result: v.optional(v.object({
+      category: v.string(),
+      items: v.array(v.object({
+        name: v.string(),
+        quantity: v.number(),
+        unitPrice: v.number(),
+        subtotal: v.number(),
+      })),
+      tax: v.number(),
+      tip: v.number(),
+      total: v.number(),
+    })),
+    error: v.optional(v.string()),
+  }).index('by_user', ['userId']),
 });
