@@ -1,6 +1,8 @@
 import React from 'react';
 import { Modal, Pressable, TouchableWithoutFeedback, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
+import { ICON_COLORS } from '@/constants/colors';
 import { useT } from '@/lib/i18n';
 
 interface CountryDialogProps {
@@ -12,6 +14,8 @@ interface CountryDialogProps {
 
 function CountryDialog({ visible, billCountry, onSelectCountry, onClose }: CountryDialogProps) {
   const t = useT();
+  const { colorScheme } = useColorScheme();
+  const iconColors = ICON_COLORS[colorScheme ?? 'light'];
 
   return (
     <Modal
@@ -35,24 +39,18 @@ function CountryDialog({ visible, billCountry, onSelectCountry, onClose }: Count
                     onPress={() => {
                       onSelectCountry(option.code);
                     }}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 10,
-                      paddingVertical: 14,
-                      paddingHorizontal: 16,
-                      borderRadius: 12,
-                      backgroundColor: billCountry === option.code ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
-                      borderWidth: 1.5,
-                      borderColor: billCountry === option.code ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148,163,184,0.12)',
-                    }}
+                    className={`flex-row items-center gap-2.5 rounded-xl border-[1.5px] px-4 py-3.5 ${
+                      billCountry === option.code
+                        ? 'border-primary/35 bg-primary/15'
+                        : 'border-muted-foreground/12 bg-muted-foreground/[0.06]'
+                    }`}
                   >
                     <Text style={{ fontSize: 20 }}>{option.flag}</Text>
                     <Text
                       style={{
                         fontSize: 15,
                         fontWeight: '600',
-                        color: billCountry === option.code ? '#38bdf8' : '#64748b',
+                        color: billCountry === option.code ? iconColors.primary : iconColors.muted,
                       }}
                     >
                       {option.label}

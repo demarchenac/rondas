@@ -1,6 +1,8 @@
 import React from 'react';
 import { Modal, Pressable, TouchableWithoutFeedback, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
+import { ICON_COLORS } from '@/constants/colors';
 import { useT } from '@/lib/i18n';
 import { formatCurrency } from '@/lib/format';
 
@@ -15,6 +17,8 @@ interface TipDialogProps {
 
 function TipDialog({ visible, tipPercent, subtotal, billCountry, onSelectTip, onClose }: TipDialogProps) {
   const t = useT();
+  const { colorScheme } = useColorScheme();
+  const iconColors = ICON_COLORS[colorScheme ?? 'light'];
 
   return (
     <Modal
@@ -36,22 +40,17 @@ function TipDialog({ visible, tipPercent, subtotal, billCountry, onSelectTip, on
                       const newTip = Math.round(subtotal * (pct / 100));
                       onSelectTip(pct, newTip);
                     }}
-                    style={{
-                      flex: 1,
-                      minWidth: 70,
-                      alignItems: 'center',
-                      paddingVertical: 12,
-                      borderRadius: 12,
-                      backgroundColor: tipPercent === pct ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
-                      borderWidth: 1.5,
-                      borderColor: tipPercent === pct ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148,163,184,0.12)',
-                    }}
+                    className={`min-w-[70px] flex-1 items-center rounded-xl border-[1.5px] py-3 ${
+                      tipPercent === pct
+                        ? 'border-primary/35 bg-primary/15'
+                        : 'border-muted-foreground/12 bg-muted-foreground/[0.06]'
+                    }`}
                   >
                     <Text
                       style={{
                         fontSize: 15,
                         fontWeight: '700',
-                        color: tipPercent === pct ? '#38bdf8' : '#64748b',
+                        color: tipPercent === pct ? iconColors.primary : iconColors.muted,
                       }}
                     >
                       {pct}%

@@ -17,12 +17,20 @@ export const TAB_COLORS = {
 export const ICON_COLORS = {
   light: {
     primary: '#0a7ea4',
+    primaryForeground: '#ffffff',
+    foreground: '#0f172a',
     muted: '#64748b',
     mutedLight: '#94a3b8',
+    destructive: '#ef4444',
+    pro: '#d97706',
   },
   dark: {
     primary: '#38bdf8',
+    primaryForeground: '#0c1a2a',
+    foreground: '#e8ecf4',
     muted: '#8b9cc0',
     mutedLight: '#7088aa',
+    destructive: '#f87171',
+    pro: '#f59e0b',
   },
 };

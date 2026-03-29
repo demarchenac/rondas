@@ -99,7 +99,7 @@ function ContactPickerSheet({
                     <Image source={{ uri: c.image.uri }} style={{ width: 36, height: 36, borderRadius: 18 }} />
                   ) : (
                     <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(56,189,248,0.1)', alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#38bdf8' }}>
+                      <Text className="text-sm font-bold" style={{ color: '#38bdf8' }}>
                         {(c.firstName?.[0] ?? '?').toUpperCase()}
                       </Text>
                     </View>
@@ -123,7 +123,7 @@ function ContactPickerSheet({
               onPress={onConfirm}
               className="items-center rounded-xl bg-primary py-4 active:opacity-80"
             >
-              <Text style={{ fontSize: 16, fontWeight: '600', color: colorScheme === 'dark' ? '#0c1a2a' : '#ffffff' }}>
+              <Text className="text-base font-semibold text-primary-foreground">
                 {t.contactPicker_assign(selectedContactIds.size)}
               </Text>
             </Pressable>

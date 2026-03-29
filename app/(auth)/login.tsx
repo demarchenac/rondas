@@ -82,7 +82,7 @@ export default function LoginScreen() {
             <FontAwesome
               name="apple"
               size={18}
-              color={colorScheme === 'dark' ? '#e8ecf4' : '#0f172a'}
+              color={iconColors.foreground}
             />
             <Text>{t.auth_signInApple}</Text>
           </Button>
@@ -98,7 +98,7 @@ export default function LoginScreen() {
             <FontAwesome
               name="google"
               size={16}
-              color={colorScheme === 'dark' ? '#e8ecf4' : '#0f172a'}
+              color={iconColors.foreground}
             />
             <Text>{t.auth_signInGoogle}</Text>
           </Button>

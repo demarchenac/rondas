@@ -252,7 +252,7 @@ export default function HomeScreen() {
             {t.home_noBillsHint}
           </Text>
           <Button variant="default" className="mt-5" onPress={handleFABPress}>
-            <IconSymbol name="plus" size={16} color={colorScheme === 'dark' ? '#0c1a2a' : '#fff'} />
+            <IconSymbol name="plus" size={16} color={iconColors.primaryForeground} />
             <Text>{t.home_addFirstBill}</Text>
           </Button>
         </View>
@@ -301,7 +301,7 @@ export default function HomeScreen() {
           onPress={handleFABPress}
           className="h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 active:opacity-80"
         >
-          <IconSymbol name="plus" size={28} color={colorScheme === 'dark' ? '#0c1a2a' : '#ffffff'} />
+          <IconSymbol name="plus" size={28} color={iconColors.primaryForeground} />
         </Pressable>
       </View>
     </View>

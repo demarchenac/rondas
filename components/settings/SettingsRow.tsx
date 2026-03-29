@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ICON_COLORS } from '@/constants/colors';
 import { cn } from '@/lib/cn';
 
 export const SettingsRow = React.memo(function SettingsRow({
@@ -22,6 +24,8 @@ export const SettingsRow = React.memo(function SettingsRow({
   last?: boolean;
 }) {
   const [showInfo, setShowInfo] = useState(false);
+  const { colorScheme } = useColorScheme();
+  const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const Wrapper = onPress ? Pressable : View;
 
   return (
@@ -43,7 +47,7 @@ export const SettingsRow = React.memo(function SettingsRow({
             <IconSymbol
               name="info.circle"
               size={18}
-              color={showInfo ? '#38bdf8' : '#94a3b8'}
+              color={showInfo ? iconColors.primary : iconColors.mutedLight}
             />
           </Pressable>
         )}

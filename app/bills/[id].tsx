@@ -920,8 +920,8 @@ export default function BillDetailScreen() {
             className="items-center rounded-xl bg-primary py-4 active:opacity-80"
           >
             <View className="flex-row items-center gap-2">
-              <IconSymbol name="checkmark" size={18} color={colorScheme === 'dark' ? '#0c1a2a' : '#ffffff'} />
-              <Text style={{ fontSize: 16, fontWeight: '600', color: colorScheme === 'dark' ? '#0c1a2a' : '#ffffff' }}>
+              <IconSymbol name="checkmark" size={18} color={iconColors.primaryForeground} />
+              <Text style={{ fontSize: 16, fontWeight: '600', color: iconColors.primaryForeground }}>
                 {t.bill_confirmItems}
               </Text>
             </View>

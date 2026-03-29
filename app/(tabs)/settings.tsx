@@ -113,7 +113,7 @@ export default function SettingsScreen() {
         <Pressable className="overflow-hidden rounded-2xl border border-pro/30 bg-pro-bg active:scale-[0.98]">
           <View className="flex-row items-center gap-4 p-5">
             <View className="h-12 w-12 items-center justify-center rounded-xl bg-pro/10">
-              <IconSymbol name="crown.fill" size={24} color={colorScheme === 'dark' ? '#f59e0b' : '#d97706'} />
+              <IconSymbol name="crown.fill" size={24} color={iconColors.pro} />
             </View>
             <View className="flex-1 gap-1">
               <Text className="text-base font-bold text-foreground">{t.settings_upgradePro}</Text>

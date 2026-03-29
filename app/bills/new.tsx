@@ -792,7 +792,7 @@ export default function NewBillScreen() {
             </>
           ) : (
             <>
-              <IconSymbol name="checkmark" size={18} color={colorScheme === 'dark' ? '#0c1a2a' : '#ffffff'} />
+              <IconSymbol name="checkmark" size={18} color={iconColors.primaryForeground} />
               <Text>{t.scan_confirmItems}</Text>
             </>
           )}
