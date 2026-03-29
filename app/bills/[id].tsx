@@ -22,7 +22,7 @@ import { formatCurrency, parseCurrency } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import type { Translations } from '@/lib/i18n';
 import { toE164 } from '@/lib/phone';
-import { CATEGORY_LABELS, computeTax, getTaxConfig, type TaxConfig } from '@/constants/taxes';
+import { CATEGORY_LABELS, computeBase, computeTax, getTaxConfig, type TaxConfig } from '@/constants/taxes';
 import { relativeTime, parseExifDate } from '@/lib/date';
 import { cn } from '@/lib/cn';
 import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel, getCategoryLabel, type BillState } from '@/lib/billHelpers';
@@ -346,30 +346,34 @@ export default function BillDetailScreen() {
 
   const billDerived = useMemo(() => {
     if (!bill) return null;
-    const subtotal = bill.items.reduce((sum, billItem) => sum + billItem.subtotal, 0);
+    const itemsTotal = bill.items.reduce((sum, billItem) => sum + billItem.subtotal, 0);
     const billCountry = (bill.country as 'CO' | 'US') || 'CO';
     const billCategory = bill.category || 'dining';
     const taxConfig = getTaxConfig(billCountry, billCategory);
     const translatedTaxLabel = getTaxLabel(taxConfig, t);
 
-    // Tax: extracted from tax-inclusive subtotal for CO, stored value for US
+    // Base: item prices without tax (for CO, extract tax; for US, same as itemsTotal)
+    const base = computeBase(itemsTotal, taxConfig);
+
+    // Tax: extracted from tax-inclusive prices for CO, stored value for US
     const computedTax = taxConfig.taxIncluded
-      ? computeTax(subtotal, taxConfig)
+      ? computeTax(itemsTotal, taxConfig)
       : (bill.tax ?? 0);
 
-    // Tip: computed from the bill's own tip percent
+    // Tip: always computed on the base (without tax)
     const tipPercent = bill.tipPercent ?? 0;
-    const computedTip = Math.round(subtotal * (tipPercent / 100));
+    const computedTip = Math.round(base * (tipPercent / 100));
 
-    // Total: CO = subtotal + tip (tax already in prices), US = subtotal + tax + tip
-    const total = taxConfig.taxIncluded
-      ? subtotal + computedTip
-      : subtotal + computedTax + computedTip;
+    // Before tip: base + tax (what you owe before gratuity)
+    const beforeTip = base + computedTax;
+
+    // Total: base + tax + tip
+    const total = base + computedTax + computedTip;
 
     const stateStyle = STATE_STYLES[bill.state];
     const stateLabel = t[STATE_LABEL_KEYS[bill.state]] as string;
 
-    return { subtotal, billCountry, billCategory, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, total, stateStyle, stateLabel };
+    return { base, itemsTotal, billCountry, billCategory, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, beforeTip, total, stateStyle, stateLabel };
   }, [bill, t]);
 
   // Loading state
@@ -392,7 +396,7 @@ export default function BillDetailScreen() {
     );
   }
 
-  const { subtotal, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, total, stateStyle, stateLabel } = billDerived;
+  const { base, itemsTotal, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, beforeTip, total, stateStyle, stateLabel } = billDerived;
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
@@ -708,7 +712,7 @@ export default function BillDetailScreen() {
         {/* Summary */}
         <View className="flex-row items-center justify-between px-7 py-3">
           <Text className="text-sm text-muted-foreground">{t.bill_subtotal}</Text>
-          <Text className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(subtotal, billCountry)}</Text>
+          <Text className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(base, billCountry)}</Text>
         </View>
         <View className="flex-row items-center justify-between px-7 py-3">
           <Text className="text-sm text-foreground">{translatedTaxLabel}</Text>
@@ -724,6 +728,11 @@ export default function BillDetailScreen() {
               keyboardType="number-pad"
             />
           )}
+        </View>
+        <View className="mx-7 h-px bg-border/40" />
+        <View className="flex-row items-center justify-between px-7 py-3">
+          <Text className="text-sm font-semibold text-foreground">{t.bill_beforeTip}</Text>
+          <Text className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(beforeTip, billCountry)}</Text>
         </View>
         <Pressable
           className="flex-row items-center justify-between px-7 py-3 active:bg-muted/30"
@@ -817,7 +826,7 @@ export default function BillDetailScreen() {
       <TipDialog
         visible={activeDialog === 'tip'}
         tipPercent={tipPercent}
-        subtotal={subtotal}
+        subtotal={base}
         billCountry={billCountry}
         onSelectTip={async (pct, newTip) => {
           await updateBill({ id: id as Id<'bills'>, userId, tipPercent: pct, tip: newTip });

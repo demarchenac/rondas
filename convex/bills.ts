@@ -158,12 +158,12 @@ export const update = mutation({
       contacts = recalculateAmounts(newItems, [...contacts], newTax, newTip);
     }
 
-    // For tax-included countries (CO), tax is already in item prices — don't add it again
+    // Total = itemsTotal + tip for CO (tax already in prices), itemsTotal + tax + tip for US
+    const itemsTotal = newItems.reduce((sum, i) => sum + i.subtotal, 0);
     const isTaxIncluded = billCountry === 'CO';
-    const subtotal = newItems.reduce((sum, i) => sum + i.subtotal, 0);
     const newTotal = isTaxIncluded
-      ? subtotal + newTip
-      : subtotal + newTax + newTip;
+      ? itemsTotal + newTip
+      : itemsTotal + newTax + newTip;
 
     await ctx.db.patch(id, {
       ...defined,

@@ -140,6 +140,7 @@ export const en = {
 
   // Bill detail
   bill_subtotal: 'Subtotal',
+  bill_beforeTip: 'Before tip',
   bill_tip: (pct: number) => `Tip (${pct}%)`,
   bill_total: 'Total',
   bill_country: 'Country',

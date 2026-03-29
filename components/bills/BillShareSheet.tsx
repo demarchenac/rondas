@@ -7,7 +7,7 @@ import { WhatsAppIcon } from '@/components/icons/whatsapp';
 import { Share2 } from 'lucide-react-native';
 import { useT } from '@/lib/i18n';
 import { formatCurrency } from '@/lib/format';
-import { computeTax, type TaxConfig } from '@/constants/taxes';
+import { computeBase, computeTax, type TaxConfig } from '@/constants/taxes';
 import { ICON_COLORS } from '@/constants/colors';
 import { useColorScheme } from 'nativewind';
 import { cn } from '@/lib/cn';
@@ -75,12 +75,11 @@ function BillShareSheet({
               const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
               return Math.round(item.subtotal / numContacts);
             });
-            const contactSubtotal = contactItemAmounts.reduce((s, a) => s + a, 0);
-            const contactTax = computeTax(contactSubtotal, taxConfig);
-            const contactTip = Math.round(contactSubtotal * (tipPercent / 100));
-            const contactTotal = taxConfig.taxIncluded
-              ? contactSubtotal + contactTip
-              : contactSubtotal + contactTax + contactTip;
+            const contactItemsTotal = contactItemAmounts.reduce((s, a) => s + a, 0);
+            const contactBase = computeBase(contactItemsTotal, taxConfig);
+            const contactTax = computeTax(contactItemsTotal, taxConfig);
+            const contactTip = Math.round(contactBase * (tipPercent / 100));
+            const contactTotal = contactBase + contactTax + contactTip;
 
             return (
             <View key={ci} className="mb-4">

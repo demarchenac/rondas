@@ -31,7 +31,7 @@ import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
 import { resolvePlace } from '@/lib/places';
-import { computeTax, getTaxConfig } from '@/constants/taxes';
+import { computeBase, computeTax, getTaxConfig } from '@/constants/taxes';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { formatCurrency, parseCurrency } from '@/lib/format';
 import { useT } from '@/lib/i18n';
@@ -229,21 +229,22 @@ export default function NewBillScreen() {
 
       const { country, defaultTipPercent } = useSettingsStore.getState();
       const category = result.category || 'dining';
-      const subtotal = preparedItems.reduce((sum, i) => sum + i.subtotal, 0);
+      const itemsTotal = preparedItems.reduce((sum, i) => sum + i.subtotal, 0);
       const taxConfig = getTaxConfig(country, category);
 
-      // Tax: extracted from tax-inclusive subtotal for CO, from Gemini for US
+      // Base: item prices without tax
+      const base = computeBase(itemsTotal, taxConfig);
+
+      // Tax: extracted from tax-inclusive prices for CO, from Gemini for US
       const tax = taxConfig.taxIncluded
-        ? computeTax(subtotal, taxConfig)
+        ? computeTax(itemsTotal, taxConfig)
         : (result.tax || 0);
 
-      // Tip: always computed from user's default tip percent
-      const tip = Math.round(subtotal * (defaultTipPercent / 100));
+      // Tip: computed on base (without tax)
+      const tip = Math.round(base * (defaultTipPercent / 100));
 
-      // Total: CO = subtotal + tip (tax in prices), US = subtotal + tax + tip
-      const calculatedTotal = taxConfig.taxIncluded
-        ? subtotal + tip
-        : subtotal + tax + tip;
+      // Total: base + tax + tip
+      const calculatedTotal = base + tax + tip;
 
       // Strip client IDs — server generates them
       const itemsForDB = preparedItems.map(({ id: _id, ...rest }) => rest);

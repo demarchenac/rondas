@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image } from 'react-native';
 import { formatCurrency } from '@/lib/format';
-import { computeTax, type TaxConfig } from '@/constants/taxes';
+import { computeBase, computeTax, type TaxConfig } from '@/constants/taxes';
 import type { Translations } from '@/lib/i18n';
 
 const RECEIPT_WIDTH = 460;
@@ -93,12 +93,11 @@ function BillInfographic({
     ? d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
     : '';
 
-  const contactSubtotal = items.reduce((sum, i) => sum + i.amount, 0);
-  const contactTax = computeTax(contactSubtotal, infTaxConfig);
-  const contactTip = Math.round(contactSubtotal * (tipPercent / 100));
-  const contactTotal = infTaxConfig.taxIncluded
-    ? contactSubtotal + contactTip
-    : contactSubtotal + contactTax + contactTip;
+  const contactItemsTotal = items.reduce((sum, i) => sum + i.amount, 0);
+  const contactBase = computeBase(contactItemsTotal, infTaxConfig);
+  const contactTax = computeTax(contactItemsTotal, infTaxConfig);
+  const contactTip = Math.round(contactBase * (tipPercent / 100));
+  const contactTotal = contactBase + contactTax + contactTip;
 
   const translatedTaxLabel = getTaxLabel(infTaxConfig, t);
   const flag = country === 'CO' ? '\u{1F1E8}\u{1F1F4}' : '\u{1F1FA}\u{1F1F8}';
@@ -201,7 +200,7 @@ function BillInfographic({
           <View style={{ marginTop: 8, gap: 2 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
               <Text style={{ fontSize: 11, color: '#94a3b8' }}>{t.bill_subtotal}</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactSubtotal, country)}</Text>
+              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase, country)}</Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
               <Text style={{ fontSize: 11, color: '#94a3b8' }}>{translatedTaxLabel}</Text>

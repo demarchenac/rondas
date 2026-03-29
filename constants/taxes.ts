@@ -109,3 +109,13 @@ export function computeTax(amount: number, taxConfig: TaxConfig): number {
   const base = amount / (1 + taxConfig.taxRate);
   return Math.round(base * taxConfig.taxRate);
 }
+
+/**
+ * Extract the base amount (without tax) from a tax-inclusive total.
+ * When tax is included: base = total / (1 + rate)
+ * When tax is separate: base = total (no change)
+ */
+export function computeBase(amount: number, taxConfig: TaxConfig): number {
+  if (!taxConfig.taxIncluded) return amount;
+  return Math.round(amount / (1 + taxConfig.taxRate));
+}

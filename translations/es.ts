@@ -142,6 +142,7 @@ export const es: typeof en = {
 
   // Bill detail
   bill_subtotal: 'Subtotal',
+  bill_beforeTip: 'Antes de propina',
   bill_tip: (pct: number) => `Propina (${pct}%)`,
   bill_total: 'Total',
   bill_country: 'País',
