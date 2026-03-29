@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2026-03-28 (session 2)
+> Last updated: 2026-03-29 (session 3)
 
 ---
 
@@ -57,6 +57,9 @@
 - [x] Configure Sign in with Apple provider
 - [x] Configure Sign in with Google provider
 - [x] Create Convex `users` table and sync WorkOS user on login
+- [x] First-login setup dialog with country, tip, language, and theme
+- [x] Store user config in Convex (synced across devices)
+- [x] Detect new vs returning user via Convex query on login
 
 ### 1.7 File Uploads — UploadThing
 
@@ -167,8 +170,13 @@
 - [x] Show loading indicator while extraction runs
 - [x] Upgrade to Gemini 2.5 Flash (from 2.0 Flash Lite)
 - [x] Add item deduplication and name normalization post-extraction
+- [x] Gemini streaming (SSE) with real-time scan progress via Convex reactive queries
+- [x] Scan progress table with status tracking (analyzing → thinking → extracting → complete)
+- [x] Items appear in overlay as Gemini streams them
+- [x] Refined prompt: extract all lines flat, code-side filtering of $0 items and notes
+- [x] Thinking enabled (1024 tokens) for better accuracy
 
-> Note: Using Gemini 2.5 Flash instead of Claude Vision (better cost/quality ratio). Items are deduplicated and normalized after extraction.
+> Note: Using Gemini 2.5 Flash with SSE streaming. Items stream in real-time via Convex reactivity. Add-ons/extras appear as separate line items.
 
 ### 4.3 Item Review Screen
 
@@ -238,7 +246,7 @@
 - [x] Paid/Unpaid toggle per contact
 - [x] WhatsApp deep link sharing with formatted message (WhatsApp SVG icon)
 - [x] Receipt-style infographic generation (ViewShot + expo-sharing)
-- [x] Infographic with perforated edges, per-contact tax/tip breakdown
+- [x] Redesigned infographic: tear edges, country badge, per-bill currency, translated labels
 - [x] "Resumen generado con la app Rondas" footer in messages and infographic
 - [ ] Create React Email template for per-contact bill summary
 - [ ] Create Convex action to send email via Resend
@@ -265,8 +273,13 @@
 - [x] State badge (Draft, Unsplit, Unresolved, Split)
 - [x] Category badge (🍽️ Dining / 🛒 Retail / 🔧 Service)
 - [x] Computed tax based on country + category (informational for CO)
-- [x] Computed tip based on user's default tip percentage
+- [x] Per-bill tip percentage with tip dialog (not global setting)
+- [x] Per-bill country with country picker dialog
 - [x] Dynamic tax label (Impoconsumo/IVA/Sales Tax)
+- [x] Fix impoconsumo calculation: base = subtotal / (1 + rate), tax = base * rate
+- [x] Fix total calculation in update mutation for tax-included countries
+- [x] Item sorting strategies (receipt order, price asc/desc, alpha asc/desc)
+- [x] Refactor item operations from index-based to ID-based
 - [x] Delete bill button with confirmation
 - [x] Draft state with "Confirm Items" button
 - [x] Navigate back to home
@@ -303,15 +316,16 @@
 - [x] Apply theme to NativeWind using `colorScheme`
 - [x] Persist theme preference to AsyncStorage
 
-### 8.3 Language Toggle
+### 8.3 Language & i18n
 
-- [ ] Install and configure `i18next` + `expo-localization`
-- [ ] Create English translation file (`en.json`)
-- [ ] Create Spanish translation file (`es.json`)
-- [ ] Translate all UI strings to both languages
+- [x] Install `expo-localization` for device language detection
+- [x] Create English translation file (`translations/en.ts`)
+- [x] Create Spanish translation file (`translations/es.ts`, typed as `typeof en`)
+- [x] Create `useT()` hook (`lib/i18n.ts`) reading from Zustand store
+- [x] Translate all UI strings (~150) across all 6 screens
 - [x] Build language selector in settings (English / Spanish)
-- [ ] Persist language preference to AsyncStorage
-- [ ] Apply selected language across the entire app
+- [x] Persist language preference to AsyncStorage + Convex
+- [x] Apply selected language across the entire app (reactive via Zustand)
 
 ### 8.4 Billing Settings
 
@@ -319,6 +333,8 @@
 - [x] US state selector (51 options via Alert)
 - [x] Default tip percentage chips (0%, 5%, 10%, 15%, 18%, 20%)
 - [x] Tax constants per country + receipt category
+- [x] Per-bill currency formatting (COP / USD suffix)
+- [x] Settings sync to Convex on every change (fire-and-forget)
 
 ### 8.5 Scanning Preferences
 
@@ -405,14 +421,14 @@
 
 | Phase                             | Total Tasks | Done  |
 | --------------------------------- | ----------- | ----- |
-| Phase 1 — Setup                   | 34          | 31    |
+| Phase 1 — Setup                   | 37          | 34    |
 | Phase 2 — Auth Screens            | 11          | 11    |
 | Phase 3 — Home Screen             | 18          | 16    |
-| Phase 4 — Bill Creation & AI      | 29          | 28    |
+| Phase 4 — Bill Creation & AI      | 34          | 33    |
 | Phase 5 — Bill Splitting          | 16          | 14    |
 | Phase 6 — Summary & Notifications | 10          | 8     |
-| Phase 7 — Bill Detail & History   | 22          | 20    |
-| Phase 8 — Settings                | 20          | 15    |
+| Phase 7 — Bill Detail & History   | 28          | 26    |
+| Phase 8 — Settings                | 24          | 23    |
 | Phase 9 — Subscriptions           | 12          | 0     |
 | Phase 10 — Polish & Launch        | 14          | 0     |
-| **Total**                         | **186**     | **143**|
+| **Total**                         | **204**     | **165**|
