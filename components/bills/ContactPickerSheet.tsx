@@ -1,0 +1,137 @@
+import React from 'react';
+import { Modal, View, Pressable, ScrollView, TextInput, Image } from 'react-native';
+import { Text } from '@/components/ui/text';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useT } from '@/lib/i18n';
+import { useColorScheme } from 'nativewind';
+import { ICON_COLORS } from '@/constants/colors';
+import type * as Contacts from 'expo-contacts';
+
+interface ContactPickerSheetProps {
+  visible: boolean;
+  phoneContacts: (Contacts.Contact & { id: string })[];
+  contactSearch: string;
+  selectedContactIds: Set<string>;
+  bottomInset: number;
+  onSearchChange: (text: string) => void;
+  onToggleContact: (contactId: string) => void;
+  onConfirm: () => void;
+  onClose: () => void;
+}
+
+function ContactPickerSheet({
+  visible,
+  phoneContacts,
+  contactSearch,
+  selectedContactIds,
+  bottomInset,
+  onSearchChange,
+  onToggleContact,
+  onConfirm,
+  onClose,
+}: ContactPickerSheetProps) {
+  const t = useT();
+  const { colorScheme } = useColorScheme();
+  const iconColors = ICON_COLORS[colorScheme ?? 'light'];
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View className="flex-1 bg-background" style={{ paddingTop: 12, paddingBottom: bottomInset }}>
+        <View className="items-center pb-2">
+          <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+        </View>
+        <View className="flex-row items-center justify-between px-7 pb-3 pt-2">
+          <Text className="text-xl font-bold text-foreground">{t.contactPicker_title}</Text>
+          <Pressable onPress={onClose} className="rounded-full bg-muted p-2">
+            <IconSymbol name="xmark" size={14} color={iconColors.muted} />
+          </Pressable>
+        </View>
+
+        {/* Search */}
+        <View className="px-7 pb-3">
+          <TextInput
+            value={contactSearch}
+            onChangeText={onSearchChange}
+            placeholder={t.contactPicker_search}
+            placeholderTextColor="#64748b"
+            style={{
+              backgroundColor: 'rgba(148,163,184,0.08)',
+              borderRadius: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              fontSize: 15,
+              color: '#e8ecf4',
+            }}
+          />
+        </View>
+
+        <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
+          {phoneContacts
+            .filter((c) => {
+              if (!contactSearch) return true;
+              const name = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase();
+              return name.includes(contactSearch.toLowerCase());
+            })
+            .map((c) => {
+              const isSelected = selectedContactIds.has(c.id!);
+              return (
+                <Pressable
+                  key={c.id}
+                  onPress={() => onToggleContact(c.id!)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 10,
+                    gap: 12,
+                  }}
+                >
+                  <IconSymbol
+                    name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+                    size={22}
+                    color={isSelected ? '#38bdf8' : '#64748b'}
+                  />
+                  {c.image?.uri ? (
+                    <Image source={{ uri: c.image.uri }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                  ) : (
+                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(56,189,248,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#38bdf8' }}>
+                        {(c.firstName?.[0] ?? '?').toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View className="flex-1">
+                    <Text className="text-sm font-medium text-foreground">
+                      {`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || 'Unknown'}
+                    </Text>
+                    {c.phoneNumbers?.[0]?.number && (
+                      <Text className="text-xs text-muted-foreground">{c.phoneNumbers[0].number}</Text>
+                    )}
+                  </View>
+                </Pressable>
+              );
+            })}
+        </ScrollView>
+
+        {selectedContactIds.size > 0 && (
+          <View className="border-t border-border/30 px-7 pb-2 pt-3">
+            <Pressable
+              onPress={onConfirm}
+              className="items-center rounded-xl bg-primary py-4 active:opacity-80"
+            >
+              <Text style={{ fontSize: 16, fontWeight: '600', color: colorScheme === 'dark' ? '#0c1a2a' : '#ffffff' }}>
+                {t.contactPicker_assign(selectedContactIds.size)}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+export default ContactPickerSheet;

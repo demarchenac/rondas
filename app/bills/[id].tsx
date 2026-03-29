@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, ScrollView, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -8,7 +8,7 @@ import { useColorScheme } from 'nativewind';
 import * as Contacts from 'expo-contacts';
 import * as Haptics from 'expo-haptics';
 import { Swipeable } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { useQuery, useMutation } from 'convex/react';
 import type { Id } from '@/convex/_generated/dataModel';
 
@@ -23,8 +23,14 @@ import { useT } from '@/lib/i18n';
 import type { Translations } from '@/lib/i18n';
 import { toE164 } from '@/lib/phone';
 import { CATEGORY_LABELS, computeTax, getTaxConfig, type TaxConfig } from '@/constants/taxes';
-import { WhatsAppIcon } from '@/components/icons/whatsapp';
-import { Share2 } from 'lucide-react-native';
+
+import SwipeableItem from '@/components/bills/SwipeableItem';
+import TipDialog from '@/components/bills/TipDialog';
+import CountryDialog from '@/components/bills/CountryDialog';
+import BulkToolbar from '@/components/bills/BulkToolbar';
+import ContactPickerSheet from '@/components/bills/ContactPickerSheet';
+import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
+import BillShareSheet from '@/components/bills/BillShareSheet';
 
 type BillState = 'draft' | 'unsplit' | 'split' | 'unresolved';
 
@@ -864,618 +870,93 @@ export default function BillDetailScreen() {
         </View>
       )}
 
-      {/* Share sheet modal */}
-      <Modal
+      <BillShareSheet
         visible={showShareSheet}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowShareSheet(false)}
-      >
-        <View className="flex-1 bg-background" style={{ paddingTop: 12, paddingBottom: insets.bottom }}>
-          {/* Modal header */}
-          <View className="items-center pb-2">
-            <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-          </View>
-          <View className="flex-row items-center justify-between px-7 pb-4 pt-2">
-            <Text className="text-xl font-bold text-foreground">{t.share_title}</Text>
-            <Pressable onPress={() => setShowShareSheet(false)} className="rounded-full bg-muted p-2">
-              <IconSymbol name="xmark" size={14} color={iconColors.muted} />
-            </Pressable>
-          </View>
+        bill={bill}
+        billCountry={billCountry}
+        taxConfig={taxConfig}
+        tipPercent={tipPercent}
+        translatedTaxLabel={translatedTaxLabel}
+        bottomInset={insets.bottom}
+        infographicRefs={infographicRefs}
+        onTogglePaid={handleTogglePaid}
+        onSendWhatsApp={handleSendWhatsApp}
+        onShareInfographic={handleShareInfographic}
+        onClose={() => setShowShareSheet(false)}
+      />
 
-          <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
-            {bill.contacts.map((contact, ci) => {
-              // Compute per-contact amounts
-              const contactItemAmounts = contact.items.map((itemId) => {
-                const item = bill.items.find((i) => i.id === itemId);
-                if (!item) return 0;
-                const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-                return Math.round(item.subtotal / numContacts);
-              });
-              const contactSubtotal = contactItemAmounts.reduce((s, a) => s + a, 0);
-              const contactTax = computeTax(contactSubtotal, taxConfig);
-              const contactTip = Math.round(contactSubtotal * (tipPercent / 100));
-              const contactTotal = taxConfig.taxIncluded
-                ? contactSubtotal + contactTip
-                : contactSubtotal + contactTax + contactTip;
-
-              return (
-              <View key={ci} className="mb-4">
-                {/* Contact header */}
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-3">
-                    {contact.imageUri ? (
-                      <Image source={{ uri: contact.imageUri }} style={{ width: 40, height: 40, borderRadius: 20 }} />
-                    ) : (
-                      <View
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 20,
-                          backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Text style={{ fontSize: 16, fontWeight: '700', color: iconColors.primary }}>
-                          {contact.name[0]?.toUpperCase() ?? '?'}
-                        </Text>
-                      </View>
-                    )}
-                    <View>
-                      <Text className="text-base font-semibold text-foreground">{contact.name}</Text>
-                      <Text className="text-xs text-muted-foreground">
-                        {contact.items.length} {contact.items.length === 1 ? 'item' : 'items'}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text className="text-lg font-bold tabular-nums text-foreground">
-                    {formatCurrency(contactTotal, billCountry)}
-                  </Text>
-                </View>
-
-                {/* Contact items — two column */}
-                <View className="ml-[52px] mt-2 flex-row flex-wrap">
-                  {contact.items.map((itemId) => {
-                    const item = bill.items.find((i) => i.id === itemId);
-                    if (!item) return null;
-                    const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-                    const share = Math.round(item.subtotal / numContacts);
-                    return (
-                      <View key={itemId} style={{ width: '50%', paddingRight: 8, marginBottom: 4 }}>
-                        <Text className="text-xs text-foreground" numberOfLines={1}>{item.name}</Text>
-                        <Text className="text-[11px] text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-
-                {/* Tax & Tip breakdown */}
-                <View className="ml-[52px] mt-2 gap-1">
-                  <View className="flex-row justify-between">
-                    <Text className="text-[11px] text-muted-foreground">{translatedTaxLabel}</Text>
-                    <Text className="text-[11px] text-muted-foreground">{formatCurrency(contactTax, billCountry)}</Text>
-                  </View>
-                  {tipPercent > 0 && (
-                    <View className="flex-row justify-between">
-                      <Text className="text-[11px] text-muted-foreground">{t.bill_tip(tipPercent)}</Text>
-                      <Text className="text-[11px] text-muted-foreground">{formatCurrency(contactTip, billCountry)}</Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Actions */}
-                <View className="ml-[52px] mt-3 flex-row gap-2">
-                  {/* Paid toggle */}
-                  <Pressable
-                    onPress={() => handleTogglePaid(ci)}
-                    style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      paddingVertical: 10,
-                      borderRadius: 12,
-                      backgroundColor: contact.paid ? 'rgba(16,185,129,0.15)' : 'rgba(148,163,184,0.1)',
-                      borderWidth: 1,
-                      borderColor: contact.paid ? 'rgba(16,185,129,0.3)' : 'rgba(148,163,184,0.2)',
-                    }}
-                  >
-                    <IconSymbol
-                      name={contact.paid ? 'checkmark.circle.fill' : 'circle'}
-                      size={16}
-                      color={contact.paid ? '#10b981' : '#94a3b8'}
-                    />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: contact.paid ? '#10b981' : '#94a3b8' }}>
-                      {contact.paid ? t.share_paid : t.share_unpaid}
-                    </Text>
-                  </Pressable>
-
-                  {/* WhatsApp text */}
-                  {contact.phone && (
-                    <Pressable
-                      onPress={() => handleSendWhatsApp(contact)}
-                      style={{
-                        flex: 1,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6,
-                        paddingVertical: 10,
-                        borderRadius: 12,
-                        backgroundColor: 'rgba(37,211,102,0.15)',
-                        borderWidth: 1,
-                        borderColor: 'rgba(37,211,102,0.3)',
-                      }}
-                    >
-                      <WhatsAppIcon size={16} color="#25d366" />
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#25d366' }}>{t.share_whatsapp}</Text>
-                    </Pressable>
-                  )}
-
-                  {/* Share infographic */}
-                  <Pressable
-                    onPress={() => handleShareInfographic(contact, ci)}
-                    style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      paddingVertical: 10,
-                      borderRadius: 12,
-                      backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                      borderWidth: 1,
-                      borderColor: 'rgba(56, 189, 248, 0.2)',
-                    }}
-                  >
-                    <Share2 size={14} color="#38bdf8" />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#38bdf8' }}>{t.share_share}</Text>
-                  </Pressable>
-                </View>
-
-                {/* Hidden infographic for capture */}
-                <View style={{ position: 'absolute', left: -9999 }}>
-                  <ViewShot
-                    ref={(ref) => { infographicRefs.current[ci] = ref; }}
-                    options={{ format: 'png', quality: 1 }}
-                  >
-                    <BillInfographic
-                      billName={bill.name}
-                      contactName={contact.name}
-                      contactImageUri={contact.imageUri}
-                      items={contact.items
-                        .map((itemId) => {
-                          const item = bill.items.find((i) => i.id === itemId);
-                          if (!item) return null;
-                          const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-                          const amount = Math.round(item.subtotal / numContacts);
-                          if (amount === 0) return null;
-                          return { name: item.name, amount };
-                        })
-                        .filter((i): i is { name: string; amount: number } => i !== null)}
-                      taxConfig={taxConfig}
-                      tipPercent={tipPercent}
-                      location={bill.location?.address}
-                      date={bill.photoTakenAt ?? new Date(bill._creationTime).toISOString()}
-                      country={billCountry}
-                      t={t}
-                    />
-                  </ViewShot>
-                </View>
-
-                {/* Divider */}
-                {ci < bill.contacts.length - 1 && (
-                  <View className="ml-[52px] mt-4 h-px bg-border/40" />
-                )}
-              </View>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </Modal>
-
-      {/* Contact picker modal (multi-select) */}
-      <Modal
+      <ContactPickerSheet
         visible={showContactPicker}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => { setShowContactPicker(false); setSingleAssignItemId(null); }}
-      >
-        <View className="flex-1 bg-background" style={{ paddingTop: 12, paddingBottom: insets.bottom }}>
-          <View className="items-center pb-2">
-            <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-          </View>
-          <View className="flex-row items-center justify-between px-7 pb-3 pt-2">
-            <Text className="text-xl font-bold text-foreground">{t.contactPicker_title}</Text>
-            <Pressable onPress={() => { setShowContactPicker(false); setSingleAssignItemId(null); }} className="rounded-full bg-muted p-2">
-              <IconSymbol name="xmark" size={14} color={iconColors.muted} />
-            </Pressable>
-          </View>
+        phoneContacts={phoneContacts}
+        contactSearch={contactSearch}
+        selectedContactIds={selectedContactIds}
+        bottomInset={insets.bottom}
+        onSearchChange={setContactSearch}
+        onToggleContact={(contactId) => {
+          setSelectedContactIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(contactId)) next.delete(contactId);
+            else next.add(contactId);
+            return next;
+          });
+        }}
+        onConfirm={handleConfirmContactPicker}
+        onClose={() => { setShowContactPicker(false); setSingleAssignItemId(null); }}
+      />
 
-          {/* Search */}
-          <View className="px-7 pb-3">
-            <TextInput
-              value={contactSearch}
-              onChangeText={setContactSearch}
-              placeholder={t.contactPicker_search}
-              placeholderTextColor="#64748b"
-              style={{
-                backgroundColor: 'rgba(148,163,184,0.08)',
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                fontSize: 15,
-                color: '#e8ecf4',
-              }}
-            />
-          </View>
-
-          <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
-            {phoneContacts
-              .filter((c) => {
-                if (!contactSearch) return true;
-                const name = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase();
-                return name.includes(contactSearch.toLowerCase());
-              })
-              .map((c) => {
-                const isSelected = selectedContactIds.has(c.id!);
-                return (
-                  <Pressable
-                    key={c.id}
-                    onPress={() => {
-                      setSelectedContactIds((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(c.id!)) next.delete(c.id!);
-                        else next.add(c.id!);
-                        return next;
-                      });
-                    }}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingVertical: 10,
-                      gap: 12,
-                    }}
-                  >
-                    <IconSymbol
-                      name={isSelected ? 'checkmark.circle.fill' : 'circle'}
-                      size={22}
-                      color={isSelected ? '#38bdf8' : '#64748b'}
-                    />
-                    {c.image?.uri ? (
-                      <Image source={{ uri: c.image.uri }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-                    ) : (
-                      <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(56,189,248,0.1)', alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#38bdf8' }}>
-                          {(c.firstName?.[0] ?? '?').toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                    <View className="flex-1">
-                      <Text className="text-sm font-medium text-foreground">
-                        {`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || 'Unknown'}
-                      </Text>
-                      {c.phoneNumbers?.[0]?.number && (
-                        <Text className="text-xs text-muted-foreground">{c.phoneNumbers[0].number}</Text>
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              })}
-          </ScrollView>
-
-          {selectedContactIds.size > 0 && (
-            <View className="border-t border-border/30 px-7 pb-2 pt-3">
-              <Pressable
-                onPress={handleConfirmContactPicker}
-                className="items-center rounded-xl bg-primary py-4 active:opacity-80"
-              >
-                <Text style={{ fontSize: 16, fontWeight: '600', color: colorScheme === 'dark' ? '#0c1a2a' : '#ffffff' }}>
-                  {t.contactPicker_assign(selectedContactIds.size)}
-                </Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-      </Modal>
-
-      {/* Unassign picker modal (multi-select from bill contacts) */}
       {bill && (
-        <Modal
+        <UnassignPickerSheet
           visible={showUnassignPicker}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setShowUnassignPicker(false)}
-        >
-          <View className="flex-1 bg-background" style={{ paddingTop: 12, paddingBottom: insets.bottom }}>
-            <View className="items-center pb-2">
-              <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-            </View>
-            <View className="flex-row items-center justify-between px-7 pb-3 pt-2">
-              <Text className="text-xl font-bold text-foreground">{t.unassignPicker_title}</Text>
-              <Pressable onPress={() => setShowUnassignPicker(false)} className="rounded-full bg-muted p-2">
-                <IconSymbol name="xmark" size={14} color={iconColors.muted} />
-              </Pressable>
-            </View>
-
-            <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
-              {(() => {
-                const contactsOnSelected = bill.contacts
-                  .map((c, ci) => ({ ...c, contactIndex: ci }))
-                  .filter((c) => c.items.some((itemId) => selectedItemIds.has(itemId)));
-
-                return contactsOnSelected.map((c) => {
-                  const isSelected = selectedContactIds.has(String(c.contactIndex));
-                  const itemCount = c.items.filter((itemId) => selectedItemIds.has(itemId)).length;
-                  return (
-                    <Pressable
-                      key={c.contactIndex}
-                      onPress={() => {
-                        setSelectedContactIds((prev) => {
-                          const next = new Set(prev);
-                          const key = String(c.contactIndex);
-                          if (next.has(key)) next.delete(key);
-                          else next.add(key);
-                          return next;
-                        });
-                      }}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 12,
-                        gap: 12,
-                      }}
-                    >
-                      <IconSymbol
-                        name={isSelected ? 'checkmark.circle.fill' : 'circle'}
-                        size={22}
-                        color={isSelected ? '#ef4444' : '#64748b'}
-                      />
-                      {c.imageUri ? (
-                        <Image source={{ uri: c.imageUri }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-                      ) : (
-                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(56,189,248,0.1)', alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={{ fontSize: 14, fontWeight: '700', color: '#38bdf8' }}>
-                            {(c.name[0] ?? '?').toUpperCase()}
-                          </Text>
-                        </View>
-                      )}
-                      <View className="flex-1">
-                        <Text className="text-sm font-medium text-foreground">{c.name}</Text>
-                        <Text className="text-xs text-muted-foreground">
-                          {t.unassignPicker_itemsOnSelection(itemCount)}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                });
-              })()}
-            </ScrollView>
-
-            {selectedContactIds.size > 0 && (
-              <View className="border-t border-border/30 px-7 pb-2 pt-3">
-                <Pressable
-                  onPress={() => {
-                    Alert.alert(
-                      t.bill_confirmRemoval,
-                      t.bill_removeMultipleConfirm(selectedContactIds.size),
-                      [
-                        { text: t.cancel, style: 'cancel' },
-                        { text: t.remove, style: 'destructive', onPress: handleConfirmUnassign },
-                      ]
-                    );
-                  }}
-                  style={{
-                    alignItems: 'center',
-                    paddingVertical: 16,
-                    borderRadius: 14,
-                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                    borderWidth: 1,
-                    borderColor: 'rgba(239, 68, 68, 0.3)',
-                  }}
-                >
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#ef4444' }}>
-                    {t.unassignPicker_remove(selectedContactIds.size)}
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
-        </Modal>
+          contacts={bill.contacts.map((c, ci) => ({ ...c, contactIndex: ci }))}
+          selectedItemIds={selectedItemIds}
+          selectedContactIds={selectedContactIds}
+          bottomInset={insets.bottom}
+          onToggleContact={(key) => {
+            setSelectedContactIds((prev) => {
+              const next = new Set(prev);
+              if (next.has(key)) next.delete(key);
+              else next.add(key);
+              return next;
+            });
+          }}
+          onConfirm={handleConfirmUnassign}
+          onClose={() => setShowUnassignPicker(false)}
+        />
       )}
 
-      {/* Tip dialog */}
-      <Modal
+      <TipDialog
         visible={showTipDialog}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowTipDialog(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowTipDialog(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-            <TouchableWithoutFeedback>
-              <View className="mx-8 w-80 rounded-2xl border border-border bg-card p-6">
-                <Text className="mb-4 text-center text-lg font-bold text-foreground">{t.tipDialog_title}</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {[0, 5, 10, 15, 18, 20].map((pct) => (
-                    <Pressable
-                      key={pct}
-                      onPress={async () => {
-                        const newTip = Math.round(subtotal * (pct / 100));
-                        await updateBill({ id: id as Id<'bills'>, userId, tipPercent: pct, tip: newTip });
-                        setShowTipDialog(false);
-                      }}
-                      style={{
-                        flex: 1,
-                        minWidth: 70,
-                        alignItems: 'center',
-                        paddingVertical: 12,
-                        borderRadius: 12,
-                        backgroundColor: tipPercent === pct ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
-                        borderWidth: 1.5,
-                        borderColor: tipPercent === pct ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148,163,184,0.12)',
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 15,
-                          fontWeight: '700',
-                          color: tipPercent === pct ? '#38bdf8' : '#64748b',
-                        }}
-                      >
-                        {pct}%
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Pressable
-                  onPress={() => setShowTipDialog(false)}
-                  className="mt-4 items-center rounded-xl bg-muted py-3"
-                >
-                  <Text className="text-sm font-semibold text-muted-foreground">{t.cancel}</Text>
-                </Pressable>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+        tipPercent={tipPercent}
+        subtotal={subtotal}
+        billCountry={billCountry}
+        onSelectTip={async (pct, newTip) => {
+          await updateBill({ id: id as Id<'bills'>, userId, tipPercent: pct, tip: newTip });
+          setShowTipDialog(false);
+        }}
+        onClose={() => setShowTipDialog(false)}
+      />
 
-      {/* Country dialog */}
-      <Modal
+      <CountryDialog
         visible={showCountryDialog}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowCountryDialog(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowCountryDialog(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-            <TouchableWithoutFeedback>
-              <View className="mx-8 w-80 rounded-2xl border border-border bg-card p-6">
-                <Text className="mb-4 text-center text-lg font-bold text-foreground">{t.countryDialog_title}</Text>
-                <View style={{ gap: 8 }}>
-                  {([
-                    { code: 'CO' as const, flag: '🇨🇴', label: t.settings_countryColombia },
-                    { code: 'US' as const, flag: '🇺🇸', label: t.settings_countryUSA },
-                  ]).map((option) => (
-                    <Pressable
-                      key={option.code}
-                      onPress={async () => {
-                        await updateBill({ id: id as Id<'bills'>, userId, country: option.code });
-                        setShowCountryDialog(false);
-                      }}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 10,
-                        paddingVertical: 14,
-                        paddingHorizontal: 16,
-                        borderRadius: 12,
-                        backgroundColor: billCountry === option.code ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148,163,184,0.06)',
-                        borderWidth: 1.5,
-                        borderColor: billCountry === option.code ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148,163,184,0.12)',
-                      }}
-                    >
-                      <Text style={{ fontSize: 20 }}>{option.flag}</Text>
-                      <Text
-                        style={{
-                          fontSize: 15,
-                          fontWeight: '600',
-                          color: billCountry === option.code ? '#38bdf8' : '#64748b',
-                        }}
-                      >
-                        {option.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Pressable
-                  onPress={() => setShowCountryDialog(false)}
-                  className="mt-4 items-center rounded-xl bg-muted py-3"
-                >
-                  <Text className="text-sm font-semibold text-muted-foreground">{t.cancel}</Text>
-                </Pressable>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+        billCountry={billCountry}
+        onSelectCountry={async (code) => {
+          await updateBill({ id: id as Id<'bills'>, userId, country: code });
+          setShowCountryDialog(false);
+        }}
+        onClose={() => setShowCountryDialog(false)}
+      />
 
-      {/* Bulk edit toolbar */}
-      {multiSelectMode && selectedItemIds.size > 0 && (() => {
-        const hasContacts = bill.contacts.some((c) =>
-          c.items.some((itemId) => selectedItemIds.has(itemId))
-        );
-
-        return (
-          <View className="border-t border-border/30 px-7 pb-2 pt-3">
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {/* Assign contact */}
-              <Pressable
-                onPress={handleMultiAssign}
-                style={{
-                  flex: 1,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  paddingVertical: 12,
-                  borderRadius: 12,
-                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                  borderWidth: 1,
-                  borderColor: 'rgba(56, 189, 248, 0.2)',
-                }}
-              >
-                <IconSymbol name="person.crop.circle" size={16} color="#38bdf8" />
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#38bdf8' }}>{t.bulk_assign}</Text>
-              </Pressable>
-
-              {/* Remove contact — only if any selected item has contacts */}
-              {hasContacts && (
-                <Pressable
-                  onPress={handleBulkRemoveContact}
-                  style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                    borderWidth: 1,
-                    borderColor: 'rgba(245, 158, 11, 0.2)',
-                  }}
-                >
-                  <IconSymbol name="person.crop.circle" size={16} color="#f59e0b" />
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#f59e0b' }}>{t.bulk_unassign}</Text>
-                </Pressable>
-              )}
-
-              {/* Delete items */}
-              <Pressable
-                onPress={handleBulkDelete}
-                style={{
-                  flex: 1,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  paddingVertical: 12,
-                  borderRadius: 12,
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                  borderWidth: 1,
-                  borderColor: 'rgba(239, 68, 68, 0.2)',
-                }}
-              >
-                <IconSymbol name="xmark" size={14} color="#ef4444" />
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#ef4444' }}>{t.bulk_delete}</Text>
-              </Pressable>
-            </View>
-          </View>
-        );
-      })()}
+      {multiSelectMode && selectedItemIds.size > 0 && (
+        <BulkToolbar
+          selectedItemIds={selectedItemIds}
+          hasContactsOnSelection={bill.contacts.some((c) =>
+            c.items.some((itemId) => selectedItemIds.has(itemId))
+          )}
+          onAssign={handleMultiAssign}
+          onUnassign={handleBulkRemoveContact}
+          onDelete={handleBulkDelete}
+        />
+      )}
 
       {/* Confirm button for draft bills */}
       {!multiSelectMode && bill.state === 'draft' && (
@@ -1501,256 +982,4 @@ export default function BillDetailScreen() {
   );
 }
 
-const RECEIPT_WIDTH = 460;
-const RECEIPT_PADDING = 20;
-const PAPER_WIDTH = RECEIPT_WIDTH - RECEIPT_PADDING * 2;
-const BG_COLOR = '#e8e4df';
 
-const PERF_SIZE = 11;
-const PERF_HEIGHT = PERF_SIZE / 2;
-
-function ReceiptPerforations({ position }: { position: 'top' | 'bottom' }) {
-  const gap = 3;
-  const count = Math.floor(PAPER_WIDTH / (PERF_SIZE + gap));
-  const totalWidth = count * (PERF_SIZE + gap) - gap;
-  const offset = (PAPER_WIDTH - totalWidth) / 2;
-  return (
-    <View style={{
-      width: PAPER_WIDTH,
-      height: PERF_HEIGHT,
-      backgroundColor: '#fafaf8',
-      overflow: 'hidden',
-    }}>
-      {Array.from({ length: count }).map((_, i) => (
-        <View
-          key={i}
-          style={{
-            width: PERF_SIZE,
-            height: PERF_SIZE,
-            borderRadius: PERF_SIZE / 2,
-            backgroundColor: BG_COLOR,
-            position: 'absolute',
-            left: offset + i * (PERF_SIZE + gap),
-            top: position === 'top' ? -(PERF_SIZE / 2) : 0,
-          }}
-        />
-      ))}
-    </View>
-  );
-}
-
-function ReceiptDotLine() {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 14 }}>
-      {Array.from({ length: 40 }).map((_, i) => (
-        <View key={i} style={{ height: 1, borderRadius: 0.5, flex: 1, marginHorizontal: 1.5, backgroundColor: '#e2e8f0' }} />
-      ))}
-    </View>
-  );
-}
-
-function BillInfographic({
-  billName,
-  contactName,
-  contactImageUri,
-  items,
-  taxConfig: infTaxConfig,
-  tipPercent,
-  location,
-  date,
-  country,
-  t,
-}: {
-  billName: string;
-  contactName: string;
-  contactImageUri?: string;
-  items: { name: string; amount: number }[];
-  taxConfig: TaxConfig;
-  tipPercent: number;
-  location?: string;
-  date: string;
-  country: 'CO' | 'US';
-  t: Translations;
-}) {
-  const d = new Date(date);
-  const isValidDate = !isNaN(d.getTime());
-  const locale = country === 'US' ? 'en-US' : 'es-CO';
-  const dateStr = isValidDate
-    ? d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
-    : '';
-
-  const contactSubtotal = items.reduce((sum, i) => sum + i.amount, 0);
-  const contactTax = computeTax(contactSubtotal, infTaxConfig);
-  const contactTip = Math.round(contactSubtotal * (tipPercent / 100));
-  const contactTotal = infTaxConfig.taxIncluded
-    ? contactSubtotal + contactTip
-    : contactSubtotal + contactTax + contactTip;
-
-  const translatedTaxLabel = getTaxLabel(infTaxConfig, t);
-  const flag = country === 'CO' ? '🇨🇴' : '🇺🇸';
-
-  return (
-    <View style={{ width: RECEIPT_WIDTH, backgroundColor: BG_COLOR, paddingVertical: RECEIPT_PADDING }}>
-      <View style={{ position: 'relative', alignSelf: 'center', width: PAPER_WIDTH }}>
-        {/* Perforated top edge — absolute, behind paper */}
-        <View style={{ position: 'absolute', top: 0, left: 0, zIndex: 0 }}>
-          <ReceiptPerforations position="top" />
-        </View>
-
-        {/* Perforated bottom edge — absolute, behind paper */}
-        <View style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 0 }}>
-          <ReceiptPerforations position="bottom" />
-        </View>
-
-        {/* Receipt paper — on top, overlapping perforations by 1px */}
-        <View style={{ backgroundColor: '#fafaf8', zIndex: 1, marginVertical: PERF_HEIGHT - 1 }}>
-          <View style={{ paddingHorizontal: 28, paddingTop: 22, paddingBottom: 20 }}>
-
-          {/* Header: Brand + Country badge */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, fontWeight: '800', color: '#0a7ea4', letterSpacing: 4, textTransform: 'uppercase' }}>
-              Rondas
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-              <Text style={{ fontSize: 12 }}>{flag}</Text>
-              <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748b', letterSpacing: 0.5 }}>
-                {country === 'CO' ? 'COP' : 'USD'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Venue */}
-          <View style={{ marginBottom: 4 }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: '#0f172a' }}>
-              {billName}
-            </Text>
-            {location && !location.startsWith(billName) && (
-              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }} numberOfLines={2}>
-                {location}
-              </Text>
-            )}
-            {dateStr && (
-              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
-                {dateStr}
-              </Text>
-            )}
-          </View>
-
-          <ReceiptDotLine />
-
-          {/* Bill for contact */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            {contactImageUri ? (
-              <Image source={{ uri: contactImageUri }} style={{ width: 32, height: 32, borderRadius: 16 }} />
-            ) : (
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#e0f2fe', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#0a7ea4' }}>
-                  {contactName[0]?.toUpperCase() ?? '?'}
-                </Text>
-              </View>
-            )}
-            <View>
-              <Text style={{ fontSize: 8, color: '#94a3b8', fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase' }}>{t.infographic_billFor}</Text>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#0f172a' }}>{contactName}</Text>
-            </View>
-          </View>
-
-          {/* Column headers */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 6, borderBottomWidth: 1.5, borderBottomColor: '#e2e8f0' }}>
-            <Text style={{ fontSize: 8, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.5, textTransform: 'uppercase' }}>{t.infographic_item}</Text>
-            <Text style={{ fontSize: 8, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.5, textTransform: 'uppercase' }}>{t.infographic_amount}</Text>
-          </View>
-
-          {/* Items */}
-          {items.map((item, i) => (
-            <View
-              key={i}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingVertical: 9,
-                borderBottomWidth: 1,
-                borderBottomColor: '#f1f5f9',
-              }}
-            >
-              <Text style={{ fontSize: 13, color: '#334155', flex: 1, marginRight: 12 }} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', fontVariant: ['tabular-nums'] }}>
-                {formatCurrency(item.amount, country)}
-              </Text>
-            </View>
-          ))}
-
-          {/* Breakdown */}
-          <View style={{ marginTop: 8, gap: 2 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-              <Text style={{ fontSize: 11, color: '#94a3b8' }}>{t.bill_subtotal}</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactSubtotal, country)}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-              <Text style={{ fontSize: 11, color: '#94a3b8' }}>{translatedTaxLabel}</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTax, country)}</Text>
-            </View>
-            {tipPercent > 0 && (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-                <Text style={{ fontSize: 11, color: '#94a3b8' }}>{t.bill_tip(tipPercent)}</Text>
-                <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTip, country)}</Text>
-              </View>
-            )}
-          </View>
-
-          <ReceiptDotLine />
-
-          {/* Total */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a', letterSpacing: 1, textTransform: 'uppercase' }}>{t.infographic_total}</Text>
-            <Text
-              style={{ fontSize: 22, fontWeight: '800', color: '#0a7ea4', fontVariant: ['tabular-nums'], flexShrink: 1, textAlign: 'right' }}
-              adjustsFontSizeToFit
-              numberOfLines={1}
-              minimumFontScale={0.7}
-            >
-              {formatCurrency(contactTotal, country)}
-            </Text>
-          </View>
-
-          <ReceiptDotLine />
-
-          {/* Footer */}
-          <View style={{ alignItems: 'center', gap: 4 }}>
-            <Text style={{ fontSize: 9, color: '#94a3b8', fontStyle: 'italic' }}>{t.infographic_tagline}</Text>
-            <Text style={{ fontSize: 8, color: '#cbd5e1' }}>rondas.app</Text>
-          </View>
-        </View>
-      </View>
-      </View>
-    </View>
-  );
-}
-
-function SwipeableItem({ children, isDeleting }: { children: React.ReactNode; isDeleting: boolean }) {
-  const height = useSharedValue<number | null>(null);
-  const animatedStyle = useAnimatedStyle(() => {
-    if (!isDeleting || height.value === null) return {};
-    return {
-      height: withTiming(0, { duration: 300 }),
-      opacity: withTiming(0, { duration: 200 }),
-      overflow: 'hidden' as const,
-    };
-  }, [isDeleting]);
-
-  return (
-    <Animated.View
-      style={animatedStyle}
-      onLayout={(e) => {
-        if (height.value === null) {
-          height.value = e.nativeEvent.layout.height;
-        }
-      }}
-    >
-      {children}
-    </Animated.View>
-  );
-}
