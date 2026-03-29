@@ -23,6 +23,8 @@
   --color-ring: #0a7ea4;
 
   /* Bill state colors */
+  --color-state-draft: #6366f1;
+  --color-state-draft-bg: #eef2ff;
   --color-state-unsplit: #94a3b8;
   --color-state-unsplit-bg: #f1f5f9;
   --color-state-split: #10b981;
@@ -55,6 +57,8 @@
     --color-destructive-foreground: #ffffff;
     --color-ring: #38bdf8;
 
+    --color-state-draft: #818cf8;
+    --color-state-draft-bg: #1e1b4b;
     --color-state-unsplit: #7088aa;
     --color-state-unsplit-bg: #1a2540;
     --color-state-split: #34d399;

@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Pressable, TouchableWithoutFeedback, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/cn';
 import { ICON_COLORS } from '@/constants/colors';
 import { useT } from '@/lib/i18n';
 
@@ -39,11 +40,12 @@ function CountryDialog({ visible, billCountry, onSelectCountry, onClose }: Count
                     onPress={() => {
                       onSelectCountry(option.code);
                     }}
-                    className={`flex-row items-center gap-2.5 rounded-xl border-[1.5px] px-4 py-3.5 ${
+                    className={cn(
+                      'flex-row items-center gap-2.5 rounded-xl border-[1.5px] px-4 py-3.5',
                       billCountry === option.code
                         ? 'border-primary/35 bg-primary/15'
-                        : 'border-muted-foreground/12 bg-muted-foreground/[0.06]'
-                    }`}
+                        : 'border-muted-foreground/12 bg-muted-foreground/[0.06]',
+                    )}
                   >
                     <Text style={{ fontSize: 20 }}>{option.flag}</Text>
                     <Text

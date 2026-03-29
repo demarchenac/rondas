@@ -61,12 +61,7 @@ function UnassignPickerSheet({
               <Pressable
                 key={c.contactIndex}
                 onPress={() => onToggleContact(String(c.contactIndex))}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingVertical: 12,
-                  gap: 12,
-                }}
+                className="flex-row items-center py-3 gap-3"
               >
                 <IconSymbol
                   name={isSelected ? 'checkmark.circle.fill' : 'circle'}
@@ -74,10 +69,10 @@ function UnassignPickerSheet({
                   color={isSelected ? '#ef4444' : '#64748b'}
                 />
                 {c.imageUri ? (
-                  <Image source={{ uri: c.imageUri }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                  <Image source={{ uri: c.imageUri }} className="w-9 h-9 rounded-full" />
                 ) : (
-                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(56,189,248,0.1)', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#38bdf8' }}>
+                  <View className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(56,189,248,0.1)' }}>
+                    <Text className="text-sm font-bold" style={{ color: '#38bdf8' }}>
                       {(c.name[0] ?? '?').toUpperCase()}
                     </Text>
                   </View>
@@ -106,16 +101,13 @@ function UnassignPickerSheet({
                   ]
                 );
               }}
+              className="items-center py-4 rounded-xl border"
               style={{
-                alignItems: 'center',
-                paddingVertical: 16,
-                borderRadius: 14,
                 backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                borderWidth: 1,
                 borderColor: 'rgba(239, 68, 68, 0.3)',
               }}
             >
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#ef4444' }}>
+              <Text className="text-base font-semibold" style={{ color: '#ef4444' }}>
                 {t.unassignPicker_remove(selectedContactIds.size)}
               </Text>
             </Pressable>

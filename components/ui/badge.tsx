@@ -27,6 +27,10 @@ const badgeVariants = cva(
           Platform.select({ web: '[a&]:hover:bg-destructive/90' })
         ),
         outline: Platform.select({ web: '[a&]:hover:bg-accent [a&]:hover:text-accent-foreground' }),
+        draft: 'bg-state-draft-bg border-transparent',
+        unsplit: 'bg-state-unsplit-bg border-transparent',
+        split: 'bg-state-split-bg border-transparent',
+        unresolved: 'bg-state-unresolved-bg border-transparent',
       },
     },
     defaultVariants: {
@@ -42,6 +46,10 @@ const badgeTextVariants = cva('text-xs font-medium', {
       secondary: 'text-secondary-foreground',
       destructive: 'text-white',
       outline: 'text-foreground',
+      draft: 'text-state-draft',
+      unsplit: 'text-state-unsplit',
+      split: 'text-state-split',
+      unresolved: 'text-state-unresolved',
     },
   },
   defaultVariants: {

@@ -87,19 +87,13 @@ function BillShareSheet({
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-3">
                   {contact.imageUri ? (
-                    <Image source={{ uri: contact.imageUri }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                    <Image source={{ uri: contact.imageUri }} className="w-10 h-10 rounded-full" />
                   ) : (
                     <View
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
+                      className="w-10 h-10 rounded-full items-center justify-center"
+                      style={{ backgroundColor: 'rgba(56, 189, 248, 0.1)' }}
                     >
-                      <Text style={{ fontSize: 16, fontWeight: '700', color: iconColors.primary }}>
+                      <Text className="text-base font-bold" style={{ color: iconColors.primary }}>
                         {contact.name[0]?.toUpperCase() ?? '?'}
                       </Text>
                     </View>
@@ -124,7 +118,7 @@ function BillShareSheet({
                   const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
                   const share = Math.round(item.subtotal / numContacts);
                   return (
-                    <View key={itemId} style={{ width: '50%', paddingRight: 8, marginBottom: 4 }}>
+                    <View key={itemId} className="w-1/2 pr-2 mb-1">
                       <Text className="text-xs text-foreground" numberOfLines={1}>{item.name}</Text>
                       <Text className="text-[11px] text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
                     </View>
@@ -151,16 +145,9 @@ function BillShareSheet({
                 {/* Paid toggle */}
                 <Pressable
                   onPress={() => onTogglePaid(ci)}
+                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border"
                   style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    paddingVertical: 10,
-                    borderRadius: 12,
                     backgroundColor: contact.paid ? 'rgba(16,185,129,0.15)' : 'rgba(148,163,184,0.1)',
-                    borderWidth: 1,
                     borderColor: contact.paid ? 'rgba(16,185,129,0.3)' : 'rgba(148,163,184,0.2)',
                   }}
                 >
@@ -169,7 +156,7 @@ function BillShareSheet({
                     size={16}
                     color={contact.paid ? '#10b981' : '#94a3b8'}
                   />
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: contact.paid ? '#10b981' : '#94a3b8' }}>
+                  <Text className="text-[13px] font-semibold" style={{ color: contact.paid ? '#10b981' : '#94a3b8' }}>
                     {contact.paid ? t.share_paid : t.share_unpaid}
                   </Text>
                 </Pressable>
@@ -178,42 +165,28 @@ function BillShareSheet({
                 {contact.phone && (
                   <Pressable
                     onPress={() => onSendWhatsApp(contact)}
+                    className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border"
                     style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      paddingVertical: 10,
-                      borderRadius: 12,
                       backgroundColor: 'rgba(37,211,102,0.15)',
-                      borderWidth: 1,
                       borderColor: 'rgba(37,211,102,0.3)',
                     }}
                   >
                     <WhatsAppIcon size={16} color="#25d366" />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#25d366' }}>{t.share_whatsapp}</Text>
+                    <Text className="text-[13px] font-semibold" style={{ color: '#25d366' }}>{t.share_whatsapp}</Text>
                   </Pressable>
                 )}
 
                 {/* Share infographic */}
                 <Pressable
                   onPress={() => onShareInfographic(contact, ci)}
+                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border"
                   style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    paddingVertical: 10,
-                    borderRadius: 12,
                     backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                    borderWidth: 1,
                     borderColor: 'rgba(56, 189, 248, 0.2)',
                   }}
                 >
                   <Share2 size={14} color="#38bdf8" />
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#38bdf8' }}>{t.share_share}</Text>
+                  <Text className="text-[13px] font-semibold" style={{ color: '#38bdf8' }}>{t.share_share}</Text>
                 </Pressable>
               </View>
 

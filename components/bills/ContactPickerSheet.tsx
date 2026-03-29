@@ -83,12 +83,7 @@ function ContactPickerSheet({
                 <Pressable
                   key={c.id}
                   onPress={() => onToggleContact(c.id!)}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingVertical: 10,
-                    gap: 12,
-                  }}
+                  className="flex-row items-center py-2.5 gap-3"
                 >
                   <IconSymbol
                     name={isSelected ? 'checkmark.circle.fill' : 'circle'}
@@ -96,9 +91,9 @@ function ContactPickerSheet({
                     color={isSelected ? '#38bdf8' : '#64748b'}
                   />
                   {c.image?.uri ? (
-                    <Image source={{ uri: c.image.uri }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                    <Image source={{ uri: c.image.uri }} className="w-9 h-9 rounded-full" />
                   ) : (
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(56,189,248,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                    <View className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(56,189,248,0.1)' }}>
                       <Text className="text-sm font-bold" style={{ color: '#38bdf8' }}>
                         {(c.firstName?.[0] ?? '?').toUpperCase()}
                       </Text>

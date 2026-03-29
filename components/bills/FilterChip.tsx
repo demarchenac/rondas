@@ -1,7 +1,28 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import { cva } from 'class-variance-authority';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/cn';
+
+const filterChipVariants = cva('flex-row items-center gap-1.5 rounded-full px-3.5 py-1.5', {
+  variants: {
+    active: {
+      true: 'bg-primary',
+      false: 'border border-border bg-card',
+    },
+  },
+  defaultVariants: { active: false },
+});
+
+const filterChipTextVariants = cva('text-xs font-semibold', {
+  variants: {
+    active: {
+      true: 'text-primary-foreground',
+      false: 'text-muted-foreground',
+    },
+  },
+  defaultVariants: { active: false },
+});
 
 export interface FilterChipProps {
   label: string;
@@ -14,17 +35,9 @@ function FilterChip({ label, isActive, onPress, count }: FilterChipProps) {
   return (
     <Pressable
       onPress={onPress}
-      className={cn(
-        'flex-row items-center gap-1.5 rounded-full px-3.5 py-1.5',
-        isActive ? 'bg-primary' : 'border border-border bg-card',
-      )}
+      className={filterChipVariants({ active: isActive })}
     >
-      <Text
-        className={cn(
-          'text-xs font-semibold',
-          isActive ? 'text-primary-foreground' : 'text-muted-foreground',
-        )}
-      >
+      <Text className={filterChipTextVariants({ active: isActive })}>
         {label}
       </Text>
       {count !== undefined && count > 0 && (

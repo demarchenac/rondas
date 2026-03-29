@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Pressable, TouchableWithoutFeedback, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/cn';
 import { ICON_COLORS } from '@/constants/colors';
 import { useT } from '@/lib/i18n';
 import { formatCurrency } from '@/lib/format';
@@ -40,11 +41,12 @@ function TipDialog({ visible, tipPercent, subtotal, billCountry, onSelectTip, on
                       const newTip = Math.round(subtotal * (pct / 100));
                       onSelectTip(pct, newTip);
                     }}
-                    className={`min-w-[70px] flex-1 items-center rounded-xl border-[1.5px] py-3 ${
+                    className={cn(
+                      'min-w-[70px] flex-1 items-center rounded-xl border-[1.5px] py-3',
                       tipPercent === pct
                         ? 'border-primary/35 bg-primary/15'
-                        : 'border-muted-foreground/12 bg-muted-foreground/[0.06]'
-                    }`}
+                        : 'border-muted-foreground/12 bg-muted-foreground/[0.06]',
+                    )}
                   >
                     <Text
                       style={{
