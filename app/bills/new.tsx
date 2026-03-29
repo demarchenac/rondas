@@ -57,6 +57,21 @@ interface ExtractedBill {
   total: number;
 }
 
+function getScanStatusLabel(
+  status: string | undefined,
+  t: ReturnType<typeof useT>,
+  itemCount: number,
+): { title: string; hint: string } {
+  switch (status) {
+    case 'thinking':
+      return { title: t.scan_reading, hint: t.scan_readingHint };
+    case 'extracting':
+      return { title: t.scan_extracting, hint: t.scan_itemsFound(itemCount) };
+    default:
+      return { title: t.scan_analyzing, hint: t.scan_analyzeHint };
+  }
+}
+
 function prepareItems(items: BillItem[]): BillItem[] {
   return items
     .filter((item) => item.name.trim() !== '')
@@ -482,20 +497,23 @@ export default function NewBillScreen() {
               >
                 <ActivityIndicator size="large" color="#38bdf8" />
               </View>
-              <Text style={{ color: '#e8ecf4', fontSize: 17, fontWeight: '700', marginTop: 20 }}>
-                {scanProgress?.status === 'thinking'
-                  ? t.scan_reading
-                  : scanProgress?.status === 'extracting'
-                    ? t.scan_extracting
-                    : t.scan_analyzing}
-              </Text>
-              <Text style={{ color: '#8b9cc0', fontSize: 13, marginTop: 6 }}>
-                {scanProgress?.status === 'thinking'
-                  ? t.scan_readingHint
-                  : scanProgress?.status === 'extracting'
-                    ? t.scan_itemsFound(scanProgress.result?.items?.length ?? 0)
-                    : t.scan_analyzeHint}
-              </Text>
+              {(() => {
+                const { title, hint } = getScanStatusLabel(
+                  scanProgress?.status,
+                  t,
+                  scanProgress?.result?.items?.length ?? 0,
+                );
+                return (
+                  <>
+                    <Text style={{ color: '#e8ecf4', fontSize: 17, fontWeight: '700', marginTop: 20 }}>
+                      {title}
+                    </Text>
+                    <Text style={{ color: '#8b9cc0', fontSize: 13, marginTop: 6 }}>
+                      {hint}
+                    </Text>
+                  </>
+                );
+              })()}
               {/* Stream items as they arrive */}
               {scanProgress?.result?.items && scanProgress.result.items.length > 0 && (
                 <View style={{ marginTop: 20, width: '100%', maxHeight: 200 }}>
