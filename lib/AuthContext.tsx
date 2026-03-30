@@ -94,12 +94,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const error = parsed.queryParams?.error as string | undefined;
       if (error) {
         if (__DEV__) console.error('OAuth error:', error, parsed.queryParams?.error_description);
+        setLoading(false);
         return;
       }
 
       const code = parsed.queryParams?.code as string | undefined;
       if (!code) {
         if (__DEV__) console.error('No authorization code in callback');
+        setLoading(false);
         return;
       }
 
@@ -140,7 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // The deep link handler (Linking.addEventListener) picks up the callback
       // independently, so 'dismiss' is not an error — keep loading state active
       // and let the deep link handler complete authentication.
+      // Safety timeout: if deep link doesn't arrive within 15s, clear loading.
       if (result.type !== 'success' || !result.url) {
+        setTimeout(() => setLoading(false), 15_000);
         return { success: true };
       }
 
