@@ -11,6 +11,9 @@ interface BillHeaderProps {
   billName: string;
   state: BillState;
   stateLabel: string;
+  paidPercent: number;
+  unpaidPercent: number;
+  hasContacts: boolean;
   iconColors: Record<string, string>;
   t: Translations;
   onBack: () => void;
@@ -22,6 +25,9 @@ function BillHeader({
   billName,
   state,
   stateLabel,
+  paidPercent,
+  unpaidPercent,
+  hasContacts,
   iconColors,
   t,
   onBack,
@@ -69,6 +75,17 @@ function BillHeader({
         onChangeText={onUpdateName}
         className="mt-1 h-auto border-0 bg-transparent px-0 py-0 text-2xl font-extrabold tracking-tight shadow-none"
       />
+      {/* Progress bar */}
+      {hasContacts && (
+        <View className="mt-2 h-1 overflow-hidden rounded-full bg-muted flex-row">
+          {paidPercent > 0 && (
+            <View className="h-full rounded-full bg-emerald-500" style={{ width: `${paidPercent}%` }} />
+          )}
+          {unpaidPercent > 0 && (
+            <View className="h-full bg-amber-500" style={{ width: `${unpaidPercent}%` }} />
+          )}
+        </View>
+      )}
     </View>
   );
 }

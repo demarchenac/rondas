@@ -170,7 +170,10 @@ function BillItemCard({
                 {item.quantity} × {formatCurrency(item.unitPrice, billCountry)}
               </Text>
 
-              {/* Contact chips */}
+              {/* Contact chips or assign hint */}
+              {!hasContacts && !multiSelectMode && (
+                <Text className="mt-1.5 text-[11px] text-muted-foreground/40">{t.bill_tapToAssign}</Text>
+              )}
               {hasContacts && (
                 <View className="mt-2 flex-row flex-wrap gap-1.5">
                   {assignedContacts.map((c) => (

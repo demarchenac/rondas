@@ -29,6 +29,7 @@ import BillMetadata from '@/components/bills/detail/BillMetadata';
 import SortBar from '@/components/bills/detail/SortBar';
 import BillItemCard from '@/components/bills/detail/BillItemCard';
 import BillSummaryCard from '@/components/bills/detail/BillSummaryCard';
+import PeopleSummary from '@/components/bills/detail/PeopleSummary';
 import TipDialog from '@/components/bills/TipDialog';
 import CountryDialog from '@/components/bills/CountryDialog';
 import BulkToolbar from '@/components/bills/BulkToolbar';
@@ -368,6 +369,16 @@ export default function BillDetailScreen() {
   }
 
   const { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, beforeTip, total, stateStyle, stateLabel } = billDerived;
+
+  // Progress bar computation
+  const totalItems = bill.items.length;
+  const assignedItemIds = new Set(bill.contacts.flatMap((c) => c.items));
+  const assignedPercent = totalItems > 0 ? (assignedItemIds.size / totalItems) * 100 : 0;
+  const paidContacts = bill.contacts.filter((c) => c.paid).length;
+  const totalContacts = bill.contacts.length;
+  const paidOfAssigned = totalContacts > 0 ? (paidContacts / totalContacts) * assignedPercent : 0;
+  const unpaidOfAssigned = assignedPercent - paidOfAssigned;
+
   const animate = shouldAnimate.current;
   if (shouldAnimate.current) shouldAnimate.current = false;
 
@@ -381,6 +392,9 @@ export default function BillDetailScreen() {
           billName={bill.name}
           state={bill.state}
           stateLabel={stateLabel}
+          paidPercent={paidOfAssigned}
+          unpaidPercent={unpaidOfAssigned}
+          hasContacts={totalContacts > 0}
           iconColors={iconColors}
           t={t}
           onBack={() => router.back()}
@@ -474,8 +488,24 @@ export default function BillDetailScreen() {
           );
         })}
 
+        {/* People summary */}
+        {bill.contacts.length > 0 && (
+          <Animated.View entering={animate ? FadeInDown.delay(Math.min(sortedItems.length, 8) * 60 + 240).duration(350) : undefined}>
+            <PeopleSummary
+              contacts={bill.contacts}
+              billItems={bill.items}
+              billCountry={billCountry}
+              taxConfig={taxConfig}
+              tipPercent={tipPercent}
+              iconColors={iconColors}
+              t={t}
+              onTogglePaid={handleTogglePaid}
+            />
+          </Animated.View>
+        )}
+
         {/* Summary */}
-        <Animated.View entering={animate ? FadeInDown.delay(Math.min(sortedItems.length, 8) * 60 + 240).duration(350) : undefined}>
+        <Animated.View entering={animate ? FadeInDown.delay(Math.min(sortedItems.length, 8) * 60 + 300).duration(350) : undefined}>
           <BillSummaryCard
             base={base}
             computedTax={computedTax}

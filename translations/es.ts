@@ -171,6 +171,12 @@ export const es: typeof en = {
   bill_deleteBill: 'Eliminar factura',
   bill_deleteConfirm: '¿Estás seguro? Esto no se puede deshacer.',
   bill_tapToEdit: 'Toca un ítem para editar · Toca + para asignar',
+  bill_tapToAssign: 'Toca + para asignar',
+
+  // People summary
+  people_title: 'Personas',
+  people_paidCount: (paid: number, total: number) => `${paid}/${total} pagado${paid !== 1 ? 's' : ''}`,
+  people_items: (n: number) => n === 1 ? '1 ítem' : `${n} ítems`,
   bill_selected: (n: number) => `${n} seleccionados`,
   bill_bulkEdit: 'Edición masiva',
   bill_deleteItems: 'Eliminar ítems',

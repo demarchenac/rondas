@@ -169,6 +169,12 @@ export const en = {
   bill_deleteBill: 'Delete bill',
   bill_deleteConfirm: 'Are you sure? This cannot be undone.',
   bill_tapToEdit: 'Tap item to edit · Tap + to assign contact',
+  bill_tapToAssign: 'Tap + to assign',
+
+  // People summary
+  people_title: 'People',
+  people_paidCount: (paid: number, total: number) => `${paid}/${total} paid`,
+  people_items: (n: number) => n === 1 ? '1 item' : `${n} items`,
   bill_selected: (n: number) => `${n} selected`,
   bill_bulkEdit: 'Bulk edit',
   bill_deleteItems: 'Delete items',
