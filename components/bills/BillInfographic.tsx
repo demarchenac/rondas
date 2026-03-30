@@ -206,6 +206,10 @@ function BillInfographic({
               <Text style={{ fontSize: 11, color: '#94a3b8' }}>{translatedTaxLabel}</Text>
               <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTax, country)}</Text>
             </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: 0.5, borderTopColor: '#e2e8f0', marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>{t.bill_beforeTip}</Text>
+              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase + contactTax, country)}</Text>
+            </View>
             {tipPercent > 0 && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
                 <Text style={{ fontSize: 11, color: '#94a3b8' }}>{t.bill_tip(tipPercent)}</Text>
