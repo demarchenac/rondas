@@ -5,7 +5,7 @@ import {
   splitStrategyValidator,
   categoryValidator,
   billItemValidator,
-  billContactValidator,
+  billContactRefValidator,
   locationValidator,
   scanStatusValidator,
   scanResultValidator,
@@ -39,7 +39,7 @@ export default defineSchema({
     tipPercent: v.optional(v.number()),
     items: v.array(billItemValidator),
     splitStrategy: v.optional(splitStrategyValidator),
-    contacts: v.array(billContactValidator),
+    contacts: v.array(billContactRefValidator),
     category: v.optional(categoryValidator),
     country: v.optional(v.string()),
     photoTakenAt: v.optional(v.string()),
@@ -49,6 +49,18 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_state', ['userId', 'state']),
+
+  contacts: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    phone: v.string(),
+    email: v.optional(v.string()),
+    imageUri: v.optional(v.string()),
+    referenceCount: v.number(),
+    lastReferencedAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_phone', ['userId', 'phone']),
 
   scans: defineTable({
     userId: v.string(),

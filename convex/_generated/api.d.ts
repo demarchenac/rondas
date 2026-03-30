@@ -10,6 +10,7 @@
 
 import type * as ai from "../ai.js";
 import type * as bills from "../bills.js";
+import type * as contacts from "../contacts.js";
 import type * as notifications from "../notifications.js";
 import type * as scans from "../scans.js";
 import type * as users from "../users.js";
@@ -24,6 +25,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   bills: typeof bills;
+  contacts: typeof contacts;
   notifications: typeof notifications;
   scans: typeof scans;
   users: typeof users;
