@@ -7,10 +7,14 @@ import { useT } from '@/lib/i18n';
 import { useColorScheme } from 'nativewind';
 import { ICON_COLORS } from '@/constants/colors';
 import type * as Contacts from 'expo-contacts';
+import type { Doc } from '@/convex/_generated/dataModel';
+
+export const SUGGESTED_PREFIX = 'suggested:';
 
 interface ContactPickerSheetProps {
   visible: boolean;
   phoneContacts: (Contacts.Contact & { id: string })[];
+  suggestedContacts?: { frequent: Doc<'contacts'>[]; recent: Doc<'contacts'>[] };
   contactSearch: string;
   selectedContactIds: Set<string>;
   bottomInset: number;
@@ -23,6 +27,7 @@ interface ContactPickerSheetProps {
 function ContactPickerSheet({
   visible,
   phoneContacts,
+  suggestedContacts,
   contactSearch,
   selectedContactIds,
   bottomInset,
@@ -34,6 +39,44 @@ function ContactPickerSheet({
   const t = useT();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
+
+  const hasSuggested =
+    !contactSearch &&
+    suggestedContacts &&
+    (suggestedContacts.frequent.length > 0 || suggestedContacts.recent.length > 0);
+
+  const renderSuggestedContact = (c: Doc<'contacts'>) => {
+    const key = `${SUGGESTED_PREFIX}${c._id}`;
+    const isSelected = selectedContactIds.has(key);
+    return (
+      <Pressable
+        key={key}
+        onPress={() => onToggleContact(key)}
+        className="flex-row items-center py-2.5 gap-3"
+      >
+        <IconSymbol
+          name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+          size={22}
+          color={isSelected ? iconColors.primary : iconColors.muted}
+        />
+        {c.imageUri ? (
+          <Image source={{ uri: c.imageUri }} className="w-9 h-9 rounded-full" />
+        ) : (
+          <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
+            <Text className="text-sm font-bold text-primary">
+              {(c.name[0] ?? '?').toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View className="flex-1">
+          <Text className="text-sm font-medium text-foreground">{c.name}</Text>
+          {c.phone && (
+            <Text className="text-xs text-muted-foreground">{c.phone}</Text>
+          )}
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <Modal
@@ -65,6 +108,32 @@ function ContactPickerSheet({
         </View>
 
         <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
+          {/* Suggested contacts (hidden during search) */}
+          {hasSuggested && (
+            <>
+              {suggestedContacts.frequent.length > 0 && (
+                <View className="mb-2">
+                  <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t.contactPicker_frequent}
+                  </Text>
+                  {suggestedContacts.frequent.map(renderSuggestedContact)}
+                </View>
+              )}
+              {suggestedContacts.recent.length > 0 && (
+                <View className="mb-2">
+                  <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t.contactPicker_recent}
+                  </Text>
+                  {suggestedContacts.recent.map(renderSuggestedContact)}
+                </View>
+              )}
+              <Text className="mb-1 mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t.contactPicker_allContacts}
+              </Text>
+            </>
+          )}
+
+          {/* Phone contacts */}
           {phoneContacts
             .filter((c) => {
               if (!contactSearch) return true;

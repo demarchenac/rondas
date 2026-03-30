@@ -212,6 +212,9 @@ export const en = {
   contactPicker_title: 'Select Contacts',
   contactPicker_search: 'Search contacts...',
   contactPicker_assign: (n: number) => `Assign ${n} ${n === 1 ? 'contact' : 'contacts'}`,
+  contactPicker_frequent: 'Frequent',
+  contactPicker_recent: 'Recent',
+  contactPicker_allContacts: 'All Contacts',
 
   // Unassign picker
   unassignPicker_title: 'Remove Contacts',

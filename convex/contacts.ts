@@ -79,6 +79,31 @@ export const list = query({
   },
 });
 
+export const suggested = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const all = await ctx.db
+      .query('contacts')
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .collect();
+
+    // Only contacts that have been referenced at least once
+    const referenced = all.filter((c) => c.referenceCount > 0);
+
+    const frequent = [...referenced]
+      .sort((a, b) => b.referenceCount - a.referenceCount)
+      .slice(0, 4);
+
+    const frequentIds = new Set(frequent.map((c) => c._id));
+    const recent = [...referenced]
+      .sort((a, b) => b.lastReferencedAt - a.lastReferencedAt)
+      .filter((c) => !frequentIds.has(c._id))
+      .slice(0, 4);
+
+    return { frequent, recent };
+  },
+});
+
 // --- Mutations ---
 
 export const update = mutation({

@@ -32,7 +32,7 @@ import SwipeableItem from '@/components/bills/SwipeableItem';
 import TipDialog from '@/components/bills/TipDialog';
 import CountryDialog from '@/components/bills/CountryDialog';
 import BulkToolbar from '@/components/bills/BulkToolbar';
-import ContactPickerSheet from '@/components/bills/ContactPickerSheet';
+import ContactPickerSheet, { SUGGESTED_PREFIX } from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import BillShareSheet from '@/components/bills/BillShareSheet';
 
@@ -49,6 +49,7 @@ export default function BillDetailScreen() {
   // bill is only loaded when userId is truthy (via 'skip'), so whenever bill
   // exists all mutation callbacks are guaranteed a valid userId.
   const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
+  const suggestedContacts = useQuery(api.contacts.suggested, userId ? { userId } : 'skip');
   const updateBill = useMutation(api.bills.update);
   const removeContact = useMutation(api.bills.removeContactFromItem);
   const togglePaid = useMutation(api.bills.togglePaymentStatus);
@@ -149,19 +150,36 @@ export default function BillDetailScreen() {
     }
     if (itemIds.length === 0) return;
 
-    for (const contactId of selectedContactIds) {
-      const contact = phoneContacts.find((c) => c.id === contactId);
-      if (!contact) continue;
+    const allSuggested = [
+      ...(suggestedContacts?.frequent ?? []),
+      ...(suggestedContacts?.recent ?? []),
+    ];
 
-      const phone = contact.phoneNumbers?.[0]?.number;
-      const name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
-      const imageUri = contact.image?.uri;
+    for (const selectedId of selectedContactIds) {
+      let name: string;
+      let phone: string;
+      let imageUri: string | undefined;
+
+      if (selectedId.startsWith(SUGGESTED_PREFIX)) {
+        const convexId = selectedId.slice(SUGGESTED_PREFIX.length);
+        const sc = allSuggested.find((c) => c._id === convexId);
+        if (!sc) continue;
+        name = sc.name;
+        phone = sc.phone;
+        imageUri = sc.imageUri;
+      } else {
+        const contact = phoneContacts.find((c) => c.id === selectedId);
+        if (!contact) continue;
+        phone = contact.phoneNumbers?.[0]?.number ?? '';
+        name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
+        imageUri = contact.image?.uri;
+      }
 
       await assignContactToItems({
         id: id as Id<'bills'>,
         userId,
         itemIds,
-        contact: { name, phone: phone ?? '', imageUri: imageUri ?? undefined },
+        contact: { name, phone, imageUri },
       });
     }
 
@@ -170,7 +188,7 @@ export default function BillDetailScreen() {
     setSingleAssignItemId(null);
     setSelectedItemIds(new Set());
     setMultiSelectMode(false);
-  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, bill, id, assignContactToItems, userId]);
+  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, suggestedContacts, bill, id, assignContactToItems, userId]);
 
   const handleBulkDelete = useCallback(() => {
     if (selectedItemIds.size === 0 || !bill || !userId) return;
@@ -770,6 +788,7 @@ export default function BillDetailScreen() {
       <ContactPickerSheet
         visible={activeDialog === 'contactPicker'}
         phoneContacts={phoneContacts}
+        suggestedContacts={suggestedContacts ?? undefined}
         contactSearch={contactSearch}
         selectedContactIds={selectedContactIds}
         bottomInset={insets.bottom}

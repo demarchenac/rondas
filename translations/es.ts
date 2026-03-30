@@ -214,6 +214,9 @@ export const es: typeof en = {
   contactPicker_title: 'Seleccionar contactos',
   contactPicker_search: 'Buscar contactos...',
   contactPicker_assign: (n: number) => `Asignar ${n} ${n === 1 ? 'contacto' : 'contactos'}`,
+  contactPicker_frequent: 'Frecuentes',
+  contactPicker_recent: 'Recientes',
+  contactPicker_allContacts: 'Todos los contactos',
 
   // Unassign picker
   unassignPicker_title: 'Quitar contactos',
