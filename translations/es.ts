@@ -186,6 +186,7 @@ export const es: typeof en = {
   share_unpaid: 'Pendiente',
   share_whatsapp: 'WhatsApp',
   share_share: 'Compartir',
+  share_itemCount: (n: number) => n === 1 ? '1 ítem' : `${n} ítems`,
 
   // Contact picker
   contactPicker_title: 'Seleccionar contactos',

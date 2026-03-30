@@ -50,7 +50,7 @@ export default function SettingsScreen() {
     }).catch(() => {}); // fire-and-forget
   }, [user, updateConfigMutation]);
 
-  const handleSignOut = () => {
+  const handleSignOut = useCallback(() => {
     Alert.alert(t.settings_signOut, t.settings_signOutConfirm, [
       { text: t.cancel, style: 'cancel' },
       {
@@ -62,20 +62,20 @@ export default function SettingsScreen() {
         },
       },
     ]);
-  };
+  }, [t, signOut]);
 
-  const handleThemeChange = (newMode: ThemeMode) => {
+  const handleThemeChange = useCallback((newMode: ThemeMode) => {
     setMode(newMode);
     setColorScheme(newMode === 'system' ? undefined : newMode);
     syncConfig();
-  };
+  }, [setMode, setColorScheme, syncConfig]);
 
-  const handleCountryChange = (v: Country) => { setCountry(v); syncConfig(); };
-  const handleUsStateChange = (v: string) => { setUsState(v); syncConfig(); };
-  const handleTipChange = (v: number) => { setDefaultTipPercent(v); syncConfig(); };
-  const handleLanguageChange = (v: Language) => { setLanguage(v); syncConfig(); };
-  const handleExtractPhotoTimeChange = (v: boolean) => { setExtractPhotoTime(v); syncConfig(); };
-  const handleUseLocationChange = (v: boolean) => { setUseLocation(v); syncConfig(); };
+  const handleCountryChange = useCallback((v: Country) => { setCountry(v); syncConfig(); }, [setCountry, syncConfig]);
+  const handleUsStateChange = useCallback((v: string) => { setUsState(v); syncConfig(); }, [setUsState, syncConfig]);
+  const handleTipChange = useCallback((v: number) => { setDefaultTipPercent(v); syncConfig(); }, [setDefaultTipPercent, syncConfig]);
+  const handleLanguageChange = useCallback((v: Language) => { setLanguage(v); syncConfig(); }, [setLanguage, syncConfig]);
+  const handleExtractPhotoTimeChange = useCallback((v: boolean) => { setExtractPhotoTime(v); syncConfig(); }, [setExtractPhotoTime, syncConfig]);
+  const handleUseLocationChange = useCallback((v: boolean) => { setUseLocation(v); syncConfig(); }, [setUseLocation, syncConfig]);
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>

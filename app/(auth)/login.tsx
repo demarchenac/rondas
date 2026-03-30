@@ -12,6 +12,9 @@ import { useAuth } from '@/lib/AuthContext';
 import { useT } from '@/lib/i18n';
 import { ICON_COLORS } from '@/constants/colors';
 
+const APPLE_OAUTH_PROVIDER = 'AppleOAuth';
+const GOOGLE_OAUTH_PROVIDER = 'GoogleOAuth';
+
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { signIn, loading } = useAuth();
@@ -77,7 +80,7 @@ export default function LoginScreen() {
             size="lg"
             className="w-full"
             disabled={loading}
-            onPress={() => handleSignIn('AppleOAuth')}
+            onPress={() => handleSignIn(APPLE_OAUTH_PROVIDER)}
           >
             <FontAwesome
               name="apple"
@@ -93,7 +96,7 @@ export default function LoginScreen() {
             size="lg"
             className="w-full"
             disabled={loading}
-            onPress={() => handleSignIn('GoogleOAuth')}
+            onPress={() => handleSignIn(GOOGLE_OAUTH_PROVIDER)}
           >
             <FontAwesome
               name="google"

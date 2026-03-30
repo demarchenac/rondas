@@ -184,6 +184,7 @@ export const en = {
   share_unpaid: 'Unpaid',
   share_whatsapp: 'WhatsApp',
   share_share: 'Share',
+  share_itemCount: (n: number) => n === 1 ? '1 item' : `${n} items`,
 
   // Contact picker
   contactPicker_title: 'Select Contacts',

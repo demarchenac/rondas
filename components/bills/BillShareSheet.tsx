@@ -100,7 +100,7 @@ function BillShareSheet({
                   <View>
                     <Text className="text-base font-semibold text-foreground">{contact.name}</Text>
                     <Text className="text-xs text-muted-foreground">
-                      {contact.items.length} {contact.items.length === 1 ? 'item' : 'items'}
+                      {t.share_itemCount(contact.items.length)}
                     </Text>
                   </View>
                 </View>
@@ -225,4 +225,4 @@ function BillShareSheet({
   );
 }
 
-export default BillShareSheet;
+export default React.memo(BillShareSheet);

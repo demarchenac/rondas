@@ -21,8 +21,10 @@ export const sendEmail = action({
   },
   handler: async (_ctx, args) => {
     await withRetry(async () => {
+      const resendApiKey = process.env.RESEND_API_KEY;
+      if (!resendApiKey) throw new Error('RESEND_API_KEY not configured');
       const { Resend } = await import('resend');
-      const resend = new Resend(process.env.RESEND_API_KEY);
+      const resend = new Resend(resendApiKey);
 
       const { error } = await resend.emails.send({
         from: 'Rondas <noreply@rondas.app>',
@@ -46,7 +48,9 @@ export const sendWhatsApp = action({
   handler: async (_ctx, args) => {
     return await withRetry(async () => {
       const token = process.env.WHATSAPP_API_TOKEN;
+      if (!token) throw new Error('WHATSAPP_API_TOKEN not configured');
       const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+      if (!phoneNumberId) throw new Error('WHATSAPP_PHONE_NUMBER_ID not configured');
 
       const response = await fetch(
         `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,

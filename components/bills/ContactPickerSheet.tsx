@@ -59,7 +59,7 @@ function ContactPickerSheet({
             value={contactSearch}
             onChangeText={onSearchChange}
             placeholder={t.contactPicker_search}
-            placeholderTextColor="#64748b"
+            placeholderTextColor={iconColors.muted}
             className="rounded-xl bg-muted-foreground/[0.08] px-4 py-2.5 text-[15px] text-foreground"
           />
         </View>
@@ -123,4 +123,4 @@ function ContactPickerSheet({
   );
 }
 
-export default ContactPickerSheet;
+export default React.memo(ContactPickerSheet);

@@ -69,4 +69,4 @@ function TipDialog({ visible, tipPercent, subtotal, billCountry, onSelectTip, on
   );
 }
 
-export default TipDialog;
+export default React.memo(TipDialog);

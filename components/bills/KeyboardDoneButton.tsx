@@ -37,7 +37,7 @@ function KeyboardDoneButton() {
 
   return (
     <Animated.View style={animatedStyle}>
-      <View className="flex-row items-center justify-end px-4 py-2 bg-[#1a2540] border-t border-[#263354]">
+      <View className="flex-row items-center justify-end px-4 py-2 bg-card border-t border-border">
         <Pressable
           onPress={() => Keyboard.dismiss()}
           className="rounded-lg bg-primary/10 px-5 py-1.5"

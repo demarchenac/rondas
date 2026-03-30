@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
@@ -28,12 +28,13 @@ export default function SetupScreen() {
 
   const [country, setCountry] = useState<Country>('CO');
   const [tip, setTip] = useState(10);
-  const [language, setLanguage] = useState<Language>(() => {
-    // Set store immediately so useT() renders in the default language
-    settingsStore.setLanguage('es');
-    return 'es';
-  });
+  const [language, setLanguage] = useState<Language>('es');
   const [theme, setTheme] = useState<ThemeMode>('dark');
+
+  // Sync store language on mount so useT() renders in the default language
+  useEffect(() => {
+    settingsStore.setLanguage('es');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);

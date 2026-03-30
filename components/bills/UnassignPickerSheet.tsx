@@ -67,7 +67,7 @@ function UnassignPickerSheet({
                 <IconSymbol
                   name={isSelected ? 'checkmark.circle.fill' : 'circle'}
                   size={22}
-                  color={isSelected ? '#ef4444' : '#64748b'}
+                  color={isSelected ? iconColors.destructive : iconColors.muted}
                 />
                 {c.imageUri ? (
                   <Image source={{ uri: c.imageUri }} className="w-9 h-9 rounded-full" />
@@ -115,4 +115,4 @@ function UnassignPickerSheet({
   );
 }
 
-export default UnassignPickerSheet;
+export default React.memo(UnassignPickerSheet);

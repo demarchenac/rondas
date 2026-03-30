@@ -218,7 +218,7 @@ export default function HomeScreen() {
                 onPress={() => setActiveFilter('all')}
                 className="items-center justify-center rounded-full border border-destructive/30 px-3 py-1.5"
               >
-                <IconSymbol name="xmark" size={12} color="#ef4444" />
+                <IconSymbol name="xmark" size={12} color={iconColors.destructive} />
               </Pressable>
             )}
           </View>
@@ -256,7 +256,7 @@ export default function HomeScreen() {
                     onPress={() => handleDeleteBill(item._id)}
                     className="ml-2 w-20 items-center justify-center rounded-xl bg-destructive"
                   >
-                    <IconSymbol name="xmark" size={18} color="#fff" />
+                    <IconSymbol name="xmark" size={18} color={iconColors.primaryForeground} />
                     <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
                   </Pressable>
                 )}

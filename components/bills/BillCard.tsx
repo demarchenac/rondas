@@ -61,12 +61,12 @@ function BillCard({ bill, onPress, t }: BillCardProps) {
                 <Image
                   key={i}
                   source={{ uri: c.imageUri }}
-                  className={cn('h-[26px] w-[26px] rounded-full border-2 border-[#1a2540]', i > 0 && '-ml-2')}
+                  className={cn('h-[26px] w-[26px] rounded-full border-2 border-card', i > 0 && '-ml-2')}
                 />
               ) : (
                 <View
                   key={i}
-                  className={cn('h-[26px] w-[26px] rounded-full items-center justify-center border-2 border-[#1a2540]', stateStyle.bgClass, i > 0 && '-ml-2')}
+                  className={cn('h-[26px] w-[26px] rounded-full items-center justify-center border-2 border-card', stateStyle.bgClass, i > 0 && '-ml-2')}
                 >
                   <Text className={cn('text-[10px] font-bold', stateStyle.textClass)}>
                     {c.name[0]?.toUpperCase() ?? '?'}
@@ -76,7 +76,7 @@ function BillCard({ bill, onPress, t }: BillCardProps) {
             ))}
             {contactCount > 3 && (
               <View
-                className="-ml-2 h-[26px] w-[26px] rounded-full items-center justify-center border-2 border-[#1a2540] bg-muted-foreground/15"
+                className="-ml-2 h-[26px] w-[26px] rounded-full items-center justify-center border-2 border-card bg-muted-foreground/15"
               >
                 <Text className="text-[9px] font-bold text-muted-foreground">
                   +{contactCount - 3}

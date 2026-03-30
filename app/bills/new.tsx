@@ -511,7 +511,7 @@ export default function NewBillScreen() {
   const renderDeleteAction = () => (
     <Animated.View className="flex-1 items-end justify-center bg-destructive pr-6">
       <IconSymbol name="xmark" size={18} color="#fff" />
-      <Text className="mt-0.5 text-[10px] font-medium text-white">Delete</Text>
+      <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
     </Animated.View>
   );
 

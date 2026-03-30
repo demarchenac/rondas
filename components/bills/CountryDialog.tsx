@@ -69,4 +69,4 @@ function CountryDialog({ visible, billCountry, onSelectCountry, onClose }: Count
   );
 }
 
-export default CountryDialog;
+export default React.memo(CountryDialog);
