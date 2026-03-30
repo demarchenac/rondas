@@ -53,6 +53,27 @@ export const en = {
   filter_unsplit: 'Unsplit',
   filter_unresolved: 'Unresolved',
   filter_split: 'Split',
+  filter_filters: 'Filters',
+
+  // Filter sheet
+  filterSheet_title: 'Filters',
+  filterSheet_country: 'Country',
+  filterSheet_status: 'Status',
+  filterSheet_contacts: 'Contacts',
+  filterSheet_contactSearch: 'Search contacts...',
+  filterSheet_amount: 'Amount Range',
+  filterSheet_amountMin: 'Min',
+  filterSheet_amountMax: 'Max',
+  filterSheet_dateRange: 'Date Range',
+  filterSheet_dateFrom: 'From',
+  filterSheet_dateTo: 'To',
+  filterSheet_apply: 'Apply',
+  filterSheet_resetDefaults: 'Reset defaults',
+  filterSheet_preset1h: '1h',
+  filterSheet_preset1d: '1d',
+  filterSheet_preset7d: '7d',
+  filterSheet_preset30d: '30d',
+  filterSheet_presetCustom: 'Custom',
 
   // Bill states
   state_draft: 'Draft',

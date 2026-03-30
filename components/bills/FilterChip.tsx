@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { type ReactNode, useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { cva } from 'class-variance-authority';
+import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/cn';
 
@@ -29,14 +30,21 @@ export interface FilterChipProps {
   count?: number;
   isActive: boolean;
   onPress: () => void;
+  icon?: ReactNode;
 }
 
-function FilterChip({ label, isActive, onPress, count }: FilterChipProps) {
+function FilterChip({ label, isActive, onPress, count, icon }: FilterChipProps) {
+  const handlePress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress();
+  }, [onPress]);
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       className={filterChipVariants({ active: isActive })}
     >
+      {icon}
       <Text className={filterChipTextVariants({ active: isActive })}>
         {label}
       </Text>

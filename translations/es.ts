@@ -55,6 +55,27 @@ export const es: typeof en = {
   filter_unsplit: 'Sin dividir',
   filter_unresolved: 'Sin resolver',
   filter_split: 'Dividida',
+  filter_filters: 'Filtros',
+
+  // Filter sheet
+  filterSheet_title: 'Filtros',
+  filterSheet_country: 'País',
+  filterSheet_status: 'Estado',
+  filterSheet_contacts: 'Contactos',
+  filterSheet_contactSearch: 'Buscar contactos...',
+  filterSheet_amount: 'Rango de monto',
+  filterSheet_amountMin: 'Mín',
+  filterSheet_amountMax: 'Máx',
+  filterSheet_dateRange: 'Rango de fechas',
+  filterSheet_dateFrom: 'Desde',
+  filterSheet_dateTo: 'Hasta',
+  filterSheet_apply: 'Aplicar',
+  filterSheet_resetDefaults: 'Restablecer',
+  filterSheet_preset1h: '1h',
+  filterSheet_preset1d: '1d',
+  filterSheet_preset7d: '7d',
+  filterSheet_preset30d: '30d',
+  filterSheet_presetCustom: 'Personalizado',
 
   // Bill states
   state_draft: 'Borrador',
