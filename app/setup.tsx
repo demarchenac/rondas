@@ -31,9 +31,11 @@ export default function SetupScreen() {
   const [language, setLanguage] = useState<Language>('es');
   const [theme, setTheme] = useState<ThemeMode>('dark');
 
-  // Sync store language on mount so useT() renders in the default language
+  // Sync defaults on mount
   useEffect(() => {
     settingsStore.setLanguage('es');
+    themeStore.setMode('dark');
+    setColorScheme('dark');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLanguageChange = (lang: Language) => {
@@ -135,7 +137,11 @@ export default function SetupScreen() {
                 { label: t.settings_themeAuto, value: 'system' as ThemeMode },
               ]}
               value={theme}
-              onChange={setTheme}
+              onChange={(value: ThemeMode) => {
+                setTheme(value);
+                themeStore.setMode(value);
+                setColorScheme(value === 'system' ? undefined : value);
+              }}
             />
           </SettingsRow>
         </SettingsSection>
