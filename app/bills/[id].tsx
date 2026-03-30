@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, View } from 'react-native';
-import { Image } from '@/lib/expo-image';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -8,33 +7,37 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import * as Contacts from 'expo-contacts';
 import * as Haptics from 'expo-haptics';
-import { Swipeable } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useQuery, useMutation } from 'convex/react';
 import type { Id } from '@/convex/_generated/dataModel';
 
 import { Text } from '@/components/ui/text';
-import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { api } from '@/convex/_generated/api';
 import { useAuth } from '@/lib/AuthContext';
-import { formatCurrency, parseCurrency } from '@/lib/format';
+import { parseCurrency } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { toE164 } from '@/lib/phone';
-import { CATEGORY_LABELS, computeBase, computeTax, getTaxConfig } from '@/constants/taxes';
-import { relativeTime } from '@/lib/date';
+import { computeBase, computeTax, getTaxConfig } from '@/constants/taxes';
 import { cn } from '@/lib/cn';
-import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel, getCategoryLabel } from '@/lib/billHelpers';
+import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel } from '@/lib/billHelpers';
 import { buildWhatsAppMessage } from '@/lib/whatsapp';
 
-import SwipeableItem from '@/components/bills/SwipeableItem';
+import BillHeader from '@/components/bills/detail/BillHeader';
+import BillMetadata from '@/components/bills/detail/BillMetadata';
+import SortBar from '@/components/bills/detail/SortBar';
+import BillItemCard from '@/components/bills/detail/BillItemCard';
+import BillSummaryCard from '@/components/bills/detail/BillSummaryCard';
 import TipDialog from '@/components/bills/TipDialog';
 import CountryDialog from '@/components/bills/CountryDialog';
 import BulkToolbar from '@/components/bills/BulkToolbar';
 import ContactPickerSheet, { SUGGESTED_PREFIX } from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import BillShareSheet from '@/components/bills/BillShareSheet';
+
+type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
+type DialogType = 'tip' | 'country' | 'share' | 'contactPicker' | 'unassignPicker' | null;
 
 export default function BillDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,8 +49,6 @@ export default function BillDetailScreen() {
   const { user } = useAuth();
   const userId = user?.id;
 
-  // bill is only loaded when userId is truthy (via 'skip'), so whenever bill
-  // exists all mutation callbacks are guaranteed a valid userId.
   const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
   const suggestedContacts = useQuery(api.contacts.suggested, userId ? { userId } : 'skip');
   const updateBill = useMutation(api.bills.update);
@@ -55,8 +56,8 @@ export default function BillDetailScreen() {
   const togglePaid = useMutation(api.bills.togglePaymentStatus);
   const removeBill = useMutation(api.bills.remove);
   const removeContactsBatch = useMutation(api.bills.removeContactsFromItems);
-  type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
-  type DialogType = 'tip' | 'country' | 'share' | 'contactPicker' | 'unassignPicker' | null;
+  const assignContactToItems = useMutation(api.bills.assignContactToItems);
+
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [activeDialog, setActiveDialog] = useState<DialogType>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -68,9 +69,12 @@ export default function BillDetailScreen() {
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [singleAssignItemId, setSingleAssignItemId] = useState<string | null>(null);
   const swipeOpenRef = useRef(false);
-  const assignContactToItems = useMutation(api.bills.assignContactToItems);
   const billRef = useRef(bill);
   billRef.current = bill;
+  const infographicRefs = useRef<Record<number, ViewShot | null>>({});
+  const shouldAnimate = useRef(true);
+
+  // --- Callbacks ---
 
   const handleRemoveItem = useCallback((itemId: string) => {
     const currentBill = billRef.current;
@@ -127,7 +131,6 @@ export default function BillDetailScreen() {
       Alert.alert(t.bill_permissionNeeded, t.bill_permissionContacts);
       return;
     }
-
     const { data } = await Contacts.getContactsAsync({
       fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Image, Contacts.Fields.Name],
       sort: Contacts.SortTypes.FirstName,
@@ -140,8 +143,6 @@ export default function BillDetailScreen() {
 
   const handleConfirmContactPicker = useCallback(async () => {
     if (selectedContactIds.size === 0 || !bill || !userId) return;
-
-    // Determine which items to assign to
     let itemIds: string[];
     if (singleAssignItemId !== null) {
       itemIds = [singleAssignItemId];
@@ -213,16 +214,12 @@ export default function BillDetailScreen() {
 
   const handleBulkRemoveContact = useCallback(() => {
     if (selectedItemIds.size === 0 || !bill || !userId) return;
-
     const selectedIds = Array.from(selectedItemIds);
-    const contactsOnSelected = bill.contacts
-      .filter((c) => c.items.some((itemId) => selectedIds.includes(itemId)));
-
+    const contactsOnSelected = bill.contacts.filter((c) => c.items.some((itemId) => selectedIds.includes(itemId)));
     if (contactsOnSelected.length === 0) {
       Alert.alert(t.bill_noContacts, t.bill_noContactsOnItems);
       return;
     }
-
     if (contactsOnSelected.length === 1) {
       const c = contactsOnSelected[0];
       Alert.alert(t.bill_removeContact, t.bill_removeFromSelected(c.name), [
@@ -232,8 +229,7 @@ export default function BillDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             await removeContactsBatch({
-              id: id as Id<'bills'>,
-              userId,
+              id: id as Id<'bills'>, userId,
               itemIds: selectedIds.filter((itemId): itemId is string => !!itemId),
               contactIds: [c.contactId],
             });
@@ -243,7 +239,6 @@ export default function BillDetailScreen() {
         },
       ]);
     } else {
-      // Multiple contacts — open picker modal
       setSelectedContactIds(new Set());
       setActiveDialog('unassignPicker');
     }
@@ -251,18 +246,11 @@ export default function BillDetailScreen() {
 
   const handleConfirmUnassign = useCallback(async () => {
     if (selectedContactIds.size === 0 || !bill || !userId) return;
-
-    const itemIds = Array.from(selectedItemIds);
-
-    const contactIds = Array.from(selectedContactIds) as Id<'contacts'>[];
-
     await removeContactsBatch({
-      id: id as Id<'bills'>,
-      userId,
-      itemIds,
-      contactIds,
+      id: id as Id<'bills'>, userId,
+      itemIds: Array.from(selectedItemIds),
+      contactIds: Array.from(selectedContactIds) as Id<'contacts'>[],
     });
-
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setActiveDialog(null);
     setSelectedItemIds(new Set());
@@ -275,7 +263,6 @@ export default function BillDetailScreen() {
       Alert.alert(t.bill_permissionNeeded, t.bill_permissionContacts);
       return;
     }
-
     const { data } = await Contacts.getContactsAsync({
       fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Image, Contacts.Fields.Name],
       sort: Contacts.SortTypes.FirstName,
@@ -310,29 +297,24 @@ export default function BillDetailScreen() {
       Alert.alert(t.bill_noPhone, t.bill_noPhoneMessage);
       return;
     }
-
     const message = buildWhatsAppMessage({ bill, contact, t });
     const url = `https://wa.me/${toE164(contact.phone)}?text=${encodeURIComponent(message)}`;
     Linking.openURL(url);
   }, [bill, t]);
 
-  const infographicRefs = useRef<Record<number, ViewShot | null>>({});
-
   const handleShareInfographic = useCallback(async (contact: { name: string; imageUri?: string; items: string[]; amount: number }, contactIndex: number) => {
     if (!bill) return;
     const ref = infographicRefs.current[contactIndex];
     if (!ref?.capture) return;
-
     try {
       const uri = await ref.capture();
-      await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
-        dialogTitle: `Bill summary for ${contact.name}`,
-      });
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: `Bill summary for ${contact.name}` });
     } catch (err) {
       console.error('[Share] Error:', err);
     }
   }, [bill]);
+
+  // --- Derived data ---
 
   const sortedItems = useMemo(() => {
     if (!bill) return [];
@@ -353,32 +335,19 @@ export default function BillDetailScreen() {
     const billCategory = bill.category || 'dining';
     const taxConfig = getTaxConfig(billCountry, billCategory);
     const translatedTaxLabel = getTaxLabel(taxConfig, t);
-
-    // Base: item prices without tax (for CO, extract tax; for US, same as itemsTotal)
     const base = computeBase(itemsTotal, taxConfig);
-
-    // Tax: extracted from tax-inclusive prices for CO, stored value for US
-    const computedTax = taxConfig.taxIncluded
-      ? computeTax(itemsTotal, taxConfig)
-      : (bill.tax ?? 0);
-
-    // Tip: always computed on the base (without tax)
+    const computedTax = taxConfig.taxIncluded ? computeTax(itemsTotal, taxConfig) : (bill.tax ?? 0);
     const tipPercent = bill.tipPercent ?? 0;
     const computedTip = Math.round(base * (tipPercent / 100));
-
-    // Before tip: base + tax (what you owe before gratuity)
     const beforeTip = base + computedTax;
-
-    // Total: base + tax + tip
     const total = base + computedTax + computedTip;
-
     const stateStyle = STATE_STYLES[bill.state];
     const stateLabel = t[STATE_LABEL_KEYS[bill.state]] as string;
-
-    return { base, itemsTotal, billCountry, billCategory, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, beforeTip, total, stateStyle, stateLabel };
+    return { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, beforeTip, total, stateStyle, stateLabel };
   }, [bill, t]);
 
-  // Loading state
+  // --- Loading / Error states ---
+
   if (bill === undefined) {
     return (
       <View className="flex-1 items-center justify-center bg-background" style={{ paddingTop: insets.top }}>
@@ -399,377 +368,178 @@ export default function BillDetailScreen() {
   }
 
   const { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, beforeTip, total, stateStyle, stateLabel } = billDerived;
+  const animate = shouldAnimate.current;
+  if (shouldAnimate.current) shouldAnimate.current = false;
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
       <Stack.Screen options={{ headerShown: false }} />
+
       {/* Header */}
-      <View className="flex-row items-center gap-3 px-7 pb-2 pt-3">
-        <Pressable onPress={() => router.back()} className="py-1 pr-1">
-          <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
-        </Pressable>
-        <View className="flex-1">
-          <Input
-            value={bill.name}
-            onChangeText={(text) => updateBill({ id: id as Id<'bills'>, userId: userId!, name: text })}
-            className="h-auto border-0 bg-transparent px-0 py-0 text-xl font-bold shadow-none"
+      <Animated.View entering={animate ? FadeInDown.duration(300) : undefined}>
+        <BillHeader
+          billName={bill.name}
+          state={bill.state}
+          stateLabel={stateLabel}
+          iconColors={iconColors}
+          t={t}
+          onBack={() => router.back()}
+          onUpdateName={(name) => updateBill({ id: id as Id<'bills'>, userId, name })}
+          onDelete={async () => {
+            await removeBill({ id: id as Id<'bills'>, userId: userId! });
+            router.back();
+          }}
+        />
+      </Animated.View>
+
+      <ScrollView className="flex-1" contentContainerClassName="pb-8" showsVerticalScrollIndicator={false}>
+        {/* Metadata */}
+        <Animated.View entering={animate ? FadeInDown.delay(60).duration(300) : undefined}>
+          <BillMetadata
+            category={bill.category}
+            location={bill.location}
+            photoTakenAt={bill.photoTakenAt}
+            creationTime={bill._creationTime}
+            billCountry={billCountry}
+            iconColors={iconColors}
+            t={t}
+            onCountryPress={() => setActiveDialog('country')}
           />
-        </View>
-        <View className="flex-row items-center gap-2">
-          <View className={cn('flex-row items-center gap-1.5 rounded-full px-2.5 py-1', stateStyle.bgClass)}>
-            <View className={cn('h-1.5 w-1.5 rounded-full', stateStyle.dotClass)} />
-            <Text className={cn('text-[11px] font-semibold', stateStyle.textClass)}>{stateLabel}</Text>
-          </View>
-          <Pressable
-            onPress={() => {
-              Alert.alert(
-                t.bill_deleteBill,
-                t.bill_deleteConfirm,
-                [
-                  { text: t.cancel, style: 'cancel' },
-                  {
-                    text: t.delete,
-                    style: 'destructive',
-                    onPress: async () => {
-                      await removeBill({ id: id as Id<'bills'>, userId: userId! });
-                      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                      router.back();
-                    },
-                  },
-                ]
-              );
-            }}
-            className="h-8 w-8 items-center justify-center rounded-full bg-destructive/10"
-          >
-            <IconSymbol name="xmark" size={14} color={iconColors.destructive} />
-          </Pressable>
-        </View>
-      </View>
+        </Animated.View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="pb-8"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Category + Location + time metadata */}
-        <View className="mb-1 gap-1 px-7">
-          {bill.category && (
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-xs">{CATEGORY_LABELS[bill.category]?.emoji ?? '📋'}</Text>
-              <Text className="text-xs text-muted-foreground">
-                {getCategoryLabel(bill.category, t)}
+        {/* Sort bar */}
+        <Animated.View entering={animate ? FadeInDown.delay(120).duration(300) : undefined}>
+          <SortBar sortStrategy={sortStrategy} onSortChange={setSortStrategy} t={t} />
+        </Animated.View>
+
+        {/* Bulk edit toggle */}
+        <Animated.View entering={animate ? FadeInDown.delay(150).duration(300) : undefined}>
+          <View className="mb-2 flex-row items-center justify-end px-7">
+            {multiSelectMode && (
+              <Text className="mr-auto text-xs text-muted-foreground">
+                {t.bill_selected(selectedItemIds.size)}
               </Text>
-            </View>
-          )}
-        </View>
-        {(bill.location?.address || bill.photoTakenAt) && (
-          <View className="mb-1 gap-1 px-7">
-            {bill.location?.address && (
-              <View className="flex-row items-center gap-1.5">
-                <Text className="text-xs">📍</Text>
-                <Text className="flex-1 text-xs text-muted-foreground" numberOfLines={1}>
-                  {bill.location.address}
-                </Text>
-              </View>
             )}
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-xs">🕐</Text>
-              <Text className="text-xs text-muted-foreground">
-                {(() => {
-                  const photoTime = bill.photoTakenAt ? relativeTime(bill.photoTakenAt, t) : null;
-                  const billTime = relativeTime(bill._creationTime, t) ?? 'unknown';
-                  if (photoTime && photoTime === billTime) {
-                    return t.time_photoAndBill(billTime);
-                  }
-                  if (photoTime) {
-                    return t.time_photoBill(photoTime, billTime);
-                  }
-                  return t.time_created(billTime);
-                })()}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Country row */}
-        <Pressable
-          onPress={() => setActiveDialog('country')}
-          className="mb-1 px-7"
-        >
-          <View className="flex-row items-center gap-1.5">
-            <Text className="text-xs">{billCountry === 'CO' ? '🇨🇴' : '🇺🇸'}</Text>
-            <Text className="text-xs text-muted-foreground">
-              {billCountry === 'CO' ? t.settings_countryColombia : t.settings_countryUSA}
-            </Text>
-            <IconSymbol name="chevron.right" size={10} color={iconColors.mutedLight} />
-          </View>
-        </Pressable>
-
-        {/* Sort pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="gap-1.5 px-7 pb-2"
-        >
-          {([
-            { key: 'original', label: t.sort_receipt },
-            { key: 'price-desc', label: t.sort_priceDesc },
-            { key: 'price-asc', label: t.sort_priceAsc },
-            { key: 'alpha-asc', label: t.sort_alphaAsc },
-            { key: 'alpha-desc', label: t.sort_alphaDesc },
-          ] as const).map((opt) => (
             <Pressable
-              key={opt.key}
-              onPress={() => setSortStrategy(opt.key)}
+              onPress={() => {
+                setMultiSelectMode(!multiSelectMode);
+                setSelectedItemIds(new Set());
+                setEditingItemId(null);
+              }}
               className={cn(
-                'rounded-full border px-2.5 py-1.5',
-                sortStrategy === opt.key
+                'rounded-full border px-2.5 py-1',
+                multiSelectMode
                   ? 'border-primary/30 bg-primary/15'
-                  : 'border-muted-foreground/12 bg-muted-foreground/[0.06]',
+                  : 'border-muted-foreground/20 bg-muted-foreground/10',
               )}
             >
-              <Text className={cn('text-[11px] font-semibold', sortStrategy === opt.key ? 'text-primary' : 'text-muted-foreground')}>
-                {opt.label}
+              <Text className={cn('text-[11px] font-semibold', multiSelectMode ? 'text-primary' : 'text-muted-foreground')}>
+                {multiSelectMode ? t.cancel : t.bill_bulkEdit}
               </Text>
             </Pressable>
-          ))}
-        </ScrollView>
-
-        {/* Hint + multi-select toggle */}
-        <View className="mb-2 flex-row items-center justify-between px-7">
-          <Text className="text-xs text-muted-foreground">
-            {multiSelectMode
-              ? t.bill_selected(selectedItemIds.size)
-              : t.bill_tapToEdit}
-          </Text>
-          <Pressable
-            onPress={() => {
-              setMultiSelectMode(!multiSelectMode);
-              setSelectedItemIds(new Set());
-              setEditingItemId(null);
-            }}
-            className={cn(
-              'rounded-full border px-2.5 py-1',
-              multiSelectMode
-                ? 'border-primary/30 bg-primary/15'
-                : 'border-muted-foreground/20 bg-muted-foreground/10',
-            )}
-          >
-            <Text className={cn('text-[11px] font-semibold', multiSelectMode ? 'text-primary' : 'text-muted-foreground')}>
-              {multiSelectMode ? t.cancel : t.bill_bulkEdit}
-            </Text>
-          </Pressable>
-        </View>
+          </View>
+        </Animated.View>
 
         {/* Items */}
         {sortedItems.map((item, index) => {
           const itemId = item.id!;
-          const assignedContacts = bill.contacts
-            .filter((c) => c.items.includes(itemId));
-          const isEditing = editingItemId === itemId;
-
+          const assignedContacts = bill.contacts.filter((c) => c.items.includes(itemId));
           return (
-            <SwipeableItem key={item.id ?? `legacy-${index}`} isDeleting={deletingId === item.id}>
-            <Swipeable
-              renderRightActions={(_progress, dragX) => (
-                <Animated.View className="flex-1 items-end justify-center bg-destructive pr-6">
-                  <IconSymbol name="xmark" size={18} color={iconColors.primaryForeground} />
-                  <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
-                </Animated.View>
-              )}
-              rightThreshold={80}
-              overshootRight
-              onSwipeableOpen={() => handleRemoveItem(itemId)}
-              onSwipeableOpenStartDrag={() => { swipeOpenRef.current = true; }}
+            <Animated.View
+              key={item.id ?? `legacy-${index}`}
+              entering={animate ? FadeInDown.delay(Math.min(index, 8) * 60 + 180).duration(350) : undefined}
             >
-              {isEditing ? (
-                /* Edit mode */
-                <View className="border-l-2 border-l-primary bg-primary/5 px-7 py-3.5">
-                  <View className="mb-3 flex-row items-center justify-between">
-                    <Input
-                      value={item.name}
-                      onChangeText={(v) => handleUpdateItem(itemId, 'name', v)}
-                      className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-[15px] font-semibold shadow-none"
-                      placeholder={t.scan_itemName}
-                      autoFocus
-                    />
-                    <Pressable
-                      onPress={() => setEditingItemId(null)}
-                      className="ml-3 rounded-full bg-destructive/15 px-3 py-1"
-                    >
-                      <Text className="text-xs font-semibold text-destructive">{t.cancel}</Text>
-                    </Pressable>
-                  </View>
-                  <View className="flex-row gap-2.5">
-                    <View className="flex-1">
-                      <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_qty}</Text>
-                      <Input
-                        value={String(item.quantity)}
-                        onChangeText={(v) => handleUpdateItem(itemId, 'quantity', v)}
-                        className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
-                        keyboardType="number-pad"
-                      />
-                    </View>
-                    <View className="flex-[2]">
-                      <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
-                      <Input
-                        value={formatCurrency(item.unitPrice, billCountry)}
-                        onChangeText={(v) => handleUpdateItem(itemId, 'unitPrice', v)}
-                        className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
-                        keyboardType="number-pad"
-                      />
-                    </View>
-                    <View className="flex-[2]">
-                      <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_subtotalLabel}</Text>
-                      <View className="h-9 items-end justify-center rounded-lg px-3 py-1">
-                        <Text className="text-sm font-bold text-primary">
-                          {formatCurrency(item.subtotal, billCountry)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  <Pressable
-                    onPress={() => setEditingItemId(null)}
-                    className="mt-3 items-center rounded-lg bg-primary/10 py-2"
-                  >
-                    <Text className="text-sm font-semibold text-primary">{t.done}</Text>
-                  </Pressable>
-                </View>
-              ) : (
-                /* Display mode */
-                <Pressable
-                  onPress={() => multiSelectMode ? toggleItemSelection(itemId) : handleItemPress(itemId)}
-                  className="flex-row items-start bg-background px-7 py-3 active:opacity-80"
-                >
-                  {/* Checkbox in multi-select mode */}
-                  {multiSelectMode && (
-                    <View className="mr-3 justify-center pt-1">
-                      <IconSymbol
-                        name={selectedItemIds.has(itemId) ? 'checkmark.circle.fill' : 'circle'}
-                        size={22}
-                        color={selectedItemIds.has(itemId) ? iconColors.primary : iconColors.muted}
-                      />
-                    </View>
-                  )}
-                  <View className="mr-3 flex-1">
-                    <Text className="text-[15px] font-semibold leading-5 text-foreground" numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                    <Text className="mt-0.5 text-xs text-muted-foreground">
-                      {item.quantity} × {formatCurrency(item.unitPrice, billCountry)}
-                    </Text>
-
-                    {/* Contact chips */}
-                    {assignedContacts.length > 0 && (
-                      <View className="mt-2 flex-row flex-wrap gap-1.5">
-                        {assignedContacts.map((c) => (
-                          <Pressable
-                            key={String(c.contactId)}
-                            onPress={() => item.id && handleRemoveContact(item.id, c.contactId)}
-                            className="flex-row items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-1"
-                          >
-                            {c.imageUri ? (
-                              <Image source={{ uri: c.imageUri }} className="w-3.5 h-3.5 rounded-full" />
-                            ) : (
-                              <IconSymbol name="person.crop.circle" size={12} color={iconColors.primary} />
-                            )}
-                            <Text className="text-[11px] font-medium text-primary">
-                              {c.name}
-                            </Text>
-                            <IconSymbol name="xmark" size={8} color={iconColors.primary} />
-                          </Pressable>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-
-                  <View className="items-end gap-1">
-                    <Text className="text-[15px] font-bold tabular-nums text-foreground">
-                      {formatCurrency(item.subtotal, billCountry)}
-                    </Text>
-                    {!multiSelectMode && (
-                      <Pressable
-                        onPress={() => handleAssignContact(itemId)}
-                        className="h-7 w-7 items-center justify-center rounded-full border border-primary/20 bg-primary/10"
-                      >
-                        <IconSymbol name="plus" size={14} color={iconColors.primary} />
-                      </Pressable>
-                    )}
-                  </View>
-                </Pressable>
-              )}
-              {/* Divider */}
-              {index < sortedItems.length - 1 && (
-                <View className="ml-7 h-px bg-border/40" />
-              )}
-            </Swipeable>
-            </SwipeableItem>
+              <BillItemCard
+                item={item}
+                index={index}
+                billCountry={billCountry}
+                stateStyle={stateStyle}
+                assignedContacts={assignedContacts}
+                isEditing={editingItemId === itemId}
+                isDeleting={deletingId === item.id}
+                multiSelectMode={multiSelectMode}
+                isSelected={selectedItemIds.has(itemId)}
+                iconColors={iconColors}
+                t={t}
+                swipeOpenRef={swipeOpenRef}
+                onPress={handleItemPress}
+                onRemoveItem={handleRemoveItem}
+                onUpdateItem={handleUpdateItem}
+                onDismissEdit={() => setEditingItemId(null)}
+                onAssignContact={handleAssignContact}
+                onRemoveContact={handleRemoveContact}
+                onToggleSelection={toggleItemSelection}
+              />
+            </Animated.View>
           );
         })}
 
-        {/* Summary divider */}
-        <View className="mx-7 mt-3 h-px bg-border/40" />
-
         {/* Summary */}
-        <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-muted-foreground">{t.bill_subtotal}</Text>
-          <Text className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(base, billCountry)}</Text>
-        </View>
-        <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-foreground">{translatedTaxLabel}</Text>
-          {taxConfig.taxIncluded ? (
-            <Text className="text-sm font-semibold tabular-nums text-muted-foreground">
-              {formatCurrency(computedTax, billCountry)}
-            </Text>
-          ) : (
-            <Input
-              value={formatCurrency(computedTax, billCountry)}
-              onChangeText={handleUpdateTax}
-              className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
-              keyboardType="number-pad"
-            />
-          )}
-        </View>
-        <View className="mx-7 h-px bg-border/40" />
-        <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm font-semibold text-foreground">{t.bill_beforeTip}</Text>
-          <Text className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(beforeTip, billCountry)}</Text>
-        </View>
-        <Pressable
-          className="flex-row items-center justify-between px-7 py-3 active:bg-muted/30"
-          onPress={() => setActiveDialog('tip')}
-        >
-          <View className="flex-row items-center gap-1">
-            <Text className="text-sm text-foreground">{t.bill_tip(tipPercent)}</Text>
-            <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
-          </View>
-          <Text className="text-sm font-semibold tabular-nums text-foreground">
-            {formatCurrency(computedTip, billCountry)}
-          </Text>
-        </Pressable>
-        <View className="mx-7 h-px bg-border/40" />
-        <View className="flex-row items-center justify-between px-7 py-4">
-          <Text className="text-sm font-bold text-foreground">{t.bill_total}</Text>
-          <Text className="text-2xl font-extrabold tracking-tight text-primary">{formatCurrency(total, billCountry)}</Text>
-        </View>
-
+        <Animated.View entering={animate ? FadeInDown.delay(Math.min(sortedItems.length, 8) * 60 + 240).duration(350) : undefined}>
+          <BillSummaryCard
+            base={base}
+            computedTax={computedTax}
+            beforeTip={beforeTip}
+            tipPercent={tipPercent}
+            computedTip={computedTip}
+            total={total}
+            billCountry={billCountry}
+            translatedTaxLabel={translatedTaxLabel}
+            taxConfig={taxConfig}
+            iconColors={iconColors}
+            t={t}
+            onTipPress={() => setActiveDialog('tip')}
+            onUpdateTax={handleUpdateTax}
+          />
+        </Animated.View>
       </ScrollView>
 
-      {/* Share button — only when contacts exist */}
+      {/* Share button — filled primary when contacts exist */}
       {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
         <View className="border-t border-border/30 px-7 pb-2 pt-3">
           <Pressable
             onPress={() => setActiveDialog('share')}
-            className="flex-row items-center justify-center gap-2 rounded-[14px] border border-primary/20 bg-primary/10 py-3.5"
+            className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 active:opacity-80"
           >
-            <IconSymbol name="person.crop.circle" size={18} color={iconColors.primary} />
-            <Text className="text-[15px] font-semibold text-primary">
+            <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
+            <Text className="text-[15px] font-semibold text-primary-foreground">
               {t.share_button(bill.contacts.length)}
             </Text>
           </Pressable>
         </View>
       )}
 
+      {/* Confirm button for draft bills */}
+      {!multiSelectMode && bill.state === 'draft' && (
+        <View className="border-t border-border/30 px-7 pb-2 pt-3">
+          <Pressable
+            onPress={async () => {
+              await updateBill({ id: id as Id<'bills'>, userId, state: 'unsplit' });
+              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              router.back();
+            }}
+            className="items-center rounded-xl bg-primary py-4 active:opacity-80"
+          >
+            <View className="flex-row items-center gap-2">
+              <IconSymbol name="checkmark" size={18} color={iconColors.primaryForeground} />
+              <Text className="text-base font-semibold text-primary-foreground">{t.bill_confirmItems}</Text>
+            </View>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Bulk toolbar */}
+      {multiSelectMode && selectedItemIds.size > 0 && (
+        <BulkToolbar
+          selectedItemIds={selectedItemIds}
+          hasContactsOnSelection={bill.contacts.some((c) => c.items.some((itemId) => selectedItemIds.has(itemId)))}
+          onAssign={handleMultiAssign}
+          onUnassign={handleBulkRemoveContact}
+          onDelete={handleBulkDelete}
+        />
+      )}
+
+      {/* Dialogs & Sheets */}
       <BillShareSheet
         visible={activeDialog === 'share'}
         bill={bill}
@@ -846,41 +616,6 @@ export default function BillDetailScreen() {
         }}
         onClose={() => setActiveDialog(null)}
       />
-
-      {multiSelectMode && selectedItemIds.size > 0 && (
-        <BulkToolbar
-          selectedItemIds={selectedItemIds}
-          hasContactsOnSelection={bill.contacts.some((c) =>
-            c.items.some((itemId) => selectedItemIds.has(itemId))
-          )}
-          onAssign={handleMultiAssign}
-          onUnassign={handleBulkRemoveContact}
-          onDelete={handleBulkDelete}
-        />
-      )}
-
-      {/* Confirm button for draft bills */}
-      {!multiSelectMode && bill.state === 'draft' && (
-        <View className="border-t border-border/30 px-7 pb-2 pt-3">
-          <Pressable
-            onPress={async () => {
-              await updateBill({ id: id as Id<'bills'>, userId, state: 'unsplit' });
-              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              router.back();
-            }}
-            className="items-center rounded-xl bg-primary py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-2">
-              <IconSymbol name="checkmark" size={18} color={iconColors.primaryForeground} />
-              <Text className="text-base font-semibold text-primary-foreground">
-                {t.bill_confirmItems}
-              </Text>
-            </View>
-          </Pressable>
-        </View>
-      )}
     </View>
   );
 }
-
-
