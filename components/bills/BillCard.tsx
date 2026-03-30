@@ -1,6 +1,5 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
-import { Image } from 'expo-image';
+import { Image, Pressable, View } from 'react-native';
 import type { ResolvedBill } from '@/lib/filters';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';

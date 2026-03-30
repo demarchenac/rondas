@@ -28,7 +28,7 @@ app/
 
 ## Conventions
 
-- Use `expo-image` over `Image` from react-native
+- Use `expo-image` over `Image` from react-native for content images (bill photos, large assets). **Exception:** use RN `Image` for small thumbnails styled with NativeWind `className` — `expo-image` is not intercepted by react-native-css's babel plugin, so `className` is silently ignored (renders with 0 dimensions)
 - Use `expo-haptics` for tactile feedback on key actions
 - Request permissions lazily (camera, contacts) — only when the feature is first used
 - Use `expo-constants` for environment variables, never hardcode API keys

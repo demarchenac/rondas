@@ -1,6 +1,5 @@
 import React from 'react';
-import { Modal, View, Pressable, ScrollView, Alert } from 'react-native';
-import { Image } from 'expo-image';
+import { Modal, View, Pressable, ScrollView, Alert, Image } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
