@@ -131,8 +131,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_URI);
       if (__DEV__) console.log('[Auth] Browser result type:', result.type);
 
+      if (result.type === 'cancel') {
+        setLoading(false);
+        return { success: false, error: 'Authentication was cancelled' };
+      }
+
+      // On Android, OAuth redirects often return 'dismiss' even when successful.
+      // The deep link handler (Linking.addEventListener) picks up the callback
+      // independently, so 'dismiss' is not an error — keep loading state active
+      // and let the deep link handler complete authentication.
       if (result.type !== 'success' || !result.url) {
-        return { success: false, error: `Authentication was cancelled (${result.type})` };
+        return { success: true };
       }
 
       const parsed = Linking.parse(result.url);
@@ -140,12 +149,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         const errorDesc = parsed.queryParams?.error_description as string;
         if (__DEV__) console.error('[Auth] OAuth error:', error, errorDesc);
+        setLoading(false);
         return { success: false, error: errorDesc || error };
       }
 
       const code = parsed.queryParams?.code as string | undefined;
       if (!code) {
         if (__DEV__) console.error('[Auth] No code in callback params');
+        setLoading(false);
         return { success: false, error: 'No authorization code received' };
       }
 
@@ -153,12 +164,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const newUser = await handleCallback(code);
       await syncAfterLogin(newUser);
       setUser(newUser);
+      setLoading(false);
       return { success: true };
     } catch (error) {
       if (__DEV__) console.error('[Auth] Sign-in error:', error);
-      return { success: false, error: String(error) };
-    } finally {
       setLoading(false);
+      return { success: false, error: String(error) };
     }
   }, []);
 
