@@ -216,8 +216,14 @@ export async function getSessionId(): Promise<string | null> {
   }
 }
 
+export const LOGOUT_REDIRECT_URI = 'rondas://auth/logout';
+
 export function getLogoutUrl(sessionId: string): string {
-  return `${WORKOS_API_BASE}/user_management/sessions/logout?session_id=${sessionId}`;
+  const params = new URLSearchParams({
+    session_id: sessionId,
+    return_to: LOGOUT_REDIRECT_URI,
+  });
+  return `${WORKOS_API_BASE}/user_management/sessions/logout?${params.toString()}`;
 }
 
 export async function clearSession(): Promise<void> {

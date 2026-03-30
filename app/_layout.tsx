@@ -38,11 +38,12 @@ function RootLayoutNav() {
   return (
     <ConvexProvider client={convex}>
       <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="setup" options={{ headerShown: false, presentation: 'modal', gestureEnabled: false }} />
-          <Stack.Screen name="bills/new" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="setup" options={{ presentation: 'modal', gestureEnabled: false }} />
+          <Stack.Screen name="bills/new" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="auth" />
         </Stack>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <PortalHost />

@@ -16,6 +16,7 @@ import {
   getSessionId,
   getLogoutUrl,
   REDIRECT_URI,
+  LOGOUT_REDIRECT_URI,
   type User,
 } from './auth';
 import { convex } from './convex';
@@ -89,7 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleUrl = async ({ url }: { url: string }) => {
       const parsed = Linking.parse(url);
-      if (parsed.path !== 'callback') return;
+      // rondas://auth/callback → hostname='auth', path='callback'
+      // rondas://callback (legacy) → hostname='callback', path=null
+      const isCallback = parsed.path === 'callback' || parsed.hostname === 'callback';
+      if (!isCallback) return;
 
       const error = parsed.queryParams?.error as string | undefined;
       if (error) {
@@ -184,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
 
       if (sessionId) {
-        await WebBrowser.openBrowserAsync(getLogoutUrl(sessionId));
+        await WebBrowser.openAuthSessionAsync(getLogoutUrl(sessionId), LOGOUT_REDIRECT_URI);
       }
 
       return { success: true };

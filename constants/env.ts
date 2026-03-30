@@ -5,7 +5,7 @@ function requireEnv(key: string): string {
 }
 
 export const ENV = {
-  CONVEX_URL: requireEnv('EXPO_PUBLIC_CONVEX_URL'),
-  WORKOS_CLIENT_ID: requireEnv('EXPO_PUBLIC_WORKOS_CLIENT_ID'),
-  REDIRECT_URI: process.env.EXPO_PUBLIC_REDIRECT_URI ?? 'rondas://callback',
+  CONVEX_URL: requireEnv("EXPO_PUBLIC_CONVEX_URL"),
+  WORKOS_CLIENT_ID: requireEnv("EXPO_PUBLIC_WORKOS_CLIENT_ID"),
+  REDIRECT_URI: process.env.EXPO_PUBLIC_WORKOS_REDIRECT_URI ?? "rondas://auth/callback",
 } as const;

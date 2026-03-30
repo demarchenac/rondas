@@ -14,7 +14,7 @@ export function useAuthRedirect({ user, loading, hasCompletedSetup }: AuthRedire
   useEffect(() => {
     if (loading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const inAuthGroup = segments[0] === '(auth)' || segments[0] === 'auth';
     const inSetup = (segments[0] as string) === 'setup';
 
     if (!user && !inAuthGroup) {

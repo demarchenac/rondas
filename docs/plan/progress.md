@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2026-03-29 (session 5 — review #2, OAuth fix, tip fix)
+> Last updated: 2026-03-30 (session 6 — Android OAuth deep link fixes, dev build setup)
 
 ---
 
@@ -516,6 +516,16 @@
 ### Bug Fixes
 
 - [x] Fix Android Google OAuth stuck-on-loading (handle 'dismiss' result, clear loading on deep link errors, add safety timeout)
+- [x] Fix env var name mismatch (`EXPO_PUBLIC_REDIRECT_URI` → `EXPO_PUBLIC_WORKOS_REDIRECT_URI`)
+- [x] Fix deep link handler path mismatch (`Linking.parse` hostname vs path for custom schemes)
+- [x] Fix redirect URI to `rondas://auth/callback` (correct URL parsing for Expo Linking)
+- [x] Add logout redirect URI (`rondas://auth/logout`) with `return_to` param
+- [x] Switch sign-out from `openBrowserAsync` to `openAuthSessionAsync` (auto-close)
+- [x] Add `app/auth/callback.tsx` route for OAuth callback deep link (prevents Unmatched Route)
+- [x] Add `app/auth/logout.tsx` route for logout redirect deep link
+- [x] Update `useAuthRedirect` to recognize `auth` segment (callback/logout routes)
+- [x] Set `headerShown: false` globally on root Stack
+- [x] Configure EAS Build for Android development builds
 - [x] Fix tip computation: compute on base (excluding tax) for tax-inclusive countries
 - [x] Show base as "Subtotal", add "Before tip" row in bill detail and infographic
 - [x] Localize Pro pricing for Colombia ($15.000/mes)
@@ -528,7 +538,7 @@
 | Phase                             | Total Tasks | Done  |
 | --------------------------------- | ----------- | ----- |
 | Phase 1 — Setup                   | 38          | 35    |
-| Phase 2 — Auth Screens            | 14          | 14    |
+| Phase 2 — Auth Screens            | 23          | 23    |
 | Phase 3 — Home Screen             | 19          | 17    |
 | Phase 4 — Bill Creation & AI      | 34          | 33    |
 | Phase 5 — Bill Splitting          | 21          | 19    |
@@ -539,4 +549,4 @@
 | Phase 10 — Polish & Launch        | 16          | 5     |
 | Codebase Review #1 Refactoring    | 48          | 48    |
 | Codebase Review #2 Fixes          | 20          | 20    |
-| **Total**                         | **290**     | **254**|
+| **Total**                         | **299**     | **263**|
