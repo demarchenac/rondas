@@ -716,7 +716,7 @@ export default function BillDetailScreen() {
                             className="flex-row items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-1"
                           >
                             {c.imageUri ? (
-                              <Image source={{ uri: c.imageUri }} style={{ width: 14, height: 14, borderRadius: 7 }} />
+                              <Image source={{ uri: c.imageUri }} className="w-3.5 h-3.5 rounded-full" />
                             ) : (
                               <IconSymbol name="person.crop.circle" size={12} color={iconColors.primary} />
                             )}

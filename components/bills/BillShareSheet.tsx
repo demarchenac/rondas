@@ -54,7 +54,7 @@ function BillShareSheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-background" style={{ paddingTop: 12, paddingBottom: bottomInset }}>
+      <View className="flex-1 bg-background pt-3" style={{ paddingBottom: bottomInset }}>
         {/* Modal header */}
         <View className="items-center pb-2">
           <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />

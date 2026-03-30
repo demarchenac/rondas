@@ -364,7 +364,7 @@ export default function NewBillScreen() {
         {/* Full-screen image background */}
         <Image
           source={{ uri: imageUri }}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+          className="absolute inset-0 w-full h-full"
           resizeMode="cover"
         />
 

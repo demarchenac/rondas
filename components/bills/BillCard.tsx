@@ -61,14 +61,12 @@ function BillCard({ bill, onPress, t }: BillCardProps) {
                 <Image
                   key={i}
                   source={{ uri: c.imageUri }}
-                  className="h-[26px] w-[26px] rounded-full border-2 border-[#1a2540]"
-                  style={{ marginLeft: i > 0 ? -8 : 0 }}
+                  className={cn('h-[26px] w-[26px] rounded-full border-2 border-[#1a2540]', i > 0 && '-ml-2')}
                 />
               ) : (
                 <View
                   key={i}
-                  className={cn('h-[26px] w-[26px] rounded-full items-center justify-center border-2 border-[#1a2540]', stateStyle.bgClass)}
-                  style={{ marginLeft: i > 0 ? -8 : 0 }}
+                  className={cn('h-[26px] w-[26px] rounded-full items-center justify-center border-2 border-[#1a2540]', stateStyle.bgClass, i > 0 && '-ml-2')}
                 >
                   <Text className={cn('text-[10px] font-bold', stateStyle.textClass)}>
                     {c.name[0]?.toUpperCase() ?? '?'}

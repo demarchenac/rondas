@@ -29,21 +29,18 @@ function ReceiptPerforations({ position }: { position: 'top' | 'bottom' }) {
   const totalWidth = count * (PERF_SIZE + gap) - gap;
   const offset = (PAPER_WIDTH - totalWidth) / 2;
   return (
-    <View style={{
+    <View className="bg-[#fafaf8] overflow-hidden" style={{
       width: PAPER_WIDTH,
       height: PERF_HEIGHT,
-      backgroundColor: '#fafaf8',
-      overflow: 'hidden',
     }}>
       {Array.from({ length: count }).map((_, i) => (
         <View
           key={i}
+          className="absolute rounded-full"
           style={{
             width: PERF_SIZE,
             height: PERF_SIZE,
-            borderRadius: PERF_SIZE / 2,
             backgroundColor: BG_COLOR,
-            position: 'absolute',
             left: offset + i * (PERF_SIZE + gap),
             top: position === 'top' ? -(PERF_SIZE / 2) : 0,
           }}
@@ -55,9 +52,9 @@ function ReceiptPerforations({ position }: { position: 'top' | 'bottom' }) {
 
 function ReceiptDotLine() {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 14 }}>
+    <View className="flex-row items-center my-[14px]">
       {Array.from({ length: 40 }).map((_, i) => (
-        <View key={i} style={{ height: 1, borderRadius: 0.5, flex: 1, marginHorizontal: 1.5, backgroundColor: '#e2e8f0' }} />
+        <View key={i} className="h-px rounded-[0.5px] flex-1 mx-[1.5px] bg-[#e2e8f0]" />
       ))}
     </View>
   );
@@ -104,46 +101,46 @@ function BillInfographic({
 
   return (
     <View style={{ width: RECEIPT_WIDTH, backgroundColor: BG_COLOR, paddingVertical: RECEIPT_PADDING }}>
-      <View style={{ position: 'relative', alignSelf: 'center', width: PAPER_WIDTH }}>
+      <View className="relative self-center" style={{ width: PAPER_WIDTH }}>
         {/* Perforated top edge — absolute, behind paper */}
-        <View style={{ position: 'absolute', top: 0, left: 0, zIndex: 0 }}>
+        <View className="absolute top-0 left-0 z-0">
           <ReceiptPerforations position="top" />
         </View>
 
         {/* Perforated bottom edge — absolute, behind paper */}
-        <View style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 0 }}>
+        <View className="absolute bottom-0 left-0 z-0">
           <ReceiptPerforations position="bottom" />
         </View>
 
         {/* Receipt paper — on top, overlapping perforations by 1px */}
-        <View style={{ backgroundColor: '#fafaf8', zIndex: 1, marginVertical: PERF_HEIGHT - 1 }}>
-          <View style={{ paddingHorizontal: 28, paddingTop: 22, paddingBottom: 20 }}>
+        <View className="bg-[#fafaf8] z-[1]" style={{ marginVertical: PERF_HEIGHT - 1 }}>
+          <View className="px-7 pt-[22px] pb-5">
 
           {/* Header: Brand + Country badge */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, fontWeight: '800', color: '#0a7ea4', letterSpacing: 4, textTransform: 'uppercase' }}>
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-[13px] font-extrabold text-[#0a7ea4] tracking-[4px] uppercase">
               Rondas
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-              <Text style={{ fontSize: 12 }}>{flag}</Text>
-              <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748b', letterSpacing: 0.5 }}>
+            <View className="flex-row items-center gap-1 bg-[#f1f5f9] px-2 py-[3px] rounded-[6px]">
+              <Text className="text-xs">{flag}</Text>
+              <Text className="text-[9px] font-bold text-[#64748b] tracking-[0.5px]">
                 {country === 'CO' ? 'COP' : 'USD'}
               </Text>
             </View>
           </View>
 
           {/* Venue */}
-          <View style={{ marginBottom: 4 }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: '#0f172a' }}>
+          <View className="mb-1">
+            <Text className="text-xl font-extrabold text-[#0f172a]">
               {billName}
             </Text>
             {location && !location.startsWith(billName) && (
-              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }} numberOfLines={2}>
+              <Text className="text-[10px] text-[#94a3b8] mt-[3px]" numberOfLines={2}>
                 {location}
               </Text>
             )}
             {dateStr && (
-              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+              <Text className="text-[10px] text-[#94a3b8] mt-[2px]">
                 {dateStr}
               </Text>
             )}
@@ -152,68 +149,61 @@ function BillInfographic({
           <ReceiptDotLine />
 
           {/* Bill for contact */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <View className="flex-row items-center gap-[10px] mb-4">
             {contactImageUri ? (
-              <Image source={{ uri: contactImageUri }} style={{ width: 32, height: 32, borderRadius: 16 }} />
+              <Image source={{ uri: contactImageUri }} className="w-8 h-8 rounded-full" />
             ) : (
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#e0f2fe', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#0a7ea4' }}>
+              <View className="w-8 h-8 rounded-full bg-[#e0f2fe] items-center justify-center">
+                <Text className="text-[13px] font-bold text-[#0a7ea4]">
                   {contactName[0]?.toUpperCase() ?? '?'}
                 </Text>
               </View>
             )}
             <View>
-              <Text style={{ fontSize: 8, color: '#94a3b8', fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase' }}>{t.infographic_billFor}</Text>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#0f172a' }}>{contactName}</Text>
+              <Text className="text-[8px] text-[#94a3b8] font-semibold tracking-[1.5px] uppercase">{t.infographic_billFor}</Text>
+              <Text className="text-sm font-bold text-[#0f172a]">{contactName}</Text>
             </View>
           </View>
 
           {/* Column headers */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 6, borderBottomWidth: 1.5, borderBottomColor: '#e2e8f0' }}>
-            <Text style={{ fontSize: 8, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.5, textTransform: 'uppercase' }}>{t.infographic_item}</Text>
-            <Text style={{ fontSize: 8, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.5, textTransform: 'uppercase' }}>{t.infographic_amount}</Text>
+          <View className="flex-row justify-between pb-[6px] border-b-[1.5px] border-b-[#e2e8f0]">
+            <Text className="text-[8px] font-bold text-[#94a3b8] tracking-[1.5px] uppercase">{t.infographic_item}</Text>
+            <Text className="text-[8px] font-bold text-[#94a3b8] tracking-[1.5px] uppercase">{t.infographic_amount}</Text>
           </View>
 
           {/* Items */}
           {items.map((item, i) => (
             <View
               key={i}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingVertical: 9,
-                borderBottomWidth: 1,
-                borderBottomColor: '#f1f5f9',
-              }}
+              className="flex-row justify-between items-center py-[9px] border-b border-b-[#f1f5f9]"
             >
-              <Text style={{ fontSize: 13, color: '#334155', flex: 1, marginRight: 12 }} numberOfLines={1}>
+              <Text className="text-[13px] text-[#334155] flex-1 mr-3" numberOfLines={1}>
                 {item.name}
               </Text>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', fontVariant: ['tabular-nums'] }}>
+              <Text className="text-[13px] font-bold text-[#0f172a]" style={{ fontVariant: ['tabular-nums'] }}>
                 {formatCurrency(item.amount, country)}
               </Text>
             </View>
           ))}
 
           {/* Breakdown */}
-          <View style={{ marginTop: 8, gap: 2 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-              <Text style={{ fontSize: 11, color: '#94a3b8' }}>{t.bill_subtotal}</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase, country)}</Text>
+          <View className="mt-2 gap-[2px]">
+            <View className="flex-row justify-between py-1">
+              <Text className="text-[11px] text-[#94a3b8]">{t.bill_subtotal}</Text>
+              <Text className="text-[11px] text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase, country)}</Text>
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-              <Text style={{ fontSize: 11, color: '#94a3b8' }}>{translatedTaxLabel}</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTax, country)}</Text>
+            <View className="flex-row justify-between py-1">
+              <Text className="text-[11px] text-[#94a3b8]">{translatedTaxLabel}</Text>
+              <Text className="text-[11px] text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTax, country)}</Text>
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: 0.5, borderTopColor: '#e2e8f0', marginTop: 2 }}>
-              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>{t.bill_beforeTip}</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase + contactTax, country)}</Text>
+            <View className="flex-row justify-between py-1 border-t-[0.5px] border-t-[#e2e8f0] mt-[2px]">
+              <Text className="text-[11px] text-[#64748b] font-semibold">{t.bill_beforeTip}</Text>
+              <Text className="text-[11px] text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase + contactTax, country)}</Text>
             </View>
             {tipPercent > 0 && (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-                <Text style={{ fontSize: 11, color: '#94a3b8' }}>{t.bill_tip(tipPercent)}</Text>
-                <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600', fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTip, country)}</Text>
+              <View className="flex-row justify-between py-1">
+                <Text className="text-[11px] text-[#94a3b8]">{t.bill_tip(tipPercent)}</Text>
+                <Text className="text-[11px] text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTip, country)}</Text>
               </View>
             )}
           </View>
@@ -221,10 +211,11 @@ function BillInfographic({
           <ReceiptDotLine />
 
           {/* Total */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a', letterSpacing: 1, textTransform: 'uppercase' }}>{t.infographic_total}</Text>
+          <View className="flex-row justify-between items-baseline">
+            <Text className="text-sm font-extrabold text-[#0f172a] tracking-[1px] uppercase">{t.infographic_total}</Text>
             <Text
-              style={{ fontSize: 22, fontWeight: '800', color: '#0a7ea4', fontVariant: ['tabular-nums'], flexShrink: 1, textAlign: 'right' }}
+              className="text-[22px] font-extrabold text-[#0a7ea4] shrink text-right"
+              style={{ fontVariant: ['tabular-nums'] }}
               adjustsFontSizeToFit
               numberOfLines={1}
               minimumFontScale={0.7}
@@ -236,9 +227,9 @@ function BillInfographic({
           <ReceiptDotLine />
 
           {/* Footer */}
-          <View style={{ alignItems: 'center', gap: 4 }}>
-            <Text style={{ fontSize: 9, color: '#94a3b8', fontStyle: 'italic' }}>{t.infographic_tagline}</Text>
-            <Text style={{ fontSize: 8, color: '#cbd5e1' }}>rondas.app</Text>
+          <View className="items-center gap-1">
+            <Text className="text-[9px] text-[#94a3b8] italic">{t.infographic_tagline}</Text>
+            <Text className="text-[8px] text-[#cbd5e1]">rondas.app</Text>
           </View>
         </View>
       </View>
