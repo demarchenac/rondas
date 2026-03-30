@@ -38,6 +38,7 @@ import { formatCurrency, parseCurrency } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import SwipeableItem from '@/components/bills/SwipeableItem';
 import KeyboardDoneButton from '@/components/bills/KeyboardDoneButton';
+import ScanningOverlay from '@/components/bills/ScanningOverlay';
 
 interface BillItem {
   id: string;
@@ -57,21 +58,6 @@ interface ExtractedBill {
   tax: number;
   tip: number;
   total: number;
-}
-
-function getScanStatusLabel(
-  status: string | undefined,
-  t: ReturnType<typeof useT>,
-  itemCount: number,
-): { title: string; hint: string } {
-  switch (status) {
-    case 'thinking':
-      return { title: t.scan_reading, hint: t.scan_readingHint };
-    case 'extracting':
-      return { title: t.scan_extracting, hint: t.scan_itemsFound(itemCount) };
-    default:
-      return { title: t.scan_analyzing, hint: t.scan_analyzeHint };
-  }
 }
 
 function prepareItems(items: BillItem[]): BillItem[] {
@@ -448,60 +434,7 @@ export default function NewBillScreen() {
 
         {/* Scanning overlay */}
         {scanning && (
-          <View className="absolute bottom-0 left-0 right-0 top-0 items-center justify-center">
-            <BlurView
-              intensity={30}
-              tint="dark"
-              style={{
-                position: 'absolute',
-                top: 0, left: 0, right: 0, bottom: 0,
-                backgroundColor: 'rgba(18,26,46,0.7)',
-              }}
-            />
-            <View className="z-[1] w-full items-center px-8">
-              <View className="h-20 w-20 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
-                <ActivityIndicator size="large" color="#38bdf8" />
-              </View>
-              {(() => {
-                const { title, hint } = getScanStatusLabel(
-                  scanProgress?.status,
-                  t,
-                  scanProgress?.result?.items?.length ?? 0,
-                );
-                return (
-                  <>
-                    <Text className="mt-5 text-[17px] font-bold text-foreground">
-                      {title}
-                    </Text>
-                    <Text className="mt-1.5 text-[13px] text-muted-foreground">
-                      {hint}
-                    </Text>
-                  </>
-                );
-              })()}
-              {/* Stream items as they arrive */}
-              {scanProgress?.result?.items && scanProgress.result.items.length > 0 && (
-                <View className="mt-5 max-h-[200px] w-full">
-                  {scanProgress.result.items.map((item, i) => (
-                    <View
-                      key={i}
-                      className={cn(
-                        'flex-row justify-between py-1.5',
-                        i < (scanProgress.result?.items?.length ?? 0) - 1 && 'border-b border-white/[0.08]',
-                      )}
-                    >
-                      <Text className="flex-1 text-[13px] text-foreground" numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                      <Text className="ml-3 text-[13px] font-semibold text-primary">
-                        {formatCurrency(item.subtotal, country)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
+          <ScanningOverlay scanProgress={scanProgress} billCountry={country} t={t} />
         )}
       </View>
     );

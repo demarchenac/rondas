@@ -1,3 +1,3 @@
-export { SegmentedControl } from './SegmentedControl';
-export { SettingsRow } from './SettingsRow';
-export { SettingsSection } from './SettingsSection';
+export { default as SegmentedControl } from './SegmentedControl';
+export { default as SettingsRow } from './SettingsRow';
+export { default as SettingsSection } from './SettingsSection';

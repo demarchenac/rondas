@@ -1,8 +1,9 @@
+import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/cn';
 
-export function SegmentedControl<T extends string>({
+function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
@@ -35,3 +36,5 @@ export function SegmentedControl<T extends string>({
     </View>
   );
 }
+
+export default React.memo(SegmentedControl) as typeof SegmentedControl;

@@ -6,7 +6,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { cn } from '@/lib/cn';
 
-export const SettingsRow = React.memo(function SettingsRow({
+const SettingsRow = React.memo(function SettingsRow({
   icon,
   iconColor,
   label,
@@ -63,3 +63,5 @@ export const SettingsRow = React.memo(function SettingsRow({
     </View>
   );
 });
+
+export default SettingsRow;
