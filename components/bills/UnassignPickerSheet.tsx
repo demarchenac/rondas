@@ -5,15 +5,15 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
 import { ICON_COLORS } from '@/constants/colors';
 import { useColorScheme } from 'nativewind';
-import { cn } from '@/lib/cn';
+import type { Id } from '@/convex/_generated/dataModel';
 
 interface UnassignPickerSheetProps {
   visible: boolean;
-  contacts: Array<{ name: string; imageUri?: string; items: string[]; contactIndex: number }>;
+  contacts: { name: string; imageUri?: string; items: string[]; contactId: Id<'contacts'> }[];
   selectedItemIds: Set<string>;
   selectedContactIds: Set<string>;
   bottomInset: number;
-  onToggleContact: (contactKey: string) => void;
+  onToggleContact: (contactId: string) => void;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -56,12 +56,12 @@ function UnassignPickerSheet({
 
         <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
           {contactsOnSelected.map((c) => {
-            const isSelected = selectedContactIds.has(String(c.contactIndex));
+            const isSelected = selectedContactIds.has(String(c.contactId));
             const itemCount = c.items.filter((itemId) => selectedItemIds.has(itemId)).length;
             return (
               <Pressable
-                key={c.contactIndex}
-                onPress={() => onToggleContact(String(c.contactIndex))}
+                key={String(c.contactId)}
+                onPress={() => onToggleContact(String(c.contactId))}
                 className="flex-row items-center py-3 gap-3"
               >
                 <IconSymbol

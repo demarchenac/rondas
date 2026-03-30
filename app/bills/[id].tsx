@@ -20,12 +20,11 @@ import { api } from '@/convex/_generated/api';
 import { useAuth } from '@/lib/AuthContext';
 import { formatCurrency, parseCurrency } from '@/lib/format';
 import { useT } from '@/lib/i18n';
-import type { Translations } from '@/lib/i18n';
 import { toE164 } from '@/lib/phone';
-import { CATEGORY_LABELS, computeBase, computeTax, getTaxConfig, type TaxConfig } from '@/constants/taxes';
-import { relativeTime, parseExifDate } from '@/lib/date';
+import { CATEGORY_LABELS, computeBase, computeTax, getTaxConfig } from '@/constants/taxes';
+import { relativeTime } from '@/lib/date';
 import { cn } from '@/lib/cn';
-import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel, getCategoryLabel, type BillState } from '@/lib/billHelpers';
+import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel, getCategoryLabel } from '@/lib/billHelpers';
 import { buildWhatsAppMessage } from '@/lib/whatsapp';
 
 import SwipeableItem from '@/components/bills/SwipeableItem';
@@ -50,7 +49,6 @@ export default function BillDetailScreen() {
   // exists all mutation callbacks are guaranteed a valid userId.
   const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
   const updateBill = useMutation(api.bills.update);
-  const assignContact = useMutation(api.bills.assignContactToItem);
   const removeContact = useMutation(api.bills.removeContactFromItem);
   const togglePaid = useMutation(api.bills.togglePaymentStatus);
   const removeBill = useMutation(api.bills.remove);
@@ -111,11 +109,6 @@ export default function BillDetailScreen() {
     updateBill({ id: id as Id<'bills'>, userId, tax: parseCurrency(value) });
   }, [id, updateBill, userId]);
 
-  const handleUpdateTip = useCallback((value: string) => {
-    if (!userId) return;
-    updateBill({ id: id as Id<'bills'>, userId, tip: parseCurrency(value) });
-  }, [id, updateBill, userId]);
-
   const toggleItemSelection = useCallback((itemId: string) => {
     setSelectedItemIds((prev) => {
       const next = new Set(prev);
@@ -167,7 +160,7 @@ export default function BillDetailScreen() {
         id: id as Id<'bills'>,
         userId,
         itemIds,
-        contact: { name, phone: phone ?? undefined, imageUri: imageUri ?? undefined },
+        contact: { name, phone: phone ?? '', imageUri: imageUri ?? undefined },
       });
     }
 
@@ -204,7 +197,6 @@ export default function BillDetailScreen() {
 
     const selectedIds = Array.from(selectedItemIds);
     const contactsOnSelected = bill.contacts
-      .map((c, contactIdx) => ({ ...c, contactIndex: contactIdx }))
       .filter((c) => c.items.some((itemId) => selectedIds.includes(itemId)));
 
     if (contactsOnSelected.length === 0) {
@@ -224,7 +216,7 @@ export default function BillDetailScreen() {
               id: id as Id<'bills'>,
               userId,
               itemIds: selectedIds.filter((itemId): itemId is string => !!itemId),
-              contactNames: [c.name],
+              contactIds: [c.contactId],
             });
             setSelectedItemIds(new Set());
             setMultiSelectMode(false);
@@ -243,16 +235,13 @@ export default function BillDetailScreen() {
 
     const itemIds = Array.from(selectedItemIds);
 
-    const contactNames = Array.from(selectedContactIds).map((ciStr) => {
-      const contactIdx = parseInt(ciStr, 10);
-      return bill.contacts[contactIdx]?.name;
-    }).filter((contactName): contactName is string => !!contactName);
+    const contactIds = Array.from(selectedContactIds) as Id<'contacts'>[];
 
     await removeContactsBatch({
       id: id as Id<'bills'>,
       userId,
       itemIds,
-      contactNames,
+      contactIds,
     });
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -279,21 +268,21 @@ export default function BillDetailScreen() {
     setActiveDialog('contactPicker');
   }, [t]);
 
-  const handleRemoveContact = useCallback((itemId: string, contactIndex: number) => {
+  const handleRemoveContact = useCallback((itemId: string, contactId: Id<'contacts'>) => {
     if (!userId) return;
     Alert.alert(t.bill_removeContact, t.bill_removeContactConfirm, [
       { text: t.cancel, style: 'cancel' },
       {
         text: t.remove,
         style: 'destructive',
-        onPress: () => removeContact({ id: id as Id<'bills'>, userId: userId!, itemId, contactIndex }),
+        onPress: () => removeContact({ id: id as Id<'bills'>, userId: userId!, itemId, contactId }),
       },
     ]);
   }, [id, removeContact, t, userId]);
 
-  const handleTogglePaid = useCallback(async (contactIndex: number) => {
+  const handleTogglePaid = useCallback(async (contactId: Id<'contacts'>) => {
     if (!userId) return;
-    await togglePaid({ id: id as Id<'bills'>, userId: userId!, contactIndex });
+    await togglePaid({ id: id as Id<'bills'>, userId: userId!, contactId });
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [id, togglePaid]);
 
@@ -310,7 +299,7 @@ export default function BillDetailScreen() {
 
   const infographicRefs = useRef<Record<number, ViewShot | null>>({});
 
-  const handleShareInfographic = useCallback(async (contact: { name: string; items: string[]; amount: number }, contactIndex: number) => {
+  const handleShareInfographic = useCallback(async (contact: { name: string; imageUri?: string; items: string[]; amount: number }, contactIndex: number) => {
     if (!bill) return;
     const ref = infographicRefs.current[contactIndex];
     if (!ref?.capture) return;
@@ -390,7 +379,7 @@ export default function BillDetailScreen() {
     );
   }
 
-  const { base, itemsTotal, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, beforeTip, total, stateStyle, stateLabel } = billDerived;
+  const { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, beforeTip, total, stateStyle, stateLabel } = billDerived;
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
@@ -557,7 +546,6 @@ export default function BillDetailScreen() {
         {sortedItems.map((item, index) => {
           const itemId = item.id!;
           const assignedContacts = bill.contacts
-            .map((c, contactIdx) => ({ ...c, contactIndex: contactIdx }))
             .filter((c) => c.items.includes(itemId));
           const isEditing = editingItemId === itemId;
 
@@ -657,8 +645,8 @@ export default function BillDetailScreen() {
                       <View className="mt-2 flex-row flex-wrap gap-1.5">
                         {assignedContacts.map((c) => (
                           <Pressable
-                            key={c.contactIndex}
-                            onPress={() => item.id && handleRemoveContact(item.id, c.contactIndex)}
+                            key={String(c.contactId)}
+                            onPress={() => item.id && handleRemoveContact(item.id, c.contactId)}
                             className="flex-row items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-1"
                           >
                             {c.imageUri ? (
@@ -800,7 +788,7 @@ export default function BillDetailScreen() {
       {bill && (
         <UnassignPickerSheet
           visible={activeDialog === 'unassignPicker'}
-          contacts={bill.contacts.map((c, contactIdx) => ({ ...c, contactIndex: contactIdx }))}
+          contacts={bill.contacts}
           selectedItemIds={selectedItemIds}
           selectedContactIds={selectedContactIds}
           bottomInset={insets.bottom}

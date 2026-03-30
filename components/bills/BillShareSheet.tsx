@@ -12,20 +12,21 @@ import { ICON_COLORS } from '@/constants/colors';
 import { useColorScheme } from 'nativewind';
 import { cn } from '@/lib/cn';
 import BillInfographic from './BillInfographic';
-import type { Doc } from '@/convex/_generated/dataModel';
+import type { Id } from '@/convex/_generated/dataModel';
+import type { ResolvedBill, ResolvedContact } from '@/lib/filters';
 
 interface BillShareSheetProps {
   visible: boolean;
-  bill: Doc<'bills'>;
+  bill: ResolvedBill;
   billCountry: 'CO' | 'US';
   taxConfig: TaxConfig;
   tipPercent: number;
   translatedTaxLabel: string;
   bottomInset: number;
   infographicRefs: React.MutableRefObject<Record<number, ViewShot | null>>;
-  onTogglePaid: (contactIndex: number) => void;
-  onSendWhatsApp: (contact: { name: string; phone?: string; items: string[]; amount: number }) => void;
-  onShareInfographic: (contact: { name: string; phone?: string; email?: string; imageUri?: string; items: string[]; amount: number; paid: boolean }, contactIndex: number) => void;
+  onTogglePaid: (contactId: Id<'contacts'>) => void;
+  onSendWhatsApp: (contact: ResolvedContact) => void;
+  onShareInfographic: (contact: ResolvedContact, contactIndex: number) => void;
   onClose: () => void;
 }
 
@@ -143,7 +144,7 @@ function BillShareSheet({
               <View className="ml-[52px] mt-3 flex-row gap-2">
                 {/* Paid toggle */}
                 <Pressable
-                  onPress={() => onTogglePaid(ci)}
+                  onPress={() => onTogglePaid(contact.contactId)}
                   className={cn(
                     'flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border',
                     contact.paid
