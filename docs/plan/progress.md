@@ -285,6 +285,10 @@
 - [x] Dynamic tax label (Impoconsumo/IVA/Sales Tax)
 - [x] Fix impoconsumo calculation: base = subtotal / (1 + rate), tax = base * rate
 - [x] Fix total calculation in update mutation for tax-included countries
+- [x] Compute tip on base amount (excluding tax) for tax-inclusive countries
+- [x] Show base (without tax) as "Subtotal" instead of tax-inclusive total
+- [x] Add "Before tip" row between tax and tip for visibility
+- [x] Update infographic to match bill detail breakdown layout
 - [x] Item sorting strategies (receipt order, price asc/desc, alpha asc/desc)
 - [x] Refactor item operations from index-based to ID-based
 - [x] Delete bill button with confirmation
@@ -484,9 +488,9 @@
 | Phase 4 — Bill Creation & AI      | 34          | 33    |
 | Phase 5 — Bill Splitting          | 21          | 19    |
 | Phase 6 — Summary & Notifications | 10          | 8     |
-| Phase 7 — Bill Detail & History   | 28          | 26    |
+| Phase 7 — Bill Detail & History   | 32          | 30    |
 | Phase 8 — Settings                | 24          | 23    |
 | Phase 9 — Subscriptions           | 12          | 0     |
 | Phase 10 — Polish & Launch        | 16          | 5     |
 | Codebase Review Refactoring       | 48          | 48    |
-| **Total**                         | **261**     | **225**|
+| **Total**                         | **265**     | **229**|
