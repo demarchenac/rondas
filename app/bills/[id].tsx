@@ -43,8 +43,10 @@ export default function BillDetailScreen() {
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const t = useT();
   const { user } = useAuth();
-  const userId = user?.id ?? '';
+  const userId = user?.id;
 
+  // bill is only loaded when userId is truthy (via 'skip'), so whenever bill
+  // exists all mutation callbacks are guaranteed a valid userId.
   const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
   const updateBill = useMutation(api.bills.update);
   const assignContact = useMutation(api.bills.assignContactToItem);
@@ -71,7 +73,7 @@ export default function BillDetailScreen() {
 
   const handleRemoveItem = useCallback((itemId: string) => {
     const currentBill = billRef.current;
-    if (!currentBill) return;
+    if (!currentBill || !userId) return;
     const remaining = currentBill.items.filter((billItem) => billItem.id !== itemId);
     setDeletingId(itemId);
     setTimeout(() => {
@@ -89,7 +91,7 @@ export default function BillDetailScreen() {
   }, []);
 
   const handleUpdateItem = useCallback((itemId: string, field: 'name' | 'quantity' | 'unitPrice', value: string) => {
-    if (!bill) return;
+    if (!bill || !userId) return;
     const items = bill.items.map((item) => {
       if (item.id !== itemId) return item;
       if (field === 'name') return { ...item, name: value };
@@ -104,12 +106,14 @@ export default function BillDetailScreen() {
   }, [bill, id, updateBill]);
 
   const handleUpdateTax = useCallback((value: string) => {
+    if (!userId) return;
     updateBill({ id: id as Id<'bills'>, userId, tax: parseCurrency(value) });
-  }, [id, updateBill]);
+  }, [id, updateBill, userId]);
 
   const handleUpdateTip = useCallback((value: string) => {
+    if (!userId) return;
     updateBill({ id: id as Id<'bills'>, userId, tip: parseCurrency(value) });
-  }, [id, updateBill]);
+  }, [id, updateBill, userId]);
 
   const toggleItemSelection = useCallback((itemId: string) => {
     setSelectedItemIds((prev) => {
@@ -139,7 +143,7 @@ export default function BillDetailScreen() {
   }, [selectedItemIds, t]);
 
   const handleConfirmContactPicker = useCallback(async () => {
-    if (selectedContactIds.size === 0 || !bill) return;
+    if (selectedContactIds.size === 0 || !bill || !userId) return;
 
     // Determine which items to assign to
     let itemIds: string[];
@@ -174,7 +178,7 @@ export default function BillDetailScreen() {
   }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, bill, id, assignContactToItems]);
 
   const handleBulkDelete = useCallback(() => {
-    if (selectedItemIds.size === 0 || !bill) return;
+    if (selectedItemIds.size === 0 || !bill || !userId) return;
     Alert.alert(
       t.bill_deleteItems,
       t.bill_deleteItemsConfirm(selectedItemIds.size),
@@ -195,7 +199,7 @@ export default function BillDetailScreen() {
   }, [selectedItemIds, bill, id, updateBill, t]);
 
   const handleBulkRemoveContact = useCallback(() => {
-    if (selectedItemIds.size === 0 || !bill) return;
+    if (selectedItemIds.size === 0 || !bill || !userId) return;
 
     const selectedIds = Array.from(selectedItemIds);
     const contactsOnSelected = bill.contacts
@@ -234,7 +238,7 @@ export default function BillDetailScreen() {
   }, [selectedItemIds, bill, id, removeContact, t]);
 
   const handleConfirmUnassign = useCallback(async () => {
-    if (selectedContactIds.size === 0 || !bill) return;
+    if (selectedContactIds.size === 0 || !bill || !userId) return;
 
     const itemIds = Array.from(selectedItemIds);
 
@@ -275,18 +279,20 @@ export default function BillDetailScreen() {
   }, [t]);
 
   const handleRemoveContact = useCallback((itemId: string, contactIndex: number) => {
+    if (!userId) return;
     Alert.alert(t.bill_removeContact, t.bill_removeContactConfirm, [
       { text: t.cancel, style: 'cancel' },
       {
         text: t.remove,
         style: 'destructive',
-        onPress: () => removeContact({ id: id as Id<'bills'>, userId, itemId, contactIndex }),
+        onPress: () => removeContact({ id: id as Id<'bills'>, userId: userId!, itemId, contactIndex }),
       },
     ]);
-  }, [id, removeContact, t]);
+  }, [id, removeContact, t, userId]);
 
   const handleTogglePaid = useCallback(async (contactIndex: number) => {
-    await togglePaid({ id: id as Id<'bills'>, userId, contactIndex });
+    if (!userId) return;
+    await togglePaid({ id: id as Id<'bills'>, userId: userId!, contactIndex });
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [id, togglePaid]);
 
@@ -433,7 +439,7 @@ export default function BillDetailScreen() {
     );
   }
 
-  if (!bill || !billDerived) {
+  if (!bill || !billDerived || !userId) {
     return (
       <View className="flex-1 items-center justify-center bg-background" style={{ paddingTop: insets.top }}>
         <Text className="text-lg font-semibold text-foreground">{t.error}</Text>
@@ -457,7 +463,7 @@ export default function BillDetailScreen() {
         <View className="flex-1">
           <Input
             value={bill.name}
-            onChangeText={(text) => updateBill({ id: id as Id<'bills'>, userId, name: text })}
+            onChangeText={(text) => updateBill({ id: id as Id<'bills'>, userId: userId!, name: text })}
             className="h-auto border-0 bg-transparent px-0 py-0 text-xl font-bold shadow-none"
           />
         </View>
@@ -477,7 +483,7 @@ export default function BillDetailScreen() {
                     text: t.delete,
                     style: 'destructive',
                     onPress: async () => {
-                      await removeBill({ id: id as Id<'bills'>, userId });
+                      await removeBill({ id: id as Id<'bills'>, userId: userId! });
                       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                       router.back();
                     },

@@ -25,7 +25,7 @@ interface BillShareSheetProps {
   infographicRefs: React.MutableRefObject<Record<number, ViewShot | null>>;
   onTogglePaid: (contactIndex: number) => void;
   onSendWhatsApp: (contact: { name: string; phone?: string; items: string[]; amount: number }) => void;
-  onShareInfographic: (contact: any, contactIndex: number) => void;
+  onShareInfographic: (contact: { name: string; phone?: string; email?: string; imageUri?: string; items: string[]; amount: number; paid: boolean }, contactIndex: number) => void;
   onClose: () => void;
 }
 

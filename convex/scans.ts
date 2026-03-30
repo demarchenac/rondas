@@ -15,26 +15,37 @@ export const createScan = mutation({
 export const updateScan = mutation({
   args: {
     id: v.id('scans'),
+    userId: v.string(),
     status: scanStatusValidator,
     result: v.optional(scanResultValidator),
     error: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+    const scan = await ctx.db.get(args.id);
+    if (!scan || scan.userId !== args.userId) {
+      throw new Error('Scan not found or access denied');
+    }
+    const { id, userId, ...fields } = args;
     await ctx.db.patch(id, fields);
   },
 });
 
 export const getScan = query({
-  args: { id: v.id('scans') },
+  args: { id: v.id('scans'), userId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const scan = await ctx.db.get(args.id);
+    if (!scan || scan.userId !== args.userId) return null;
+    return scan;
   },
 });
 
 export const deleteScan = mutation({
-  args: { id: v.id('scans') },
+  args: { id: v.id('scans'), userId: v.string() },
   handler: async (ctx, args) => {
+    const scan = await ctx.db.get(args.id);
+    if (!scan || scan.userId !== args.userId) {
+      throw new Error('Scan not found or access denied');
+    }
     await ctx.db.delete(args.id);
   },
 });

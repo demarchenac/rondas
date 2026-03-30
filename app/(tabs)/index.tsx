@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { Swipeable } from 'react-native-gesture-handler';
 import { usePaginatedQuery, useMutation } from 'convex/react';
-import type { Doc } from '@/convex/_generated/dataModel';
+import type { Doc, Id } from '@/convex/_generated/dataModel';
 
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
@@ -65,14 +65,15 @@ export default function HomeScreen() {
     unresolved: allBills.filter((b) => b.state === 'unresolved').length,
   };
 
-  const handleDeleteBill = useCallback((billId: string) => {
+  const handleDeleteBill = useCallback((billId: Id<'bills'>) => {
+    if (!user) return;
     Alert.alert(t.home_deleteBill, t.home_deleteConfirm, [
       { text: t.cancel, style: 'cancel' },
       {
         text: t.delete,
         style: 'destructive',
         onPress: async () => {
-          await removeBill({ id: billId as any, userId: user!.id });
+          await removeBill({ id: billId, userId: user.id });
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         },
       },

@@ -101,12 +101,14 @@ export const extractBillItems = action({
     imageBase64: v.string(),
     mimeType: v.string(),
     scanId: v.id('scans'),
+    userId: v.string(),
   },
   handler: async (ctx, args): Promise<ExtractedBill> => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       await ctx.runMutation(api.scans.updateScan, {
         id: args.scanId,
+        userId: args.userId,
         status: 'error',
         error: 'GEMINI_API_KEY not configured',
       });
@@ -147,6 +149,7 @@ export const extractBillItems = action({
       const errorMsg = isTimeout ? 'Gemini API request timed out after 60s' : `Gemini API request failed: ${err}`;
       await ctx.runMutation(api.scans.updateScan, {
         id: args.scanId,
+        userId: args.userId,
         status: 'error',
         error: errorMsg,
       });
@@ -158,13 +161,15 @@ export const extractBillItems = action({
       const error = await response.text();
       await ctx.runMutation(api.scans.updateScan, {
         id: args.scanId,
+        userId: args.userId,
         status: 'error',
         error: `Gemini API error (${response.status})`,
       });
       throw new Error(`Gemini API error (${response.status}): ${error}`);
     }
 
-    const reader = response.body!.getReader();
+    if (!response.body) throw new Error('No response body');
+    const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let sseBuffer = '';
     let jsonText = '';
@@ -199,6 +204,7 @@ export const extractBillItems = action({
               hasReportedThinking = true;
               await ctx.runMutation(api.scans.updateScan, {
                 id: args.scanId,
+                userId: args.userId,
                 status: 'thinking',
               });
             }
@@ -208,6 +214,7 @@ export const extractBillItems = action({
                 hasReportedExtracting = true;
                 await ctx.runMutation(api.scans.updateScan, {
                   id: args.scanId,
+                  userId: args.userId,
                   status: 'extracting',
                 });
               }
@@ -220,6 +227,7 @@ export const extractBillItems = action({
                 lastItemCount = items.length;
                 await ctx.runMutation(api.scans.updateScan, {
                   id: args.scanId,
+                  userId: args.userId,
                   status: 'extracting',
                   result: {
                     category: 'dining',
@@ -241,6 +249,7 @@ export const extractBillItems = action({
     if (!jsonText) {
       await ctx.runMutation(api.scans.updateScan, {
         id: args.scanId,
+        userId: args.userId,
         status: 'error',
         error: 'No response from Gemini API',
       });
@@ -252,8 +261,8 @@ export const extractBillItems = action({
     try {
       const parsed: ExtractedBill = JSON.parse(cleaned);
 
-      const validCategories = ['dining', 'retail', 'service'] as const;
-      const category = validCategories.includes(parsed.category as any)
+      const validCategories: readonly string[] = ['dining', 'retail', 'service'];
+      const category = validCategories.includes(parsed.category)
         ? parsed.category
         : 'dining';
 
@@ -269,6 +278,7 @@ export const extractBillItems = action({
 
       await ctx.runMutation(api.scans.updateScan, {
         id: args.scanId,
+        userId: args.userId,
         status: 'complete',
         result: {
           ...result,
@@ -280,6 +290,7 @@ export const extractBillItems = action({
     } catch {
       await ctx.runMutation(api.scans.updateScan, {
         id: args.scanId,
+        userId: args.userId,
         status: 'error',
         error: `Failed to parse response: ${cleaned.slice(0, 100)}`,
       });

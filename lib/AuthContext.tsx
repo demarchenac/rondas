@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(storedUser);
       })
       .catch((error) => {
-        console.error('Failed to load stored session:', error);
+        if (__DEV__) console.error('Failed to load stored session:', error);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -93,13 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const error = parsed.queryParams?.error as string | undefined;
       if (error) {
-        console.error('OAuth error:', error, parsed.queryParams?.error_description);
+        if (__DEV__) console.error('OAuth error:', error, parsed.queryParams?.error_description);
         return;
       }
 
       const code = parsed.queryParams?.code as string | undefined;
       if (!code) {
-        console.error('No authorization code in callback');
+        if (__DEV__) console.error('No authorization code in callback');
         return;
       }
 
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await syncAfterLogin(newUser);
         setUser(newUser);
       } catch (err) {
-        console.error('Auth callback failed:', err);
+        if (__DEV__) console.error('Auth callback failed:', err);
       } finally {
         setLoading(false);
       }
@@ -127,37 +127,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const url = await getSignInUrl(provider);
-      console.log('[Auth] Opening browser for provider:', provider ?? 'authkit');
+      if (__DEV__) console.log('[Auth] Opening browser for provider:', provider ?? 'authkit');
       const result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_URI);
-      console.log('[Auth] Browser result type:', result.type);
+      if (__DEV__) console.log('[Auth] Browser result type:', result.type);
 
       if (result.type !== 'success' || !result.url) {
         return { success: false, error: `Authentication was cancelled (${result.type})` };
       }
 
-      console.log('[Auth] Callback URL:', result.url);
       const parsed = Linking.parse(result.url);
       const error = parsed.queryParams?.error as string | undefined;
       if (error) {
         const errorDesc = parsed.queryParams?.error_description as string;
-        console.error('[Auth] OAuth error:', error, errorDesc);
+        if (__DEV__) console.error('[Auth] OAuth error:', error, errorDesc);
         return { success: false, error: errorDesc || error };
       }
 
       const code = parsed.queryParams?.code as string | undefined;
       if (!code) {
-        console.error('[Auth] No code in params:', JSON.stringify(parsed.queryParams));
+        if (__DEV__) console.error('[Auth] No code in callback params');
         return { success: false, error: 'No authorization code received' };
       }
 
-      console.log('[Auth] Got code, exchanging token...');
+      if (__DEV__) console.log('[Auth] Got code, exchanging token...');
       const newUser = await handleCallback(code);
-      console.log('[Auth] Authenticated user:', newUser.email);
       await syncAfterLogin(newUser);
       setUser(newUser);
       return { success: true };
     } catch (error) {
-      console.error('[Auth] Sign-in error:', error);
+      if (__DEV__) console.error('[Auth] Sign-in error:', error);
       return { success: false, error: String(error) };
     } finally {
       setLoading(false);

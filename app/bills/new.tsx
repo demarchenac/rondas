@@ -21,6 +21,7 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useAction, useMutation, useQuery } from 'convex/react';
 import { randomUUID } from 'expo-crypto';
+import type { Id } from '@/convex/_generated/dataModel';
 
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
@@ -104,10 +105,10 @@ export default function NewBillScreen() {
   const createScan = useMutation(api.scans.createScan);
   const deleteScan = useMutation(api.scans.deleteScan);
   const createBill = useMutation(api.bills.create);
-  const [scanId, setScanId] = useState<string | null>(null);
+  const [scanId, setScanId] = useState<Id<'scans'> | null>(null);
   const scanProgress = useQuery(
     api.scans.getScan,
-    scanId ? { id: scanId as any } : 'skip'
+    scanId && user ? { id: scanId, userId: user.id } : 'skip'
   );
 
   // Resolve place name in background
@@ -202,7 +203,7 @@ export default function NewBillScreen() {
   }, []);
 
   const handleScan = async () => {
-    if (!imageUri) return;
+    if (!imageUri || !user) return;
     setError(null);
     setScanning(true);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -219,10 +220,10 @@ export default function NewBillScreen() {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      const newScanId = await createScan({ userId: user!.id });
+      const newScanId = await createScan({ userId: user.id });
       setScanId(newScanId);
 
-      const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg', scanId: newScanId });
+      const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg', scanId: newScanId, userId: user!.id });
       const preparedItems = prepareItems(
         result.items.map((item) => ({ ...item, id: generateItemId() }))
       );
@@ -251,7 +252,7 @@ export default function NewBillScreen() {
 
       // Create bill as draft in DB and navigate to detail
       const billId = await createBill({
-        userId: user!.id,
+        userId: user.id,
         name: placeData.placeName || 'Bill',
         total: calculatedTotal,
         tax,
@@ -262,7 +263,7 @@ export default function NewBillScreen() {
         country,
         ...metadataParams,
       });
-      if (newScanId) deleteScan({ id: newScanId }).catch(() => {});
+      if (newScanId) deleteScan({ id: newScanId, userId: user!.id }).catch(() => {});
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace(`/bills/${billId}` as Href);
     } catch (err) {
@@ -486,7 +487,7 @@ export default function NewBillScreen() {
                       key={i}
                       className={cn(
                         'flex-row justify-between py-1.5',
-                        i < scanProgress.result!.items.length - 1 && 'border-b border-white/[0.08]',
+                        i < (scanProgress.result?.items?.length ?? 0) - 1 && 'border-b border-white/[0.08]',
                       )}
                     >
                       <Text className="flex-1 text-[13px] text-foreground" numberOfLines={1}>
