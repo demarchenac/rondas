@@ -211,9 +211,12 @@ export const en = {
   time_created: (time: string) => `Created ${time}`,
 
   // WhatsApp message
-  wa_items: 'Your items:',
-  wa_total: (amount: string) => `*Your total: ${amount}*`,
-  wa_footer: 'Summary generated with the Rondas app',
+  wa_breakdown: (name: string) => `*${name}'s breakdown:*`,
+  wa_subtotal: 'Subtotal',
+  wa_beforeTip: 'Before tip',
+  wa_tip: (pct: number) => `Tip (${pct}%)`,
+  wa_total: (amount: string) => `*Total: ${amount}*`,
+  wa_footer: '_Summary generated with the Rondas app_\n_rondas.app_',
 
   // Infographic
   infographic_billFor: 'Bill for',

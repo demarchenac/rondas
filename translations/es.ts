@@ -213,9 +213,12 @@ export const es: typeof en = {
   time_created: (time: string) => `Creada ${time}`,
 
   // WhatsApp message
-  wa_items: 'Tus ítems:',
-  wa_total: (amount: string) => `*Tu total: ${amount}*`,
-  wa_footer: 'Resumen generado con la app Rondas',
+  wa_breakdown: (name: string) => `*Desglose de ${name}:*`,
+  wa_subtotal: 'Subtotal',
+  wa_beforeTip: 'Antes de propina',
+  wa_tip: (pct: number) => `Propina (${pct}%)`,
+  wa_total: (amount: string) => `*Total: ${amount}*`,
+  wa_footer: '_Resumen generado con la app Rondas_\n_rondas.app_',
 
   // Infographic
   infographic_billFor: 'Factura para',
