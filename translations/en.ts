@@ -102,6 +102,7 @@ export const en = {
   settings_signOutConfirm: 'Are you sure you want to sign out?',
   settings_upgradePro: 'Upgrade to Pro',
   settings_proDescription: 'Unlimited bills, item splits & more',
+  settings_proPrice: (country: string): string => country === 'CO' ? '$15.000/mo' : '$1.99/mo',
   settings_version: 'Rondas v0.1.0',
   settings_madeIn: 'Made with love in Colombia',
 

@@ -104,6 +104,7 @@ export const es: typeof en = {
   settings_signOutConfirm: '¿Estás seguro de que quieres cerrar sesión?',
   settings_upgradePro: 'Actualizar a Pro',
   settings_proDescription: 'Facturas ilimitadas, divisiones por ítem y más',
+  settings_proPrice: (country: string) => country === 'CO' ? '$15.000/mes' : '$1.99/mes',
   settings_version: 'Rondas v0.1.0',
   settings_madeIn: 'Hecho con amor en Colombia',
 

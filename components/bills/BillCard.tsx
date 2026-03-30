@@ -49,7 +49,7 @@ function BillCard({ bill, onPress, t }: BillCardProps) {
             {formatCurrency(bill.total, bill.country)}
           </Text>
           <Text className="mt-0.5 text-xs text-muted-foreground">
-            {relativeTime(bill._creationTime)} · {t.billCard_items(itemCount)}
+            {relativeTime(bill._creationTime, t)} · {t.billCard_items(itemCount)}
           </Text>
         </View>
 

@@ -124,7 +124,7 @@ export default function SettingsScreen() {
               </Text>
             </View>
             <View className="rounded-full bg-pro px-3 py-1.5">
-              <Text className="text-xs font-bold text-white">$1.99/mo</Text>
+              <Text className="text-xs font-bold text-white">{t.settings_proPrice(country)}</Text>
             </View>
           </View>
         </Pressable>
