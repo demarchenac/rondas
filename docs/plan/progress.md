@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2026-03-29 (session 4 — codebase review)
+> Last updated: 2026-03-29 (session 5 — review #2, OAuth fix, tip fix)
 
 ---
 
@@ -104,6 +104,9 @@
 - [x] Redirect unauthenticated users to login screen
 - [x] Redirect authenticated users to home screen
 - [x] Handle loading state while checking auth
+- [x] Fix Android Google OAuth 'dismiss' result handling (Chrome Custom Tab)
+- [x] Fix deep link handler not clearing loading on error/missing-code paths
+- [x] Add 15s safety timeout for deep link delivery after browser dismiss
 
 ---
 
@@ -255,6 +258,8 @@
 - [x] Receipt-style infographic generation (ViewShot + expo-sharing)
 - [x] Redesigned infographic: tear edges, country badge, per-bill currency, translated labels
 - [x] "Resumen generado con la app Rondas" footer in messages and infographic
+- [x] Redesigned WhatsApp message with full breakdown (location, date, subtotal, tax, before-tip, tip, total)
+- [x] Extract WhatsApp message builder to `lib/whatsapp.ts`
 - [ ] Create React Email template for per-contact bill summary
 - [ ] Create Convex action to send email via Resend
 
@@ -478,19 +483,60 @@
 
 ---
 
+## Codebase Review #2 Fixes (Session 5)
+
+### Security & Type Safety
+
+- [x] Add userId auth to scan operations (getScan, updateScan, deleteScan)
+- [x] Remove/gate sensitive console.logs with `__DEV__` in AuthContext
+- [x] Replace all `as any` casts with proper `Id<>` types
+- [x] Replace non-null assertions with null guards and optional chaining
+- [x] Type the `contact` prop in BillShareSheet interface
+
+### React.memo & Performance
+
+- [x] Add React.memo to BillShareSheet, ContactPickerSheet, UnassignPickerSheet, TipDialog, CountryDialog
+
+### Code Quality
+
+- [x] Replace remaining hardcoded hex colors with theme tokens (KeyboardDoneButton, BillCard, ContactPickerSheet, UnassignPickerSheet, index.tsx)
+- [x] Fix remaining i18n gaps (Delete, item/items count, pro pricing, OAuth provider constants)
+- [x] Convert settings.tsx inline handlers to useCallback
+- [x] Validate notification env vars (RESEND_API_KEY, WHATSAPP_API_TOKEN)
+- [x] Fix setup.tsx side effect (useState → useEffect)
+
+### Extraction & Cleanup
+
+- [x] Extract ScanningOverlay from new.tsx
+- [x] Extract WhatsApp message builder to `lib/whatsapp.ts`
+- [x] Remove uploads.ts placeholder stub
+- [x] Standardize settings components to export default React.memo
+- [x] Second inline style audit: convert BillInfographic (~40 instances), BillCard margins, sheet paddingTop, Image positioning
+
+### Bug Fixes
+
+- [x] Fix Android Google OAuth stuck-on-loading (handle 'dismiss' result, clear loading on deep link errors, add safety timeout)
+- [x] Fix tip computation: compute on base (excluding tax) for tax-inclusive countries
+- [x] Show base as "Subtotal", add "Before tip" row in bill detail and infographic
+- [x] Localize Pro pricing for Colombia ($15.000/mes)
+- [x] Fix hardcoded "ago" in BillCard (pass translations to relativeTime)
+
+---
+
 ## Progress Summary
 
 | Phase                             | Total Tasks | Done  |
 | --------------------------------- | ----------- | ----- |
 | Phase 1 — Setup                   | 38          | 35    |
-| Phase 2 — Auth Screens            | 11          | 11    |
+| Phase 2 — Auth Screens            | 14          | 14    |
 | Phase 3 — Home Screen             | 19          | 17    |
 | Phase 4 — Bill Creation & AI      | 34          | 33    |
 | Phase 5 — Bill Splitting          | 21          | 19    |
-| Phase 6 — Summary & Notifications | 10          | 8     |
+| Phase 6 — Summary & Notifications | 12          | 10    |
 | Phase 7 — Bill Detail & History   | 32          | 30    |
 | Phase 8 — Settings                | 24          | 23    |
 | Phase 9 — Subscriptions           | 12          | 0     |
 | Phase 10 — Polish & Launch        | 16          | 5     |
-| Codebase Review Refactoring       | 48          | 48    |
-| **Total**                         | **265**     | **229**|
+| Codebase Review #1 Refactoring    | 48          | 48    |
+| Codebase Review #2 Fixes          | 20          | 20    |
+| **Total**                         | **290**     | **254**|
