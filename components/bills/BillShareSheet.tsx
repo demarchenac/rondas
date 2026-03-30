@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, View, Pressable, ScrollView, Image } from 'react-native';
+import { Modal, View, Pressable, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import ViewShot from 'react-native-view-shot';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -155,7 +156,7 @@ function BillShareSheet({
                   <IconSymbol
                     name={contact.paid ? 'checkmark.circle.fill' : 'circle'}
                     size={16}
-                    color={contact.paid ? '#10b981' : '#94a3b8'}
+                    color={contact.paid ? iconColors.success : iconColors.mutedLight}
                   />
                   <Text className={cn('text-[13px] font-semibold', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
                     {contact.paid ? t.share_paid : t.share_unpaid}
@@ -178,7 +179,7 @@ function BillShareSheet({
                   onPress={() => onShareInfographic(contact, ci)}
                   className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border bg-primary/10 border-primary/20"
                 >
-                  <Share2 size={14} color="#38bdf8" />
+                  <Share2 size={14} color={iconColors.primary} />
                   <Text className="text-[13px] font-semibold text-primary">{t.share_share}</Text>
                 </Pressable>
               </View>

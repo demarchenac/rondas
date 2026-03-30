@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, View } from 'react-native';
+import { Image } from 'expo-image';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -79,7 +80,7 @@ export default function BillDetailScreen() {
       updateBill({ id: id as Id<'bills'>, userId, items: remaining });
       setDeletingId(null);
     }, 300);
-  }, [id, updateBill]);
+  }, [id, updateBill, userId]);
 
   const handleItemPress = useCallback((itemId: string) => {
     if (swipeOpenRef.current) {
@@ -102,7 +103,7 @@ export default function BillDetailScreen() {
       return updated;
     });
     updateBill({ id: id as Id<'bills'>, userId, items });
-  }, [bill, id, updateBill]);
+  }, [bill, id, updateBill, userId]);
 
   const handleUpdateTax = useCallback((value: string) => {
     if (!userId) return;
@@ -169,7 +170,7 @@ export default function BillDetailScreen() {
     setSingleAssignItemId(null);
     setSelectedItemIds(new Set());
     setMultiSelectMode(false);
-  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, bill, id, assignContactToItems]);
+  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, bill, id, assignContactToItems, userId]);
 
   const handleBulkDelete = useCallback(() => {
     if (selectedItemIds.size === 0 || !bill || !userId) return;
@@ -190,7 +191,7 @@ export default function BillDetailScreen() {
         },
       ]
     );
-  }, [selectedItemIds, bill, id, updateBill, t]);
+  }, [selectedItemIds, bill, id, updateBill, t, userId]);
 
   const handleBulkRemoveContact = useCallback(() => {
     if (selectedItemIds.size === 0 || !bill || !userId) return;
@@ -228,7 +229,7 @@ export default function BillDetailScreen() {
       setSelectedContactIds(new Set());
       setActiveDialog('unassignPicker');
     }
-  }, [selectedItemIds, bill, id, removeContact, t]);
+  }, [selectedItemIds, bill, id, removeContactsBatch, t, userId]);
 
   const handleConfirmUnassign = useCallback(async () => {
     if (selectedContactIds.size === 0 || !bill || !userId) return;
@@ -248,7 +249,7 @@ export default function BillDetailScreen() {
     setActiveDialog(null);
     setSelectedItemIds(new Set());
     setMultiSelectMode(false);
-  }, [selectedContactIds, selectedItemIds, bill, id, removeContactsBatch]);
+  }, [selectedContactIds, selectedItemIds, bill, id, removeContactsBatch, userId]);
 
   const handleAssignContact = useCallback(async (itemId: string) => {
     const { status } = await Contacts.requestPermissionsAsync();
@@ -284,7 +285,7 @@ export default function BillDetailScreen() {
     if (!userId) return;
     await togglePaid({ id: id as Id<'bills'>, userId: userId!, contactId });
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [id, togglePaid]);
+  }, [id, togglePaid, userId]);
 
   const handleSendWhatsApp = useCallback((contact: { name: string; phone?: string; items: string[]; amount: number }) => {
     if (!bill || !contact.phone) {
@@ -422,7 +423,7 @@ export default function BillDetailScreen() {
             }}
             className="h-8 w-8 items-center justify-center rounded-full bg-destructive/10"
           >
-            <IconSymbol name="xmark" size={14} color="#ef4444" />
+            <IconSymbol name="xmark" size={14} color={iconColors.destructive} />
           </Pressable>
         </View>
       </View>
@@ -554,7 +555,7 @@ export default function BillDetailScreen() {
             <Swipeable
               renderRightActions={(_progress, dragX) => (
                 <Animated.View className="flex-1 items-end justify-center bg-destructive pr-6">
-                  <IconSymbol name="xmark" size={18} color="#fff" />
+                  <IconSymbol name="xmark" size={18} color={iconColors.primaryForeground} />
                   <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
                 </Animated.View>
               )}
@@ -628,7 +629,7 @@ export default function BillDetailScreen() {
                       <IconSymbol
                         name={selectedItemIds.has(itemId) ? 'checkmark.circle.fill' : 'circle'}
                         size={22}
-                        color={selectedItemIds.has(itemId) ? '#38bdf8' : '#64748b'}
+                        color={selectedItemIds.has(itemId) ? iconColors.primary : iconColors.muted}
                       />
                     </View>
                   )}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Image, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import * as Haptics from 'expo-haptics';
@@ -63,7 +63,7 @@ export default function LoginScreen() {
             disabled={loading}
             onPress={() => handleSignIn()}
           >
-            <IconSymbol name="envelope.fill" size={18} color="#fff" />
+            <IconSymbol name="envelope.fill" size={18} color={iconColors.primaryForeground} />
             <Text>{t.auth_signInEmail}</Text>
           </Button>
 

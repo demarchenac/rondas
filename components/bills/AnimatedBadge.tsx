@@ -26,7 +26,7 @@ function AnimatedBadge({ variant, label }: AnimatedBadgeProps) {
       );
       prevVariant.current = variant;
     }
-  }, [variant]);
+  }, [variant, scale]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],

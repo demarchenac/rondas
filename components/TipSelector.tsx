@@ -1,8 +1,10 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
 
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ICON_COLORS } from '@/constants/colors';
 import { cn } from '@/lib/cn';
 import { useT } from '@/lib/i18n';
 
@@ -15,12 +17,14 @@ interface TipSelectorProps {
 
 export const TipSelector = React.memo(function TipSelector({ value, onSelect }: TipSelectorProps) {
   const t = useT();
+  const { colorScheme } = useColorScheme();
+  const iconColors = ICON_COLORS[colorScheme ?? 'light'];
 
   return (
     <View>
       <View className="flex-row items-center gap-3 mb-3">
         <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted">
-          <IconSymbol name="percent" size={18} color="#f59e0b" />
+          <IconSymbol name="percent" size={18} color={iconColors.pro} />
         </View>
         <Text className="text-base text-foreground">{t.settings_tipPercentage}</Text>
       </View>

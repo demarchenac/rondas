@@ -57,4 +57,4 @@ function BulkToolbar({ selectedItemIds, hasContactsOnSelection, onAssign, onUnas
   );
 }
 
-export default BulkToolbar;
+export default React.memo(BulkToolbar);

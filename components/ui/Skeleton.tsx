@@ -25,7 +25,7 @@ function Skeleton({ width, height, borderRadius = 6, style }: SkeletonProps) {
       -1,
       false,
     );
-  }, []);
+  }, [translateX]);
 
   const shimmerStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value * 200 }],

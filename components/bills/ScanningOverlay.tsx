@@ -1,8 +1,10 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useColorScheme } from 'nativewind';
 
 import { Text } from '@/components/ui/text';
+import { ICON_COLORS } from '@/constants/colors';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import type { useT } from '@/lib/i18n';
@@ -36,6 +38,8 @@ interface ScanningOverlayProps {
 }
 
 function ScanningOverlay({ scanProgress, billCountry, t }: ScanningOverlayProps) {
+  const { colorScheme } = useColorScheme();
+  const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { title, hint } = getScanStatusLabel(
     scanProgress?.status,
     t,
@@ -55,7 +59,7 @@ function ScanningOverlay({ scanProgress, billCountry, t }: ScanningOverlayProps)
       />
       <View className="z-[1] w-full items-center px-8">
         <View className="h-20 w-20 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
-          <ActivityIndicator size="large" color="#38bdf8" />
+          <ActivityIndicator size="large" color={iconColors.primary} />
         </View>
         <Text className="mt-5 text-[17px] font-bold text-foreground">
           {title}

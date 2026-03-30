@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { Modal, Pressable, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/cn';
@@ -61,7 +62,7 @@ function USStatePicker({ visible, selected, onSelect, onClose }: USStatePickerPr
               />
 
               {/* List */}
-              <FlatList
+              <FlashList
                 data={filtered}
                 keyExtractor={(item) => item.code}
                 keyboardShouldPersistTaps="handled"
@@ -103,4 +104,4 @@ function USStatePicker({ visible, selected, onSelect, onClose }: USStatePickerPr
   );
 }
 
-export default USStatePicker;
+export default React.memo(USStatePicker);

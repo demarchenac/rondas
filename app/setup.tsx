@@ -15,12 +15,14 @@ import { useThemeStore, type ThemeMode } from '@/stores/useThemeStore';
 import { useAuth } from '@/lib/AuthContext';
 import { useT } from '@/lib/i18n';
 import { api } from '@/convex/_generated/api';
+import { ICON_COLORS } from '@/constants/colors';
 import type { Country } from '@/constants/taxes';
 
 export default function SetupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { setColorScheme } = useColorScheme();
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { user } = useAuth();
   const updateConfig = useMutation(api.users.updateConfig);
   const settingsStore = useSettingsStore();
@@ -82,7 +84,7 @@ export default function SetupScreen() {
         {/* Header */}
         <View className="items-center gap-2 py-6">
           <View className="mb-2 h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-            <IconSymbol name="receipt" size={32} color="#0a7ea4" />
+            <IconSymbol name="receipt" size={32} color={iconColors.primary} />
           </View>
           <Text className="text-2xl font-extrabold tracking-tight text-foreground">
             {t.setup_welcome}
@@ -94,7 +96,7 @@ export default function SetupScreen() {
 
         {/* Country */}
         <SettingsSection title={t.settings_country}>
-          <SettingsRow icon="globe.americas.fill" iconColor="#0a7ea4" label={t.settings_country} last>
+          <SettingsRow icon="globe.americas.fill" iconColor={iconColors.primary} label={t.settings_country} last>
             <SegmentedControl
               options={[
                 { label: t.settings_countryColombia, value: 'CO' as Country },
@@ -115,7 +117,7 @@ export default function SetupScreen() {
 
         {/* Language */}
         <SettingsSection title={t.settings_language}>
-          <SettingsRow icon="globe" iconColor="#0a7ea4" label={t.settings_language} last>
+          <SettingsRow icon="globe" iconColor={iconColors.primary} label={t.settings_language} last>
             <SegmentedControl
               options={[
                 { label: t.settings_langEnglish, value: 'en' as Language },
@@ -129,7 +131,7 @@ export default function SetupScreen() {
 
         {/* Theme */}
         <SettingsSection title={t.settings_theme}>
-          <SettingsRow icon="sun.max.fill" iconColor="#f59e0b" label={t.settings_theme} last>
+          <SettingsRow icon="sun.max.fill" iconColor={iconColors.pro} label={t.settings_theme} last>
             <SegmentedControl
               options={[
                 { label: t.settings_themeLight, value: 'light' as ThemeMode },

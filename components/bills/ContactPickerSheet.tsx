@@ -1,11 +1,11 @@
 import React from 'react';
-import { Modal, View, Pressable, ScrollView, TextInput, Image } from 'react-native';
+import { Modal, View, Pressable, ScrollView, TextInput } from 'react-native';
+import { Image } from 'expo-image';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
 import { useColorScheme } from 'nativewind';
 import { ICON_COLORS } from '@/constants/colors';
-import { cn } from '@/lib/cn';
 import type * as Contacts from 'expo-contacts';
 
 interface ContactPickerSheetProps {
@@ -82,7 +82,7 @@ function ContactPickerSheet({
                   <IconSymbol
                     name={isSelected ? 'checkmark.circle.fill' : 'circle'}
                     size={22}
-                    color={isSelected ? '#38bdf8' : '#64748b'}
+                    color={isSelected ? iconColors.primary : iconColors.muted}
                   />
                   {c.image?.uri ? (
                     <Image source={{ uri: c.image.uri }} className="w-9 h-9 rounded-full" />

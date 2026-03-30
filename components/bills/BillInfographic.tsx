@@ -238,4 +238,4 @@ function BillInfographic({
   );
 }
 
-export default BillInfographic;
+export default React.memo(BillInfographic);

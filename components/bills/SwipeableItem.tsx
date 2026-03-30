@@ -31,4 +31,4 @@ function SwipeableItem({ children, isDeleting }: SwipeableItemProps) {
   );
 }
 
-export default SwipeableItem;
+export default React.memo(SwipeableItem);

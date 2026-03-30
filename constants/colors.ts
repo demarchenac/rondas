@@ -23,6 +23,8 @@ export const ICON_COLORS = {
     mutedLight: '#94a3b8',
     destructive: '#ef4444',
     pro: '#d97706',
+    success: '#10b981',
+    accent: '#6366f1',
   },
   dark: {
     primary: '#38bdf8',
@@ -32,5 +34,7 @@ export const ICON_COLORS = {
     mutedLight: '#7088aa',
     destructive: '#f87171',
     pro: '#f59e0b',
+    success: '#34d399',
+    accent: '#818cf8',
   },
 };

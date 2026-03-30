@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Modal, View, Pressable, ScrollView, TextInput, Image } from 'react-native';
+import { Modal, View, Pressable, ScrollView, TextInput } from 'react-native';
+import { Image } from 'expo-image';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
@@ -46,7 +47,7 @@ function FilterSheet({
       setDraft(filters);
       setContactSearch('');
     }
-  }, [visible]);
+  }, [visible, filters]);
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch) return availableContacts;

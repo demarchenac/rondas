@@ -3,7 +3,6 @@ import { Modal, Pressable, TouchableWithoutFeedback, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/cn';
 import { useT } from '@/lib/i18n';
-import { formatCurrency } from '@/lib/format';
 
 interface TipDialogProps {
   visible: boolean;

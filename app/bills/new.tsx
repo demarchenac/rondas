@@ -27,7 +27,6 @@ import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { cn } from '@/lib/cn';
 import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
@@ -401,7 +400,7 @@ export default function NewBillScreen() {
                       backgroundColor: 'rgba(56, 189, 248, 0.1)',
                     }}
                   >
-                    <IconSymbol name="doc.text.viewfinder" size={22} color="#38bdf8" />
+                    <IconSymbol name="doc.text.viewfinder" size={22} color={iconColors.primary} />
                     <Text className="text-[17px] font-semibold text-white">
                       {t.scan_scanBill}
                     </Text>
@@ -443,7 +442,7 @@ export default function NewBillScreen() {
   // --- Review state (items extracted) ---
   const renderDeleteAction = () => (
     <Animated.View className="flex-1 items-end justify-center bg-destructive pr-6">
-      <IconSymbol name="xmark" size={18} color="#fff" />
+      <IconSymbol name="xmark" size={18} color={iconColors.primaryForeground} />
       <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
     </Animated.View>
   );
@@ -674,7 +673,7 @@ export default function NewBillScreen() {
         >
           {saving ? (
             <>
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={iconColors.primaryForeground} />
               <Text>{t.scan_saving}</Text>
             </>
           ) : (

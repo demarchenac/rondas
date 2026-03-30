@@ -131,7 +131,7 @@ export default function SettingsScreen() {
 
         {/* Preferences */}
         <SettingsSection title={t.settings_preferences}>
-          <SettingsRow icon="sun.max.fill" iconColor="#f59e0b" label={t.settings_theme}>
+          <SettingsRow icon="sun.max.fill" iconColor={iconColors.pro} label={t.settings_theme}>
             <SegmentedControl
               options={[
                 { label: t.settings_themeLight, value: 'light' as ThemeMode },
@@ -156,7 +156,7 @@ export default function SettingsScreen() {
 
         {/* Billing */}
         <SettingsSection title={t.settings_billing}>
-          <SettingsRow icon="globe.americas.fill" iconColor="#0a7ea4" label={t.settings_country}>
+          <SettingsRow icon="globe.americas.fill" iconColor={iconColors.primary} label={t.settings_country}>
             <SegmentedControl
               options={[
                 { label: t.settings_countryColombia, value: 'CO' as Country },
@@ -167,7 +167,7 @@ export default function SettingsScreen() {
             />
           </SettingsRow>
           {country === 'US' && (
-            <SettingsRow icon="map.fill" iconColor="#6366f1" label={t.settings_state}>
+            <SettingsRow icon="map.fill" iconColor={iconColors.accent} label={t.settings_state}>
               <Pressable
                 onPress={() => setStatePickerVisible(true)}
                 className="flex-row items-center gap-1 rounded-lg bg-muted-foreground/10 px-2.5 py-1"
@@ -196,7 +196,7 @@ export default function SettingsScreen() {
         <SettingsSection title={t.settings_scanning}>
           <SettingsRow
             icon="clock.fill"
-            iconColor="#6366f1"
+            iconColor={iconColors.accent}
             label={t.settings_extractTime}
             info={t.settings_extractTimeInfo}
           >
@@ -209,7 +209,7 @@ export default function SettingsScreen() {
           </SettingsRow>
           <SettingsRow
             icon="location.fill"
-            iconColor="#10b981"
+            iconColor={iconColors.success}
             label={t.settings_captureLocation}
             info={t.settings_captureLocationInfo}
             last
@@ -227,7 +227,7 @@ export default function SettingsScreen() {
         <SettingsSection title={t.settings_account}>
           <SettingsRow
             icon="rectangle.portrait.and.arrow.right"
-            iconColor="#ef4444"
+            iconColor={iconColors.destructive}
             label={t.settings_signOut}
             onPress={handleSignOut}
             last
