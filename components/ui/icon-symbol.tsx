@@ -40,6 +40,15 @@ const MAPPING = {
   'chevron.left': 'chevron-left',
   'checkmark.circle.fill': 'check-circle',
   'circle': 'radio-button-unchecked',
+  'xmark.circle.fill': 'cancel',
+  'fork.knife': 'restaurant',
+  'cart': 'shopping-cart',
+  'wrench.adjustable': 'build',
+  'circle.grid.2x2': 'grid-view',
+  'person.2': 'group',
+  'dollarsign.circle': 'attach-money',
+  'calendar': 'calendar-today',
+  'envelope.fill': 'email',
 } as IconMapping;
 
 /**
