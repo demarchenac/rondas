@@ -126,12 +126,7 @@ function PeopleSummary({
             </View>
             {/* Row 2: Amount · Item count */}
             <View className="mt-1 flex-row items-center gap-1">
-              <Text
-                className={cn(
-                  'text-xs font-bold tabular-nums',
-                  c.paid ? 'text-emerald-500' : 'text-foreground',
-                )}
-              >
+              <Text className="text-xs font-bold tabular-nums text-foreground">
                 {formatCurrency(c.total, billCountry)}
               </Text>
               <Text className="text-[11px] text-muted-foreground">·</Text>

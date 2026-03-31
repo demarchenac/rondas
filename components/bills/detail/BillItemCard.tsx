@@ -148,75 +148,78 @@ function BillItemCard({
           <Pressable
             onPress={() => multiSelectMode ? onToggleSelection(itemId) : onPress(itemId)}
             className={cn(
-              'mx-7 mb-2 flex-row items-start rounded-xl border-l-[3px] bg-card px-4 py-3 active:opacity-80',
+              'mx-7 mb-2 rounded-xl border-l-[3px] bg-card px-4 py-3 active:opacity-80',
               borderClass,
             )}
           >
-            {/* Checkbox in multi-select mode */}
-            {multiSelectMode && (
-              <View className="mr-3 justify-center pt-1">
-                <IconSymbol
-                  name={isSelected ? 'checkmark.circle.fill' : 'circle'}
-                  size={22}
-                  color={isSelected ? iconColors.primary : iconColors.muted}
-                />
-              </View>
-            )}
-            <View className="mr-3 flex-1">
-              <Text className="text-[15px] font-semibold leading-5 text-foreground" numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text className="mt-0.5 text-xs text-muted-foreground">
-                {item.quantity} × {formatCurrency(item.unitPrice, billCountry)}
-              </Text>
-
-              {/* Contact chips or assign hint */}
-              {!hasContacts && !multiSelectMode && (
-                <Text className="mt-1.5 text-[11px] text-muted-foreground/40">{t.bill_tapToAssign}</Text>
-              )}
-              {hasContacts && (
-                <View className="mt-2 flex-row flex-wrap gap-1.5">
-                  {assignedContacts.map((c) => (
-                    <Pressable
-                      key={String(c.contactId)}
-                      onLongPress={() => item.id && onRemoveContact(item.id, c.contactId)}
-                      className={cn(
-                        'flex-row items-center gap-1.5 rounded-full border px-2.5 py-1',
-                        c.paid
-                          ? 'border-emerald-500/20 bg-emerald-500/10'
-                          : 'border-primary/20 bg-primary/10',
-                      )}
-                    >
-                      {c.imageUri ? (
-                        <Image source={{ uri: c.imageUri }} className="w-4 h-4 rounded-full" />
-                      ) : (
-                        <IconSymbol name="person.crop.circle" size={13} color={c.paid ? '#10b981' : iconColors.primary} />
-                      )}
-                      <Text className={cn(
-                        'text-[11px] font-medium',
-                        c.paid ? 'text-emerald-500' : 'text-primary',
-                      )}>
-                        {c.name}
-                      </Text>
-                    </Pressable>
-                  ))}
+            {/* Top row: name/qty + price/button */}
+            <View className="flex-row items-start">
+              {/* Checkbox in multi-select mode */}
+              {multiSelectMode && (
+                <View className="mr-3 justify-center pt-1">
+                  <IconSymbol
+                    name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+                    size={22}
+                    color={isSelected ? iconColors.primary : iconColors.muted}
+                  />
                 </View>
               )}
+              <View className="mr-3 flex-1">
+                <Text className="text-[15px] font-semibold leading-5 text-foreground" numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text className="mt-0.5 text-xs text-muted-foreground">
+                  {item.quantity} × {formatCurrency(item.unitPrice, billCountry)}
+                </Text>
+                {/* Assign hint */}
+                {!hasContacts && !multiSelectMode && (
+                  <Text className="mt-1.5 text-[11px] text-muted-foreground/40">{t.bill_tapToAssign}</Text>
+                )}
+              </View>
+              <View className="items-end gap-1">
+                <Text className="text-[15px] font-bold tabular-nums text-foreground">
+                  {formatCurrency(item.subtotal, billCountry)}
+                </Text>
+                {!multiSelectMode && (
+                  <Pressable
+                    onPress={() => onAssignContact(itemId)}
+                    className="h-8 w-8 items-center justify-center rounded-full border border-dashed border-primary/30 bg-primary/5"
+                  >
+                    <IconSymbol name="plus" size={14} color={iconColors.primary} />
+                  </Pressable>
+                )}
+              </View>
             </View>
 
-            <View className="items-end gap-1">
-              <Text className="text-[15px] font-bold tabular-nums text-foreground">
-                {formatCurrency(item.subtotal, billCountry)}
-              </Text>
-              {!multiSelectMode && (
-                <Pressable
-                  onPress={() => onAssignContact(itemId)}
-                  className="h-8 w-8 items-center justify-center rounded-full border border-dashed border-primary/30 bg-primary/5"
-                >
-                  <IconSymbol name="plus" size={14} color={iconColors.primary} />
-                </Pressable>
-              )}
-            </View>
+            {/* Contact chips — full width below the top row */}
+            {hasContacts && (
+              <View className="mt-2 flex-row flex-wrap gap-1.5">
+                {assignedContacts.map((c) => (
+                  <Pressable
+                    key={String(c.contactId)}
+                    onPress={() => item.id && onRemoveContact(item.id, c.contactId)}
+                    className={cn(
+                      'flex-row items-center gap-1.5 rounded-full border px-2.5 py-1',
+                      c.paid
+                        ? 'border-emerald-500/20 bg-emerald-500/10'
+                        : 'border-primary/20 bg-primary/10',
+                    )}
+                  >
+                    {c.imageUri ? (
+                      <Image source={{ uri: c.imageUri }} className="w-4 h-4 rounded-full" />
+                    ) : (
+                      <IconSymbol name="person.crop.circle" size={13} color={c.paid ? '#10b981' : iconColors.primary} />
+                    )}
+                    <Text className={cn(
+                      'text-[11px] font-medium',
+                      c.paid ? 'text-emerald-500' : 'text-primary',
+                    )}>
+                      {c.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </Pressable>
         )}
       </Swipeable>
