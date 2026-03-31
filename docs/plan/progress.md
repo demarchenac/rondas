@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2026-03-30 (session 6 — Android OAuth deep link fixes, dev build setup)
+> Last updated: 2026-03-31 (session 7 — Bill detail UI/UX redesign, performance fixes, form infrastructure)
 
 ---
 
@@ -533,6 +533,58 @@
 
 ---
 
+## Session 7 — Bill Detail UI/UX Redesign & Performance (2026-03-30 to 2026-03-31)
+
+### Lint & Rule Compliance
+- [x] Fix all 15 lint warnings (unused imports, missing hook deps)
+- [x] Replace hardcoded hex colors with ICON_COLORS tokens (20+ fixes)
+- [x] Add `success` and `accent` tokens to ICON_COLORS
+- [x] FlatList → FlashList in USStatePicker
+- [x] Add React.memo to 4 reusable components
+- [x] Wrap expo-image with styled() for NativeWind className support (`lib/expo-image.ts`)
+
+### Bill Detail — Component Extraction
+- [x] Extract BillHeader (inline title, overflow menu, progress bar)
+- [x] Extract BillMetadata (condensed card with IconSymbol icons)
+- [x] Extract SortBar (FilterChip-based, 3 toggle chips + bulk edit)
+- [x] Extract BillItemCard (card treatment, left accent border, edit form)
+- [x] Extract BillSummaryCard (grouped card, highlighted total)
+- [x] Extract PeopleSummary (horizontal scroll of per-person totals)
+- [x] Reduce [id].tsx from 884 → ~660 lines
+
+### Bill Detail — UI Polish
+- [x] Progress bar in header (paid/unpaid/unassigned segments)
+- [x] Staggered FadeInDown entrance animations
+- [x] Filled primary share button (was outline)
+- [x] Full-width contact chips (moved below name/price row)
+- [x] Contact chip tap-to-remove restored (was broken by onLongPress change)
+- [x] Pencil icon edit cue on item names
+- [x] Inline title with back button (single row header)
+- [x] Completion percentage with state-colored text
+- [x] Unassigned item "Tap + to assign" hint
+- [x] "+" button beside price (was below)
+- [x] Spacing rhythm tuned across all sections
+
+### Bill Detail — New Features
+- [x] Frequent + recent contacts in contact picker (Convex query)
+- [x] Per-person breakdown section (PeopleSummary with paid toggle)
+- [x] Address deduplication at source (lib/places.ts)
+- [x] One-time migration for existing bill addresses (convex/migrations.ts)
+
+### Performance Fixes
+- [x] Fix input lag: useBufferedInput hook for inline edits (bill name, tax)
+- [x] Fix input lag: TanStack Form for item edit card (submit on "Done")
+- [x] Live currency formatting with react-native-currency-input
+- [x] Contact picker: FlashList virtualization (was ScrollView with 500+ nodes)
+- [x] Contact picker: two-phase loading (fast fetch → background image fetch)
+- [x] Contact picker: 5-minute contact cache in useRef
+- [x] Contact picker: fire-and-forget loading (no await blocking modal)
+- [x] Contact picker: local search state (stops parent re-renders)
+- [x] Contact picker: memoized callbacks for React.memo effectiveness
+- [x] Haptic feedback on contact removal
+
+---
+
 ## Progress Summary
 
 | Phase                             | Total Tasks | Done  |
@@ -549,4 +601,5 @@
 | Phase 10 — Polish & Launch        | 16          | 5     |
 | Codebase Review #1 Refactoring    | 48          | 48    |
 | Codebase Review #2 Fixes          | 20          | 20    |
-| **Total**                         | **299**     | **263**|
+| Session 7 — Bill Detail Redesign  | 30          | 30    |
+| **Total**                         | **329**     | **293**|
