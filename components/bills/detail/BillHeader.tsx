@@ -54,8 +54,8 @@ function BillHeader({
   return (
     <View className="px-7 pb-3 pt-3">
       {/* Single row: Back + title + overflow + badge */}
-      <View className="flex-row items-center">
-        <Pressable onPress={onBack} className="pr-2 active:opacity-80" style={{ marginTop: 2 }}>
+      <View className="flex-row items-baseline">
+        <Pressable onPress={onBack} className="pr-2 active:opacity-80">
           <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
         </Pressable>
         <TextInput
@@ -64,7 +64,7 @@ function BillHeader({
           className="flex-1 text-lg font-bold text-foreground"
           style={{ padding: 0, margin: 0 }}
         />
-        <View className="flex-row items-center gap-2 ml-2" style={{ marginTop: 2 }}>
+        <View className="flex-row items-center gap-2 ml-2">
           <Pressable
             onPress={handleOverflowPress}
             className="h-8 w-8 items-center justify-center rounded-full bg-muted/50 active:opacity-80"
