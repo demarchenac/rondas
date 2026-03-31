@@ -193,7 +193,7 @@ export const en = {
   bill_confirmItems: 'Confirm Items',
 
   // Sort
-  sort_receipt: 'Receipt ↕',
+  sort_receipt: 'Receipt',
   sort_priceDesc: 'Price ↓',
   sort_priceAsc: 'Price ↑',
   sort_alphaAsc: 'A→Z',

@@ -195,7 +195,7 @@ export const es: typeof en = {
   bill_confirmItems: 'Confirmar ítems',
 
   // Sort
-  sort_receipt: 'Recibo ↕',
+  sort_receipt: 'Recibo',
   sort_priceDesc: 'Precio ↓',
   sort_priceAsc: 'Precio ↑',
   sort_alphaAsc: 'A→Z',

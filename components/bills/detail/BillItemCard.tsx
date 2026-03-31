@@ -166,7 +166,7 @@ function BillItemCard({
               )}
               <View className="mr-3 flex-1">
                 <View className="flex-row items-center gap-1">
-                  <Text className="flex-1 text-[15px] font-semibold leading-5 text-foreground" numberOfLines={1}>
+                  <Text className="shrink text-[15px] font-semibold leading-5 text-foreground" numberOfLines={1}>
                     {item.name}
                   </Text>
                   {!multiSelectMode && (
@@ -181,16 +181,16 @@ function BillItemCard({
                   <Text className="mt-1.5 text-[11px] text-muted-foreground/40">{t.bill_tapToAssign}</Text>
                 )}
               </View>
-              <View className="items-end gap-1">
+              <View className="flex-row items-center gap-2">
                 <Text className="text-[15px] font-bold tabular-nums text-foreground">
                   {formatCurrency(item.subtotal, billCountry)}
                 </Text>
                 {!multiSelectMode && (
                   <Pressable
                     onPress={() => onAssignContact(itemId)}
-                    className="h-8 w-8 items-center justify-center rounded-full border border-dashed border-primary/30 bg-primary/5"
+                    className="h-7 w-7 items-center justify-center rounded-full border border-dashed border-primary/30 bg-primary/5"
                   >
-                    <IconSymbol name="plus" size={14} color={iconColors.primary} />
+                    <IconSymbol name="plus" size={12} color={iconColors.primary} />
                   </Pressable>
                 )}
               </View>
