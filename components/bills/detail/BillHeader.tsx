@@ -54,12 +54,17 @@ function BillHeader({
 
   return (
     <View className="px-7 pb-3 pt-3">
-      {/* Row 1: Back + overflow + badge */}
-      <View className="flex-row items-center justify-between">
+      {/* Single row: Back + title + overflow + badge */}
+      <View className="flex-row items-center">
         <Pressable onPress={onBack} className="py-1 pr-2 active:opacity-80">
           <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
         </Pressable>
-        <View className="flex-row items-center gap-2">
+        <Input
+          value={billName}
+          onChangeText={onUpdateName}
+          className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-lg font-bold shadow-none"
+        />
+        <View className="flex-row items-center gap-2 ml-2">
           <Pressable
             onPress={handleOverflowPress}
             className="h-8 w-8 items-center justify-center rounded-full bg-muted/50 active:opacity-80"
@@ -69,12 +74,6 @@ function BillHeader({
           <AnimatedBadge variant={state} label={stateLabel} />
         </View>
       </View>
-      {/* Row 2: Bill name */}
-      <Input
-        value={billName}
-        onChangeText={onUpdateName}
-        className="mt-1 h-auto border-0 bg-transparent px-0 py-0 text-2xl font-extrabold tracking-tight shadow-none"
-      />
       {/* Progress bar */}
       {hasContacts && (
         <View className="mt-2 h-1 overflow-hidden rounded-full bg-muted flex-row">

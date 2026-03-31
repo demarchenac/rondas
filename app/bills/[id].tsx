@@ -20,7 +20,6 @@ import { parseCurrency } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { toE164 } from '@/lib/phone';
 import { computeBase, computeTax, getTaxConfig } from '@/constants/taxes';
-import { cn } from '@/lib/cn';
 import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel } from '@/lib/billHelpers';
 import { buildWhatsAppMessage } from '@/lib/whatsapp';
 
@@ -421,37 +420,20 @@ export default function BillDetailScreen() {
           />
         </Animated.View>
 
-        {/* Sort bar */}
+        {/* Sort bar + bulk edit */}
         <Animated.View entering={animate ? FadeInDown.delay(120).duration(300) : undefined}>
-          <SortBar sortStrategy={sortStrategy} onSortChange={setSortStrategy} t={t} />
-        </Animated.View>
-
-        {/* Bulk edit toggle */}
-        <Animated.View entering={animate ? FadeInDown.delay(150).duration(300) : undefined}>
-          <View className="mb-2 mt-1 flex-row items-center justify-end px-7">
-            {multiSelectMode && (
-              <Text className="mr-auto text-xs text-muted-foreground">
-                {t.bill_selected(selectedItemIds.size)}
-              </Text>
-            )}
-            <Pressable
-              onPress={() => {
-                setMultiSelectMode(!multiSelectMode);
-                setSelectedItemIds(new Set());
-                setEditingItemId(null);
-              }}
-              className={cn(
-                'rounded-full border px-2.5 py-1',
-                multiSelectMode
-                  ? 'border-primary/30 bg-primary/15'
-                  : 'border-muted-foreground/20 bg-muted-foreground/10',
-              )}
-            >
-              <Text className={cn('text-[11px] font-semibold', multiSelectMode ? 'text-primary' : 'text-muted-foreground')}>
-                {multiSelectMode ? t.cancel : t.bill_bulkEdit}
-              </Text>
-            </Pressable>
-          </View>
+          <SortBar
+            sortStrategy={sortStrategy}
+            onSortChange={setSortStrategy}
+            multiSelectMode={multiSelectMode}
+            selectedCount={selectedItemIds.size}
+            onToggleMultiSelect={() => {
+              setMultiSelectMode(!multiSelectMode);
+              setSelectedItemIds(new Set());
+              setEditingItemId(null);
+            }}
+            t={t}
+          />
         </Animated.View>
 
         {/* Items */}

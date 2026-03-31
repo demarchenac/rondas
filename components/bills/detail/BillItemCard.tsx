@@ -165,9 +165,14 @@ function BillItemCard({
                 </View>
               )}
               <View className="mr-3 flex-1">
-                <Text className="text-[15px] font-semibold leading-5 text-foreground" numberOfLines={1}>
-                  {item.name}
-                </Text>
+                <View className="flex-row items-center gap-1">
+                  <Text className="flex-1 text-[15px] font-semibold leading-5 text-foreground" numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  {!multiSelectMode && (
+                    <IconSymbol name="pencil.line" size={11} color={iconColors.mutedLight} />
+                  )}
+                </View>
                 <Text className="mt-0.5 text-xs text-muted-foreground">
                   {item.quantity} × {formatCurrency(item.unitPrice, billCountry)}
                 </Text>

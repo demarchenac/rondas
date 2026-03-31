@@ -1,5 +1,5 @@
-import React from 'react';
-import { ScrollView } from 'react-native';
+import React, { useCallback } from 'react';
+import { ScrollView, View } from 'react-native';
 import FilterChip from '@/components/bills/FilterChip';
 import type { Translations } from '@/lib/i18n';
 
@@ -8,32 +8,70 @@ type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alp
 interface SortBarProps {
   sortStrategy: SortStrategy;
   onSortChange: (strategy: SortStrategy) => void;
+  multiSelectMode: boolean;
+  selectedCount: number;
+  onToggleMultiSelect: () => void;
   t: Translations;
 }
 
-const SORT_OPTIONS: { key: SortStrategy; labelKey: keyof Translations }[] = [
-  { key: 'original', labelKey: 'sort_receipt' },
-  { key: 'price-desc', labelKey: 'sort_priceDesc' },
-  { key: 'price-asc', labelKey: 'sort_priceAsc' },
-  { key: 'alpha-asc', labelKey: 'sort_alphaAsc' },
-  { key: 'alpha-desc', labelKey: 'sort_alphaDesc' },
-];
+function SortBar({
+  sortStrategy,
+  onSortChange,
+  multiSelectMode,
+  selectedCount,
+  onToggleMultiSelect,
+  t,
+}: SortBarProps) {
+  const handlePricePress = useCallback(() => {
+    if (sortStrategy === 'price-desc') onSortChange('price-asc');
+    else if (sortStrategy === 'price-asc') onSortChange('price-desc');
+    else onSortChange('price-desc');
+  }, [sortStrategy, onSortChange]);
 
-function SortBar({ sortStrategy, onSortChange, t }: SortBarProps) {
+  const handleAlphaPress = useCallback(() => {
+    if (sortStrategy === 'alpha-asc') onSortChange('alpha-desc');
+    else if (sortStrategy === 'alpha-desc') onSortChange('alpha-asc');
+    else onSortChange('alpha-asc');
+  }, [sortStrategy, onSortChange]);
+
+  const priceLabel = sortStrategy === 'price-asc' ? t.sort_priceAsc : t.sort_priceDesc;
+  const alphaLabel = sortStrategy === 'alpha-desc' ? t.sort_alphaDesc : t.sort_alphaAsc;
+  const isPrice = sortStrategy === 'price-asc' || sortStrategy === 'price-desc';
+  const isAlpha = sortStrategy === 'alpha-asc' || sortStrategy === 'alpha-desc';
+
+  const bulkLabel = multiSelectMode
+    ? (selectedCount > 0 ? `${t.bill_selected(selectedCount)}` : t.cancel)
+    : t.bill_bulkEdit;
+
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerClassName="gap-1.5 px-7 pb-2"
     >
-      {SORT_OPTIONS.map((opt) => (
-        <FilterChip
-          key={opt.key}
-          label={t[opt.labelKey] as string}
-          isActive={sortStrategy === opt.key}
-          onPress={() => onSortChange(opt.key)}
-        />
-      ))}
+      <FilterChip
+        label={t.sort_receipt as string}
+        isActive={sortStrategy === 'original'}
+        onPress={() => onSortChange('original')}
+      />
+      <FilterChip
+        label={priceLabel as string}
+        isActive={isPrice}
+        onPress={handlePricePress}
+      />
+      <FilterChip
+        label={alphaLabel as string}
+        isActive={isAlpha}
+        onPress={handleAlphaPress}
+      />
+      {/* Spacer */}
+      <View className="w-px bg-border/30 mx-0.5 my-1" />
+      {/* Bulk edit chip */}
+      <FilterChip
+        label={bulkLabel}
+        isActive={multiSelectMode}
+        onPress={onToggleMultiSelect}
+      />
     </ScrollView>
   );
 }
