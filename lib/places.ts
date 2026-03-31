@@ -2,6 +2,19 @@ import * as Location from 'expo-location';
 
 const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ?? '';
 
+/** Remove comma-separated segments already contained in a prior segment. */
+function deduplicateAddress(address: string): string {
+  const parts = address.split(',').map((s) => s.trim()).filter(Boolean);
+  const kept: string[] = [];
+  for (const part of parts) {
+    const lower = part.toLowerCase();
+    if (!kept.some((prev) => prev.toLowerCase().includes(lower))) {
+      kept.push(part);
+    }
+  }
+  return kept.join(', ');
+}
+
 interface PlaceResult {
   name: string;
   address?: string;
@@ -23,9 +36,9 @@ export async function resolvePlace(
   try {
     const [geo] = await Location.reverseGeocodeAsync({ latitude, longitude });
     if (geo) {
-      const address = [geo.name, geo.street, geo.city, geo.country]
-        .filter(Boolean)
-        .join(', ');
+      const address = deduplicateAddress(
+        [geo.name, geo.street, geo.city, geo.country].filter(Boolean).join(', '),
+      );
       const city = geo.city ?? undefined;
       const country = geo.country ?? undefined;
 
@@ -153,7 +166,7 @@ function parseGooglePlace(place: any): PlaceResult {
 
   return {
     name: place.name,
-    address: place.formatted_address,
+    address: place.formatted_address ? deduplicateAddress(place.formatted_address) : undefined,
     city,
     country,
   };

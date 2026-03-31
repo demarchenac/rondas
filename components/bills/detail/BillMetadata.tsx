@@ -6,18 +6,6 @@ import { getCategoryLabel } from '@/lib/billHelpers';
 import { relativeTime } from '@/lib/date';
 import type { Translations } from '@/lib/i18n';
 
-/** Remove comma-separated segments that are already contained in a prior segment. */
-function deduplicateAddress(address: string): string {
-  const parts = address.split(',').map((s) => s.trim()).filter(Boolean);
-  const kept: string[] = [];
-  for (const part of parts) {
-    const lower = part.toLowerCase();
-    const isDuplicate = kept.some((prev) => prev.toLowerCase().includes(lower));
-    if (!isDuplicate) kept.push(part);
-  }
-  return kept.join(', ');
-}
-
 interface BillMetadataProps {
   category?: string;
   location?: { address?: string };
@@ -82,7 +70,7 @@ function BillMetadata({
             <>
               <IconSymbol name="mappin" size={11} color={iconColors.mutedLight} />
               <Text className="flex-1 text-xs text-muted-foreground" numberOfLines={1}>
-                {deduplicateAddress(location!.address!)}
+                {location!.address}
               </Text>
             </>
           )}
