@@ -428,7 +428,7 @@ export default function BillDetailScreen() {
 
         {/* Bulk edit toggle */}
         <Animated.View entering={animate ? FadeInDown.delay(150).duration(300) : undefined}>
-          <View className="mb-2 flex-row items-center justify-end px-7">
+          <View className="mb-2 mt-1 flex-row items-center justify-end px-7">
             {multiSelectMode && (
               <Text className="mr-auto text-xs text-muted-foreground">
                 {t.bill_selected(selectedItemIds.size)}

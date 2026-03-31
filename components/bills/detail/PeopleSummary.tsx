@@ -66,7 +66,7 @@ function PeopleSummary({
   };
 
   return (
-    <View className="mt-4">
+    <View className="mt-3">
       {/* Section header */}
       <View className="mb-2 flex-row items-center justify-between px-7">
         <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -100,7 +100,7 @@ function PeopleSummary({
             key={String(c.contactId)}
             onPress={() => handleToggle(c.contactId)}
             className={cn(
-              'min-w-[140px] rounded-xl border-l-[3px] bg-card px-3.5 py-2.5 active:opacity-80',
+              'min-w-[140px] rounded-xl border-l-[3px] bg-card px-3.5 py-2 active:opacity-80',
               c.paid ? 'border-l-emerald-500' : 'border-l-amber-500',
             )}
           >

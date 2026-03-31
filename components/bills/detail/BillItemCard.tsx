@@ -92,7 +92,7 @@ function BillItemCard({
       >
         {isEditing ? (
           /* Edit mode */
-          <View className={cn('mx-7 mb-2 rounded-xl border-l-[3px] border-l-primary bg-primary/5 px-4 py-3.5')}>
+          <View className={cn('mx-7 mb-2.5 rounded-xl border-l-[3px] border-l-primary bg-primary/5 px-4 py-3.5')}>
             <View className="mb-3 flex-row items-center justify-between">
               <Input
                 value={item.name}
@@ -148,7 +148,7 @@ function BillItemCard({
           <Pressable
             onPress={() => multiSelectMode ? onToggleSelection(itemId) : onPress(itemId)}
             className={cn(
-              'mx-7 mb-2 rounded-xl border-l-[3px] bg-card px-4 py-3 active:opacity-80',
+              'mx-7 mb-2.5 rounded-xl border-l-[3px] bg-card px-4 py-3 active:opacity-80',
               borderClass,
             )}
           >
@@ -193,7 +193,7 @@ function BillItemCard({
 
             {/* Contact chips — full width below the top row */}
             {hasContacts && (
-              <View className="mt-2 flex-row flex-wrap gap-1.5">
+              <View className="mt-1.5 flex-row flex-wrap gap-1.5">
                 {assignedContacts.map((c) => (
                   <Pressable
                     key={String(c.contactId)}

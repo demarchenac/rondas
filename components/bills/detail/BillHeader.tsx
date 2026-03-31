@@ -53,7 +53,7 @@ function BillHeader({
   };
 
   return (
-    <View className="px-7 pb-1 pt-3">
+    <View className="px-7 pb-3 pt-3">
       {/* Row 1: Back + overflow + badge */}
       <View className="flex-row items-center justify-between">
         <Pressable onPress={onBack} className="py-1 pr-2 active:opacity-80">
