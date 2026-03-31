@@ -36,6 +36,8 @@ import ContactPickerSheet, { SUGGESTED_PREFIX } from '@/components/bills/Contact
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import BillShareSheet from '@/components/bills/BillShareSheet';
 
+const CONTACTS_CACHE_TTL = 5 * 60_000; // 5 minutes
+
 type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
 type DialogType = 'tip' | 'country' | 'share' | 'contactPicker' | 'unassignPicker' | null;
 
@@ -73,6 +75,8 @@ export default function BillDetailScreen() {
   billRef.current = bill;
   const infographicRefs = useRef<Record<number, ViewShot | null>>({});
   const shouldAnimate = useRef(true);
+  const contactsCacheRef = useRef<{ data: (Contacts.Contact & { id: string })[]; fetchedAt: number } | null>(null);
+  const contactsPermissionRef = useRef(false);
 
   // --- Callbacks ---
 
@@ -119,22 +123,54 @@ export default function BillDetailScreen() {
     });
   }, []);
 
-  const handleMultiAssign = useCallback(async () => {
-    if (selectedItemIds.size === 0) return;
-    const { status } = await Contacts.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(t.bill_permissionNeeded, t.bill_permissionContacts);
-      return;
+  const loadContacts = useCallback(async (): Promise<boolean> => {
+    // Check permission (cached after first grant)
+    if (!contactsPermissionRef.current) {
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t.bill_permissionNeeded, t.bill_permissionContacts);
+        return false;
+      }
+      contactsPermissionRef.current = true;
     }
+
+    // Use cache if fresh
+    const cache = contactsCacheRef.current;
+    if (cache && Date.now() - cache.fetchedAt < CONTACTS_CACHE_TTL) {
+      setPhoneContacts(cache.data);
+      return true;
+    }
+
+    // Phase 1: fast fetch without images
     const { data } = await Contacts.getContactsAsync({
-      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Image, Contacts.Fields.Name],
+      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name],
       sort: Contacts.SortTypes.FirstName,
     });
-    setPhoneContacts(data.filter((c): c is typeof c & { id: string } => !!c.id));
+    const filtered = data.filter((c): c is typeof c & { id: string } => !!c.id);
+    setPhoneContacts(filtered);
+    contactsCacheRef.current = { data: filtered, fetchedAt: Date.now() };
+
+    // Phase 2: background re-fetch with images
+    Contacts.getContactsAsync({
+      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name, Contacts.Fields.Image],
+      sort: Contacts.SortTypes.FirstName,
+    }).then(({ data: withImages }) => {
+      const enriched = withImages.filter((c): c is typeof c & { id: string } => !!c.id);
+      setPhoneContacts(enriched);
+      contactsCacheRef.current = { data: enriched, fetchedAt: Date.now() };
+    });
+
+    return true;
+  }, [t]);
+
+  const handleMultiAssign = useCallback(async () => {
+    if (selectedItemIds.size === 0) return;
     setContactSearch('');
     setSelectedContactIds(new Set());
     setActiveDialog('contactPicker');
-  }, [selectedItemIds, t]);
+    const granted = await loadContacts();
+    if (!granted) setActiveDialog(null);
+  }, [selectedItemIds, loadContacts]);
 
   const handleConfirmContactPicker = useCallback(async () => {
     if (selectedContactIds.size === 0 || !bill || !userId) return;
@@ -253,21 +289,13 @@ export default function BillDetailScreen() {
   }, [selectedContactIds, selectedItemIds, bill, id, removeContactsBatch, userId]);
 
   const handleAssignContact = useCallback(async (itemId: string) => {
-    const { status } = await Contacts.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(t.bill_permissionNeeded, t.bill_permissionContacts);
-      return;
-    }
-    const { data } = await Contacts.getContactsAsync({
-      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Image, Contacts.Fields.Name],
-      sort: Contacts.SortTypes.FirstName,
-    });
-    setPhoneContacts(data.filter((c): c is typeof c & { id: string } => !!c.id));
     setContactSearch('');
     setSelectedContactIds(new Set());
     setSingleAssignItemId(itemId);
     setActiveDialog('contactPicker');
-  }, [t]);
+    const granted = await loadContacts();
+    if (!granted) setActiveDialog(null);
+  }, [loadContacts]);
 
   const handleRemoveContact = useCallback((itemId: string, contactId: Id<'contacts'>) => {
     if (!userId) return;

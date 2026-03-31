@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Pressable, ScrollView, TextInput } from 'react-native';
+import { ActivityIndicator, Modal, View, Pressable, ScrollView, TextInput } from 'react-native';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -108,6 +108,13 @@ function ContactPickerSheet({
         </View>
 
         <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
+          {/* Loading spinner */}
+          {phoneContacts.length === 0 && !hasSuggested && (
+            <View className="items-center justify-center py-12">
+              <ActivityIndicator size="large" color={iconColors.primary} />
+            </View>
+          )}
+
           {/* Suggested contacts (hidden during search) */}
           {hasSuggested && (
             <>
