@@ -54,7 +54,7 @@ function BillHeader({
   return (
     <View className="px-7 pb-3 pt-3">
       {/* Single row: Back + title + overflow + badge */}
-      <View className="flex-row items-baseline">
+      <View className="flex-row items-center">
         <Pressable onPress={onBack} className="pr-2 active:opacity-80">
           <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
         </Pressable>
@@ -62,7 +62,7 @@ function BillHeader({
           value={billName}
           onChangeText={onUpdateName}
           className="flex-1 text-lg font-bold text-foreground"
-          style={{ padding: 0, margin: 0 }}
+          style={{ padding: 0, margin: 0, lineHeight: 22, height: 22 }}
         />
         <View className="flex-row items-center gap-2 ml-2">
           <Pressable
