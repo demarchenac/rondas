@@ -95,19 +95,14 @@ export default function BillDetailScreen() {
     setEditingItemId(itemId);
   }, []);
 
-  const handleUpdateItem = useCallback((itemId: string, field: 'name' | 'quantity' | 'unitPrice', value: string) => {
+  const handleSubmitEdit = useCallback((itemId: string, values: { name: string; quantity: number; unitPrice: number }) => {
     if (!bill || !userId) return;
     const items = bill.items.map((item) => {
       if (item.id !== itemId) return item;
-      if (field === 'name') return { ...item, name: value };
-      const num = parseCurrency(value);
-      const updated = { ...item, [field]: num };
-      if (field === 'quantity' || field === 'unitPrice') {
-        updated.subtotal = updated.quantity * updated.unitPrice;
-      }
-      return updated;
+      return { ...item, name: values.name, quantity: values.quantity, unitPrice: values.unitPrice, subtotal: values.quantity * values.unitPrice };
     });
     updateBill({ id: id as Id<'bills'>, userId, items });
+    setEditingItemId(null);
   }, [bill, id, updateBill, userId]);
 
   const handleUpdateTax = useCallback((value: string) => {
@@ -462,7 +457,7 @@ export default function BillDetailScreen() {
                 swipeOpenRef={swipeOpenRef}
                 onPress={handleItemPress}
                 onRemoveItem={handleRemoveItem}
-                onUpdateItem={handleUpdateItem}
+                onSubmitEdit={handleSubmitEdit}
                 onDismissEdit={() => setEditingItemId(null)}
                 onAssignContact={handleAssignContact}
                 onRemoveContact={handleRemoveContact}

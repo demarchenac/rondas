@@ -3,6 +3,7 @@ import { Alert, Pressable, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useBufferedInput } from '@/hooks/useBufferedInput';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
 import type { BillState } from '@/lib/billHelpers';
 import type { Translations } from '@/lib/i18n';
@@ -38,6 +39,8 @@ function BillHeader({
   onUpdateName,
   onDelete,
 }: BillHeaderProps) {
+  const nameInput = useBufferedInput(billName, onUpdateName);
+
   const handleOverflowPress = () => {
     Alert.alert(
       t.bill_deleteBill,
@@ -64,8 +67,10 @@ function BillHeader({
           <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
         </Pressable>
         <TextInput
-          value={billName}
-          onChangeText={onUpdateName}
+          value={nameInput.value}
+          onChangeText={nameInput.onChangeText}
+          onFocus={nameInput.onFocus}
+          onBlur={nameInput.onBlur}
           className="flex-1 text-lg font-bold text-foreground"
           style={{ padding: 0, margin: 0, lineHeight: 18, height: 22 }}
         />

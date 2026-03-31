@@ -4,6 +4,7 @@ import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { formatCurrency } from '@/lib/format';
+import { useBufferedInput } from '@/hooks/useBufferedInput';
 import type { TaxConfig } from '@/constants/taxes';
 import type { Translations } from '@/lib/i18n';
 
@@ -38,6 +39,8 @@ function BillSummaryCard({
   onTipPress,
   onUpdateTax,
 }: BillSummaryCardProps) {
+  const taxInput = useBufferedInput(formatCurrency(computedTax, billCountry), onUpdateTax);
+
   return (
     <View className="mx-7 mt-4 overflow-hidden rounded-xl bg-card">
       {/* Subtotal */}
@@ -58,8 +61,10 @@ function BillSummaryCard({
           </Text>
         ) : (
           <Input
-            value={formatCurrency(computedTax, billCountry)}
-            onChangeText={onUpdateTax}
+            value={taxInput.value}
+            onChangeText={taxInput.onChangeText}
+            onFocus={taxInput.onFocus}
+            onBlur={taxInput.onBlur}
             className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
             keyboardType="number-pad"
           />

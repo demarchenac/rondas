@@ -2,11 +2,12 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Image } from '@/lib/expo-image';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useForm } from '@tanstack/react-form';
 import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { cn } from '@/lib/cn';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, parseCurrency } from '@/lib/format';
 import SwipeableItem from '@/components/bills/SwipeableItem';
 import type { Id } from '@/convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
@@ -44,11 +45,110 @@ interface BillItemCardProps {
   swipeOpenRef: React.MutableRefObject<boolean>;
   onPress: (itemId: string) => void;
   onRemoveItem: (itemId: string) => void;
-  onUpdateItem: (itemId: string, field: 'name' | 'quantity' | 'unitPrice', value: string) => void;
+  onSubmitEdit: (itemId: string, values: { name: string; quantity: number; unitPrice: number }) => void;
   onDismissEdit: () => void;
   onAssignContact: (itemId: string) => void;
   onRemoveContact: (itemId: string, contactId: Id<'contacts'>) => void;
   onToggleSelection: (itemId: string) => void;
+}
+
+function BillItemEditForm({
+  item,
+  billCountry,
+  iconColors,
+  t,
+  onSubmit,
+  onCancel,
+}: {
+  item: BillItem;
+  billCountry: string;
+  iconColors: Record<string, string>;
+  t: Translations;
+  onSubmit: (values: { name: string; quantity: number; unitPrice: number }) => void;
+  onCancel: () => void;
+}) {
+  const form = useForm({
+    defaultValues: {
+      name: item.name,
+      quantity: String(item.quantity),
+      unitPrice: formatCurrency(item.unitPrice, billCountry),
+    },
+    onSubmit: ({ value }) => {
+      const qty = parseInt(value.quantity, 10) || item.quantity;
+      const price = parseCurrency(value.unitPrice);
+      onSubmit({ name: value.name, quantity: qty, unitPrice: price });
+    },
+  });
+
+  const qty = parseInt(form.state.values.quantity, 10) || 0;
+  const price = parseCurrency(form.state.values.unitPrice);
+  const subtotal = qty * price;
+
+  return (
+    <View className={cn('mx-7 mb-2.5 rounded-xl border-l-[3px] border-l-primary bg-primary/5 px-4 py-3.5')}>
+      <View className="mb-3 flex-row items-center justify-between">
+        <form.Field name="name">
+          {(field) => (
+            <Input
+              value={field.state.value}
+              onChangeText={field.handleChange}
+              onBlur={field.handleBlur}
+              className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-[15px] font-semibold shadow-none"
+              placeholder={t.scan_itemName}
+              autoFocus
+            />
+          )}
+        </form.Field>
+        <Pressable onPress={onCancel} className="ml-3 rounded-full bg-destructive/15 px-3 py-1">
+          <Text className="text-xs font-semibold text-destructive">{t.cancel}</Text>
+        </Pressable>
+      </View>
+      <View className="flex-row gap-2.5">
+        <View className="flex-1">
+          <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_qty}</Text>
+          <form.Field name="quantity">
+            {(field) => (
+              <Input
+                value={field.state.value}
+                onChangeText={field.handleChange}
+                onBlur={field.handleBlur}
+                className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
+                keyboardType="number-pad"
+              />
+            )}
+          </form.Field>
+        </View>
+        <View className="flex-[2]">
+          <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
+          <form.Field name="unitPrice">
+            {(field) => (
+              <Input
+                value={field.state.value}
+                onChangeText={field.handleChange}
+                onBlur={field.handleBlur}
+                className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
+                keyboardType="number-pad"
+              />
+            )}
+          </form.Field>
+        </View>
+        <View className="flex-[2]">
+          <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_subtotalLabel}</Text>
+          <View className="h-9 items-end justify-center rounded-lg px-3 py-1">
+            <Text className="text-sm font-bold text-primary">
+              {formatCurrency(subtotal, billCountry)}
+            </Text>
+          </View>
+        </View>
+      </View>
+      <Pressable
+        onPress={() => form.handleSubmit()}
+        className="mt-3 items-center rounded-lg bg-primary/10 py-2"
+      >
+        <Text className="text-sm font-semibold text-primary">{t.done}</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 function BillItemCard({
@@ -66,7 +166,7 @@ function BillItemCard({
   swipeOpenRef,
   onPress,
   onRemoveItem,
-  onUpdateItem,
+  onSubmitEdit,
   onDismissEdit,
   onAssignContact,
   onRemoveContact,
@@ -91,58 +191,14 @@ function BillItemCard({
         onSwipeableOpenStartDrag={() => { swipeOpenRef.current = true; }}
       >
         {isEditing ? (
-          /* Edit mode */
-          <View className={cn('mx-7 mb-2.5 rounded-xl border-l-[3px] border-l-primary bg-primary/5 px-4 py-3.5')}>
-            <View className="mb-3 flex-row items-center justify-between">
-              <Input
-                value={item.name}
-                onChangeText={(v) => onUpdateItem(itemId, 'name', v)}
-                className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-[15px] font-semibold shadow-none"
-                placeholder={t.scan_itemName}
-                autoFocus
-              />
-              <Pressable
-                onPress={onDismissEdit}
-                className="ml-3 rounded-full bg-destructive/15 px-3 py-1"
-              >
-                <Text className="text-xs font-semibold text-destructive">{t.cancel}</Text>
-              </Pressable>
-            </View>
-            <View className="flex-row gap-2.5">
-              <View className="flex-1">
-                <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_qty}</Text>
-                <Input
-                  value={String(item.quantity)}
-                  onChangeText={(v) => onUpdateItem(itemId, 'quantity', v)}
-                  className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
-                  keyboardType="number-pad"
-                />
-              </View>
-              <View className="flex-[2]">
-                <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
-                <Input
-                  value={formatCurrency(item.unitPrice, billCountry)}
-                  onChangeText={(v) => onUpdateItem(itemId, 'unitPrice', v)}
-                  className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
-                  keyboardType="number-pad"
-                />
-              </View>
-              <View className="flex-[2]">
-                <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_subtotalLabel}</Text>
-                <View className="h-9 items-end justify-center rounded-lg px-3 py-1">
-                  <Text className="text-sm font-bold text-primary">
-                    {formatCurrency(item.subtotal, billCountry)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-            <Pressable
-              onPress={onDismissEdit}
-              className="mt-3 items-center rounded-lg bg-primary/10 py-2"
-            >
-              <Text className="text-sm font-semibold text-primary">{t.done}</Text>
-            </Pressable>
-          </View>
+          <BillItemEditForm
+            item={item}
+            billCountry={billCountry}
+            iconColors={iconColors}
+            t={t}
+            onSubmit={(values) => onSubmitEdit(itemId, values)}
+            onCancel={onDismissEdit}
+          />
         ) : (
           /* Display mode */
           <Pressable
