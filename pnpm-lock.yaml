@@ -151,6 +151,9 @@ importers:
       react-native-css:
         specifier: ^3.0.6
         version: 3.0.6(patch_hash=7c7b7ac10e41de322a98e9ec2c7dbc2bba2f4494e3483ead5a3a0ca62ed15f71)(@expo/metro-config@54.0.14(expo@54.0.33))(lightningcss@1.30.1)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react-native-currency-input:
+        specifier: ^1.1.1
+        version: 1.1.1(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-gesture-handler:
         specifier: ~2.28.0
         version: 2.28.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -4548,6 +4551,12 @@ packages:
       lightningcss: 1.30.1
       react: '>=19'
       react-native: '>=0.81'
+
+  react-native-currency-input@1.1.1:
+    resolution: {integrity: sha512-DLsYqXkhpbvwa1M3znaG0bfKh8jlzkf+iO8TRlAJ/t8c+3gXyKwO2YdWqsBUuX0ZHLY4IVBzDjURMEofjq3ypg==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
 
   react-native-gesture-handler@2.28.0:
     resolution: {integrity: sha512-0msfJ1vRxXKVgTgvL+1ZOoYw3/0z1R+Ked0+udoJhyplC2jbVKIJ8Z1bzWdpQRCV3QcQ87Op0zJVE5DhKK2A0A==}
@@ -10497,6 +10506,11 @@ snapshots:
       react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
     transitivePeerDependencies:
       - supports-color
+
+  react-native-currency-input@1.1.1(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+    dependencies:
+      react: 19.1.0
+      react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
 
   react-native-gesture-handler@2.28.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
