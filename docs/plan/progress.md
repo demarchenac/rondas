@@ -136,7 +136,7 @@
 
 - [x] Build filter bar component above bill list
 - [x] Add filter by bill state (multi-select toggle)
-- [ ] Add filter by contact (contact picker dropdown)
+- [x] Add filter by contact (searchable multi-select in FilterSheet, client-side filtering)
 - [ ] Add filter by amount range (dual-handle slider)
 - [x] Wire filters to Convex query or client-side filter logic
 - [x] Add "Clear filters" button
@@ -304,7 +304,7 @@
 
 - [x] Tapping a bill card navigates to bill detail screen
 - [x] Swipe-to-delete on bill card with confirmation dialog
-- [ ] Pull-to-refresh on bills list
+- [x] ~~Pull-to-refresh on bills list~~ (N/A — Convex real-time subscriptions auto-update, no manual refetch needed)
 
 ### 7.3 Bill Creation Flow
 
@@ -412,7 +412,7 @@
 
 ### 10.2 Loading States
 
-- [ ] Add skeleton loaders for bill list
+- [x] Add skeleton loaders for bill list (Skeleton.tsx + BillCardSkeleton with staggered fade-in)
 - [ ] Add loading spinner for AI extraction
 - [ ] Add loading indicators for send actions
 
@@ -591,15 +591,15 @@
 | --------------------------------- | ----------- | ----- |
 | Phase 1 — Setup                   | 38          | 35    |
 | Phase 2 — Auth Screens            | 23          | 23    |
-| Phase 3 — Home Screen             | 19          | 17    |
+| Phase 3 — Home Screen             | 19          | 18    |
 | Phase 4 — Bill Creation & AI      | 34          | 33    |
 | Phase 5 — Bill Splitting          | 21          | 19    |
 | Phase 6 — Summary & Notifications | 12          | 10    |
-| Phase 7 — Bill Detail & History   | 32          | 30    |
+| Phase 7 — Bill Detail & History   | 32          | 31    |
 | Phase 8 — Settings                | 24          | 23    |
 | Phase 9 — Subscriptions           | 12          | 0     |
-| Phase 10 — Polish & Launch        | 16          | 5     |
+| Phase 10 — Polish & Launch        | 16          | 6     |
 | Codebase Review #1 Refactoring    | 48          | 48    |
 | Codebase Review #2 Fixes          | 20          | 20    |
 | Session 7 — Bill Detail Redesign  | 30          | 30    |
-| **Total**                         | **329**     | **293**|
+| **Total**                         | **329**     | **296**|
