@@ -62,7 +62,7 @@ function BillHeader({
           value={billName}
           onChangeText={onUpdateName}
           className="flex-1 text-lg font-bold text-foreground"
-          style={{ padding: 0, margin: 0, lineHeight: 20, height: 22 }}
+          style={{ padding: 0, margin: 0, lineHeight: 18, height: 22 }}
         />
         <View className="flex-row items-center gap-2 ml-2">
           <Pressable
