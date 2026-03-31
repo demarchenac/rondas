@@ -10,7 +10,7 @@
 ## Convex (Real-time Data)
 
 - Use `useQuery` / `usePaginatedQuery` from `convex/react` for all data fetching
-- Convex handles real-time subscriptions, caching, and optimistic updates
+- Convex handles real-time subscriptions, caching, and optimistic updates — **do not** add pull-to-refresh or manual refetch patterns; data updates automatically via websocket
 - Use `usePaginatedQuery` with `{ initialNumItems: 20 }` for large lists
 - TanStack Query is **not used** — Convex handles all data needs
 
