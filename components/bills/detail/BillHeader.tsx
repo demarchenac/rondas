@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Alert, Pressable, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
 import type { BillState } from '@/lib/billHelpers';
@@ -34,8 +33,6 @@ function BillHeader({
   onUpdateName,
   onDelete,
 }: BillHeaderProps) {
-  const [isEditing, setIsEditing] = useState(false);
-
   const handleOverflowPress = () => {
     Alert.alert(
       t.bill_deleteBill,
@@ -57,26 +54,18 @@ function BillHeader({
   return (
     <View className="px-7 pb-3 pt-3">
       {/* Single row: Back + title + overflow + badge */}
-      <View className="flex-row items-center">
-        <Pressable onPress={onBack} className="py-1 pr-2 active:opacity-80">
+      <View className="flex-row items-center" style={{ height: 32 }}>
+        <Pressable onPress={onBack} className="justify-center pr-2 h-full active:opacity-80">
           <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
         </Pressable>
-        {isEditing ? (
+        <View className="flex-1 justify-center h-full overflow-hidden">
           <TextInput
             value={billName}
             onChangeText={onUpdateName}
-            onBlur={() => setIsEditing(false)}
-            autoFocus
-            className="flex-1 text-lg font-bold text-foreground"
-            style={{ paddingVertical: 0, paddingHorizontal: 0 }}
+            className="text-lg font-bold text-foreground"
+            style={{ padding: 0, margin: 0 }}
           />
-        ) : (
-          <Pressable onPress={() => setIsEditing(true)} className="flex-1">
-            <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
-              {billName}
-            </Text>
-          </Pressable>
-        )}
+        </View>
         <View className="flex-row items-center gap-2 ml-2">
           <Pressable
             onPress={handleOverflowPress}
