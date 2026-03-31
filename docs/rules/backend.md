@@ -7,10 +7,12 @@ convex/
 ├── schema.ts        # All table definitions
 ├── validators.ts    # Shared validators (billState, billItem, contact, etc.)
 ├── bills.ts         # Bill queries, mutations (paginated)
+├── contacts.ts      # Contact queries (list, suggested), mutations (update, remove)
 ├── users.ts         # User queries, mutations
 ├── scans.ts         # Scan progress tracking
 ├── notifications.ts # WhatsApp + email actions (with retry)
-└── ai.ts            # Gemini OCR action (with streaming + timeout)
+├── ai.ts            # Gemini OCR action (with streaming + timeout)
+└── migrations.ts    # One-time data migrations (run via `npx convex run`)
 ```
 
 ## Conventions
