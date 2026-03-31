@@ -61,7 +61,8 @@ function BillHeader({
         <TextInput
           value={billName}
           onChangeText={onUpdateName}
-          className="flex-1 px-0 py-0 text-lg font-bold text-foreground"
+          className="flex-1 text-lg font-bold text-foreground"
+          style={{ padding: 0, margin: 0, height: 26 }}
         />
         <View className="flex-row items-center gap-2 ml-2">
           <Pressable
