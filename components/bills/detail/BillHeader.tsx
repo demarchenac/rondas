@@ -14,6 +14,7 @@ interface BillHeaderProps {
   completionPercent: number;
   paidPercent: number;
   unpaidPercent: number;
+  stateTextClass: string;
   hasContacts: boolean;
   iconColors: Record<string, string>;
   t: Translations;
@@ -29,6 +30,7 @@ function BillHeader({
   completionPercent,
   paidPercent,
   unpaidPercent,
+  stateTextClass,
   hasContacts,
   iconColors,
   t,
@@ -69,7 +71,7 @@ function BillHeader({
         />
         <View className="flex-row items-center gap-2 ml-2">
           {hasContacts && (
-            <Text className="text-xs font-semibold text-muted-foreground">
+            <Text className={`text-xs font-semibold ${stateTextClass}`}>
               {Math.round(completionPercent)}%
             </Text>
           )}

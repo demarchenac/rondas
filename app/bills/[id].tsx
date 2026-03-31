@@ -394,6 +394,7 @@ export default function BillDetailScreen() {
           completionPercent={assignedPercent}
           paidPercent={paidOfAssigned}
           unpaidPercent={unpaidOfAssigned}
+          stateTextClass={stateStyle.textClass}
           hasContacts={totalContacts > 0}
           iconColors={iconColors}
           t={t}
