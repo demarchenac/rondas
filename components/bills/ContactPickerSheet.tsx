@@ -1,5 +1,6 @@
-import React from 'react';
-import { ActivityIndicator, Modal, View, Pressable, ScrollView, TextInput } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Modal, View, Pressable, TextInput } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -11,14 +12,14 @@ import type { Doc } from '@/convex/_generated/dataModel';
 
 export const SUGGESTED_PREFIX = 'suggested:';
 
+type PhoneContact = Contacts.Contact & { id: string };
+
 interface ContactPickerSheetProps {
   visible: boolean;
-  phoneContacts: (Contacts.Contact & { id: string })[];
+  phoneContacts: PhoneContact[];
   suggestedContacts?: { frequent: Doc<'contacts'>[]; recent: Doc<'contacts'>[] };
-  contactSearch: string;
   selectedContactIds: Set<string>;
   bottomInset: number;
-  onSearchChange: (text: string) => void;
   onToggleContact: (contactId: string) => void;
   onConfirm: () => void;
   onClose: () => void;
@@ -28,10 +29,8 @@ function ContactPickerSheet({
   visible,
   phoneContacts,
   suggestedContacts,
-  contactSearch,
   selectedContactIds,
   bottomInset,
-  onSearchChange,
   onToggleContact,
   onConfirm,
   onClose,
@@ -40,12 +39,27 @@ function ContactPickerSheet({
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
 
+  // Local search state — avoids re-rendering 660-line parent on every keystroke
+  const [search, setSearch] = useState('');
+  useEffect(() => {
+    if (visible) setSearch('');
+  }, [visible]);
+
+  const filteredContacts = useMemo(() => {
+    if (!search) return phoneContacts;
+    const q = search.toLowerCase();
+    return phoneContacts.filter((c) => {
+      const name = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase();
+      return name.includes(q);
+    });
+  }, [phoneContacts, search]);
+
   const hasSuggested =
-    !contactSearch &&
+    !search &&
     suggestedContacts &&
     (suggestedContacts.frequent.length > 0 || suggestedContacts.recent.length > 0);
 
-  const renderSuggestedContact = (c: Doc<'contacts'>) => {
+  const renderSuggestedContact = useCallback((c: Doc<'contacts'>) => {
     const key = `${SUGGESTED_PREFIX}${c._id}`;
     const isSelected = selectedContactIds.has(key);
     return (
@@ -76,7 +90,78 @@ function ContactPickerSheet({
         </View>
       </Pressable>
     );
-  };
+  }, [selectedContactIds, onToggleContact, iconColors]);
+
+  const renderContactRow = useCallback(({ item: c }: { item: PhoneContact }) => {
+    const isSelected = selectedContactIds.has(c.id);
+    return (
+      <Pressable
+        onPress={() => onToggleContact(c.id)}
+        className="flex-row items-center py-2.5 gap-3 px-7"
+      >
+        <IconSymbol
+          name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+          size={22}
+          color={isSelected ? iconColors.primary : iconColors.muted}
+        />
+        {c.image?.uri ? (
+          <Image source={{ uri: c.image.uri }} className="w-9 h-9 rounded-full" />
+        ) : (
+          <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
+            <Text className="text-sm font-bold text-primary">
+              {(c.firstName?.[0] ?? '?').toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View className="flex-1">
+          <Text className="text-sm font-medium text-foreground">
+            {`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || 'Unknown'}
+          </Text>
+          {c.phoneNumbers?.[0]?.number && (
+            <Text className="text-xs text-muted-foreground">{c.phoneNumbers[0].number}</Text>
+          )}
+        </View>
+      </Pressable>
+    );
+  }, [selectedContactIds, onToggleContact, iconColors]);
+
+  const listHeader = useMemo(() => {
+    if (!hasSuggested) return null;
+    return (
+      <View className="px-7">
+        {suggestedContacts!.frequent.length > 0 && (
+          <View className="mb-2">
+            <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t.contactPicker_frequent}
+            </Text>
+            {suggestedContacts!.frequent.map(renderSuggestedContact)}
+          </View>
+        )}
+        {suggestedContacts!.recent.length > 0 && (
+          <View className="mb-2">
+            <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t.contactPicker_recent}
+            </Text>
+            {suggestedContacts!.recent.map(renderSuggestedContact)}
+          </View>
+        )}
+        <Text className="mb-1 mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {t.contactPicker_allContacts}
+        </Text>
+      </View>
+    );
+  }, [hasSuggested, suggestedContacts, renderSuggestedContact, t]);
+
+  const listEmpty = useMemo(() => {
+    if (phoneContacts.length === 0) {
+      return (
+        <View className="items-center justify-center py-12">
+          <ActivityIndicator size="large" color={iconColors.primary} />
+        </View>
+      );
+    }
+    return null;
+  }, [phoneContacts.length, iconColors.primary]);
 
   return (
     <Modal
@@ -96,91 +181,27 @@ function ContactPickerSheet({
           </Pressable>
         </View>
 
-        {/* Search */}
+        {/* Search — local state, no parent re-render */}
         <View className="px-7 pb-3">
           <TextInput
-            value={contactSearch}
-            onChangeText={onSearchChange}
+            value={search}
+            onChangeText={setSearch}
             placeholder={t.contactPicker_search}
             placeholderTextColor={iconColors.muted}
             className="rounded-xl bg-muted-foreground/[0.08] px-4 py-2.5 text-[15px] text-foreground"
           />
         </View>
 
-        <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
-          {/* Loading spinner */}
-          {phoneContacts.length === 0 && !hasSuggested && (
-            <View className="items-center justify-center py-12">
-              <ActivityIndicator size="large" color={iconColors.primary} />
-            </View>
-          )}
-
-          {/* Suggested contacts (hidden during search) */}
-          {hasSuggested && (
-            <>
-              {suggestedContacts.frequent.length > 0 && (
-                <View className="mb-2">
-                  <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t.contactPicker_frequent}
-                  </Text>
-                  {suggestedContacts.frequent.map(renderSuggestedContact)}
-                </View>
-              )}
-              {suggestedContacts.recent.length > 0 && (
-                <View className="mb-2">
-                  <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t.contactPicker_recent}
-                  </Text>
-                  {suggestedContacts.recent.map(renderSuggestedContact)}
-                </View>
-              )}
-              <Text className="mb-1 mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {t.contactPicker_allContacts}
-              </Text>
-            </>
-          )}
-
-          {/* Phone contacts */}
-          {phoneContacts
-            .filter((c) => {
-              if (!contactSearch) return true;
-              const name = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase();
-              return name.includes(contactSearch.toLowerCase());
-            })
-            .map((c) => {
-              const isSelected = selectedContactIds.has(c.id!);
-              return (
-                <Pressable
-                  key={c.id}
-                  onPress={() => onToggleContact(c.id!)}
-                  className="flex-row items-center py-2.5 gap-3"
-                >
-                  <IconSymbol
-                    name={isSelected ? 'checkmark.circle.fill' : 'circle'}
-                    size={22}
-                    color={isSelected ? iconColors.primary : iconColors.muted}
-                  />
-                  {c.image?.uri ? (
-                    <Image source={{ uri: c.image.uri }} className="w-9 h-9 rounded-full" />
-                  ) : (
-                    <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
-                      <Text className="text-sm font-bold text-primary">
-                        {(c.firstName?.[0] ?? '?').toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  <View className="flex-1">
-                    <Text className="text-sm font-medium text-foreground">
-                      {`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || 'Unknown'}
-                    </Text>
-                    {c.phoneNumbers?.[0]?.number && (
-                      <Text className="text-xs text-muted-foreground">{c.phoneNumbers[0].number}</Text>
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })}
-        </ScrollView>
+        {/* Virtualized contact list */}
+        <FlashList
+          data={filteredContacts}
+          renderItem={renderContactRow}
+          keyExtractor={(c) => c.id}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={listEmpty}
+          contentContainerClassName="pb-8"
+          keyboardShouldPersistTaps="handled"
+        />
 
         {selectedContactIds.size > 0 && (
           <View className="border-t border-border/30 px-7 pb-2 pt-3">

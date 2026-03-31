@@ -67,7 +67,6 @@ export default function BillDetailScreen() {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [sortStrategy, setSortStrategy] = useState<SortStrategy>('original');
   const [phoneContacts, setPhoneContacts] = useState<(Contacts.Contact & { id: string })[]>([]);
-  const [contactSearch, setContactSearch] = useState('');
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [singleAssignItemId, setSingleAssignItemId] = useState<string | null>(null);
   const swipeOpenRef = useRef(false);
@@ -167,7 +166,7 @@ export default function BillDetailScreen() {
     if (selectedItemIds.size === 0) return;
     const granted = await ensureContactPermission();
     if (!granted) return;
-    setContactSearch('');
+    // search reset handled inside ContactPickerSheet
     setSelectedContactIds(new Set());
     setActiveDialog('contactPicker');
     loadContacts();
@@ -292,12 +291,26 @@ export default function BillDetailScreen() {
   const handleAssignContact = useCallback(async (itemId: string) => {
     const granted = await ensureContactPermission();
     if (!granted) return;
-    setContactSearch('');
+    // search reset handled inside ContactPickerSheet
     setSelectedContactIds(new Set());
     setSingleAssignItemId(itemId);
     setActiveDialog('contactPicker');
     loadContacts();
   }, [ensureContactPermission, loadContacts]);
+
+  const handleToggleContactSelection = useCallback((contactId: string) => {
+    setSelectedContactIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(contactId)) next.delete(contactId);
+      else next.add(contactId);
+      return next;
+    });
+  }, []);
+
+  const handleCloseContactPicker = useCallback(() => {
+    setActiveDialog(null);
+    setSingleAssignItemId(null);
+  }, []);
 
   const handleRemoveContact = useCallback((itemId: string, contactId: Id<'contacts'>) => {
     if (!userId) return;
@@ -598,20 +611,11 @@ export default function BillDetailScreen() {
         visible={activeDialog === 'contactPicker'}
         phoneContacts={phoneContacts}
         suggestedContacts={suggestedContacts ?? undefined}
-        contactSearch={contactSearch}
         selectedContactIds={selectedContactIds}
         bottomInset={insets.bottom}
-        onSearchChange={setContactSearch}
-        onToggleContact={(contactId) => {
-          setSelectedContactIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(contactId)) next.delete(contactId);
-            else next.add(contactId);
-            return next;
-          });
-        }}
+        onToggleContact={handleToggleContactSelection}
         onConfirm={handleConfirmContactPicker}
-        onClose={() => { setActiveDialog(null); setSingleAssignItemId(null); }}
+        onClose={handleCloseContactPicker}
       />
 
       {bill && (
