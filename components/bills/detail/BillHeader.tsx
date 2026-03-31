@@ -1,7 +1,6 @@
 import React from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Alert, Pressable, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
 import type { BillState } from '@/lib/billHelpers';
@@ -59,10 +58,10 @@ function BillHeader({
         <Pressable onPress={onBack} className="py-1 pr-2 active:opacity-80">
           <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
         </Pressable>
-        <Input
+        <TextInput
           value={billName}
           onChangeText={onUpdateName}
-          className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-lg font-bold shadow-none"
+          className="flex-1 px-0 py-0 text-lg font-bold text-foreground"
         />
         <View className="flex-row items-center gap-2 ml-2">
           <Pressable
