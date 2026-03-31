@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { cn } from '@/lib/cn';
 import { formatCurrency, parseCurrency } from '@/lib/format';
+import CurrencyInput from '@/components/form/CurrencyInput';
 import SwipeableItem from '@/components/bills/SwipeableItem';
 import type { Id } from '@/convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
@@ -122,12 +123,12 @@ function BillItemEditForm({
           <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
           <form.Field name="unitPrice">
             {(field) => (
-              <Input
-                value={field.state.value}
-                onChangeText={field.handleChange}
+              <CurrencyInput
+                value={parseCurrency(field.state.value)}
+                onChangeValue={(n) => field.handleChange(formatCurrency(n, billCountry))}
                 onBlur={field.handleBlur}
+                country={billCountry}
                 className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
-                keyboardType="number-pad"
               />
             )}
           </form.Field>

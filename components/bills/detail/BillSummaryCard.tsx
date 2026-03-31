@@ -1,10 +1,10 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/ui/text';
-import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { formatCurrency } from '@/lib/format';
 import { useBufferedInput } from '@/hooks/useBufferedInput';
+import CurrencyInput from '@/components/form/CurrencyInput';
 import type { TaxConfig } from '@/constants/taxes';
 import type { Translations } from '@/lib/i18n';
 
@@ -39,7 +39,7 @@ function BillSummaryCard({
   onTipPress,
   onUpdateTax,
 }: BillSummaryCardProps) {
-  const taxInput = useBufferedInput(formatCurrency(computedTax, billCountry), onUpdateTax);
+  const taxInput = useBufferedInput(String(computedTax), (v) => onUpdateTax(v));
 
   return (
     <View className="mx-7 mt-4 overflow-hidden rounded-xl bg-card">
@@ -60,13 +60,13 @@ function BillSummaryCard({
             {formatCurrency(computedTax, billCountry)}
           </Text>
         ) : (
-          <Input
-            value={taxInput.value}
-            onChangeText={taxInput.onChangeText}
+          <CurrencyInput
+            value={Number(taxInput.value) || 0}
+            onChangeValue={(n) => taxInput.onChangeText(String(n))}
             onFocus={taxInput.onFocus}
             onBlur={taxInput.onBlur}
+            country={billCountry}
             className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
-            keyboardType="number-pad"
           />
         )}
       </View>
