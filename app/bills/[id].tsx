@@ -391,6 +391,7 @@ export default function BillDetailScreen() {
           billName={bill.name}
           state={bill.state}
           stateLabel={stateLabel}
+          completionPercent={assignedPercent}
           paidPercent={paidOfAssigned}
           unpaidPercent={unpaidOfAssigned}
           hasContacts={totalContacts > 0}

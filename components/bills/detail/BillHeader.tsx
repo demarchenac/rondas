@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Pressable, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
 import type { BillState } from '@/lib/billHelpers';
@@ -10,6 +11,7 @@ interface BillHeaderProps {
   billName: string;
   state: BillState;
   stateLabel: string;
+  completionPercent: number;
   paidPercent: number;
   unpaidPercent: number;
   hasContacts: boolean;
@@ -24,6 +26,7 @@ function BillHeader({
   billName,
   state,
   stateLabel,
+  completionPercent,
   paidPercent,
   unpaidPercent,
   hasContacts,
@@ -65,13 +68,18 @@ function BillHeader({
           style={{ padding: 0, margin: 0, lineHeight: 18, height: 22 }}
         />
         <View className="flex-row items-center gap-2 ml-2">
+          {hasContacts && (
+            <Text className="text-xs font-semibold text-muted-foreground">
+              {Math.round(completionPercent)}%
+            </Text>
+          )}
+          <AnimatedBadge variant={state} label={stateLabel} />
           <Pressable
             onPress={handleOverflowPress}
             className="h-8 w-8 items-center justify-center rounded-full bg-muted/50 active:opacity-80"
           >
             <IconSymbol name="ellipsis" size={16} color={iconColors.muted} />
           </Pressable>
-          <AnimatedBadge variant={state} label={stateLabel} />
         </View>
       </View>
       {/* Progress bar */}
