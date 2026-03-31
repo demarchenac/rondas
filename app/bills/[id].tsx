@@ -123,54 +123,55 @@ export default function BillDetailScreen() {
     });
   }, []);
 
-  const loadContacts = useCallback(async (): Promise<boolean> => {
-    // Check permission (cached after first grant)
-    if (!contactsPermissionRef.current) {
-      const { status } = await Contacts.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(t.bill_permissionNeeded, t.bill_permissionContacts);
-        return false;
-      }
-      contactsPermissionRef.current = true;
+  const ensureContactPermission = useCallback(async (): Promise<boolean> => {
+    if (contactsPermissionRef.current) return true;
+    const { status } = await Contacts.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(t.bill_permissionNeeded, t.bill_permissionContacts);
+      return false;
     }
+    contactsPermissionRef.current = true;
+    return true;
+  }, [t]);
 
+  const loadContacts = useCallback(() => {
     // Use cache if fresh
     const cache = contactsCacheRef.current;
     if (cache && Date.now() - cache.fetchedAt < CONTACTS_CACHE_TTL) {
       setPhoneContacts(cache.data);
-      return true;
+      return;
     }
 
     // Phase 1: fast fetch without images
-    const { data } = await Contacts.getContactsAsync({
+    Contacts.getContactsAsync({
       fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name],
       sort: Contacts.SortTypes.FirstName,
-    });
-    const filtered = data.filter((c): c is typeof c & { id: string } => !!c.id);
-    setPhoneContacts(filtered);
-    contactsCacheRef.current = { data: filtered, fetchedAt: Date.now() };
+    }).then(({ data }) => {
+      const filtered = data.filter((c): c is typeof c & { id: string } => !!c.id);
+      setPhoneContacts(filtered);
+      contactsCacheRef.current = { data: filtered, fetchedAt: Date.now() };
 
-    // Phase 2: background re-fetch with images
-    Contacts.getContactsAsync({
-      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name, Contacts.Fields.Image],
-      sort: Contacts.SortTypes.FirstName,
-    }).then(({ data: withImages }) => {
-      const enriched = withImages.filter((c): c is typeof c & { id: string } => !!c.id);
-      setPhoneContacts(enriched);
-      contactsCacheRef.current = { data: enriched, fetchedAt: Date.now() };
+      // Phase 2: background re-fetch with images
+      Contacts.getContactsAsync({
+        fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name, Contacts.Fields.Image],
+        sort: Contacts.SortTypes.FirstName,
+      }).then(({ data: withImages }) => {
+        const enriched = withImages.filter((c): c is typeof c & { id: string } => !!c.id);
+        setPhoneContacts(enriched);
+        contactsCacheRef.current = { data: enriched, fetchedAt: Date.now() };
+      });
     });
-
-    return true;
-  }, [t]);
+  }, []);
 
   const handleMultiAssign = useCallback(async () => {
     if (selectedItemIds.size === 0) return;
+    const granted = await ensureContactPermission();
+    if (!granted) return;
     setContactSearch('');
     setSelectedContactIds(new Set());
     setActiveDialog('contactPicker');
-    const granted = await loadContacts();
-    if (!granted) setActiveDialog(null);
-  }, [selectedItemIds, loadContacts]);
+    loadContacts();
+  }, [selectedItemIds, ensureContactPermission, loadContacts]);
 
   const handleConfirmContactPicker = useCallback(async () => {
     if (selectedContactIds.size === 0 || !bill || !userId) return;
@@ -289,13 +290,14 @@ export default function BillDetailScreen() {
   }, [selectedContactIds, selectedItemIds, bill, id, removeContactsBatch, userId]);
 
   const handleAssignContact = useCallback(async (itemId: string) => {
+    const granted = await ensureContactPermission();
+    if (!granted) return;
     setContactSearch('');
     setSelectedContactIds(new Set());
     setSingleAssignItemId(itemId);
     setActiveDialog('contactPicker');
-    const granted = await loadContacts();
-    if (!granted) setActiveDialog(null);
-  }, [loadContacts]);
+    loadContacts();
+  }, [ensureContactPermission, loadContacts]);
 
   const handleRemoveContact = useCallback((itemId: string, contactId: Id<'contacts'>) => {
     if (!userId) return;
