@@ -319,7 +319,10 @@ export default function BillDetailScreen() {
       {
         text: t.remove,
         style: 'destructive',
-        onPress: () => removeContact({ id: id as Id<'bills'>, userId: userId!, itemId, contactId }),
+        onPress: async () => {
+            await removeContact({ id: id as Id<'bills'>, userId: userId!, itemId, contactId });
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
       },
     ]);
   }, [id, removeContact, t, userId]);
