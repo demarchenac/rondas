@@ -49,6 +49,8 @@ const MAPPING = {
   'dollarsign.circle': 'attach-money',
   'calendar': 'calendar-today',
   'envelope.fill': 'email',
+  'wifi.slash': 'wifi-off',
+  'exclamationmark.triangle': 'warning',
 } as IconMapping;
 
 /**

@@ -172,6 +172,7 @@ export const es: typeof en = {
   bill_deleteConfirm: '¿Estás seguro? Esto no se puede deshacer.',
   bill_tapToEdit: 'Toca un ítem para editar · Toca + para asignar',
   bill_tapToAssign: 'Toca + para asignar',
+  bill_customTip: 'Propina personalizada',
 
   // People summary
   people_title: 'Personas',
@@ -251,6 +252,20 @@ export const es: typeof en = {
   wa_tip: (pct: number) => `Propina (${pct}%)`,
   wa_total: (amount: string) => `*Total: ${amount}*`,
   wa_footer: '_Resumen generado con la app Rondas_\n_rondas.app_',
+
+  // Error states
+  error_billNotFound: 'Factura no encontrada',
+  error_billNotFoundHint: 'Esta factura pudo haber sido eliminada o ya no está disponible.',
+  error_goHome: 'Ir al inicio',
+  error_mutationFailed: 'Algo salió mal. Por favor, inténtalo de nuevo.',
+  error_shareFailed: 'No se pudo compartir. Por favor, inténtalo de nuevo.',
+  error_timeout: 'La solicitud ha expirado',
+  error_api: 'Servicio temporalmente no disponible',
+  error_scanGeneric: 'No se pudo escanear la factura',
+  error_hintTimeout: 'Verifica tu conexión e inténtalo de nuevo',
+  error_hintApi: 'Espera un momento e inténtalo de nuevo',
+  error_hintScan: 'Intenta con una foto más clara y bien iluminada',
+  error_whatsappNotAvailable: 'WhatsApp no está disponible en este dispositivo',
 
   // Infographic
   infographic_billFor: 'Factura para',

@@ -154,12 +154,16 @@ export default function NewBillScreen() {
     } : {}),
   };
 
+  type ScanErrorType = 'timeout' | 'api' | 'generic';
+  interface ScanError { type: ScanErrorType; message: string; hint: string; }
+
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [bill, setBill] = useState<ExtractedBill | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ScanError | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const swipeOpenRef = useRef(false);
+  const scanAttempts = useRef(0);
   const navigation = useNavigation();
 
   // Prevent dismiss when bill data exists — shows confirmation alert
@@ -249,12 +253,24 @@ export default function NewBillScreen() {
         ...metadataParams,
       });
       if (newScanId) deleteScan({ id: newScanId, userId: user!.id }).catch(() => {});
+      scanAttempts.current = 0;
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace(`/bills/${billId}` as Href);
     } catch (err) {
       console.error('[Scan] Error:', err);
-      setError(String(err));
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const msg = String(err).toLowerCase();
+      // Classify error — substring matching is brittle but Convex/Gemini don't expose typed errors
+      let classified: ScanError;
+      if (msg.includes('timeout') || msg.includes('timed out')) {
+        classified = { type: 'timeout', message: t.error_timeout, hint: t.error_hintTimeout };
+      } else if (msg.includes('429') || msg.includes('500') || msg.includes('503') || msg.includes('rate limit')) {
+        classified = { type: 'api', message: t.error_api, hint: t.error_hintApi };
+      } else {
+        classified = { type: 'generic', message: t.error_scanGeneric, hint: t.error_hintScan };
+      }
+      scanAttempts.current += 1;
+      setError(classified);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setScanning(false);
       setScanId(null);
@@ -368,17 +384,48 @@ export default function NewBillScreen() {
           >
             {/* Error toast */}
             {error && (
-              <Pressable
-                onPress={handleScan}
-                className="mb-4 rounded-[14px] border border-destructive/25 bg-destructive/15 px-4 py-3"
-              >
-                <Text className="text-center text-[13px] text-red-300">
-                  {error}
-                </Text>
-                <Text className="mt-1 text-center text-xs font-semibold text-red-300">
-                  {t.scan_tapRetry}
-                </Text>
-              </Pressable>
+              <View className="mb-4 overflow-hidden rounded-[14px]">
+                <BlurView intensity={80} tint="dark" className="px-4 py-3" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+                  <Pressable onPress={handleScan}>
+                    <View className="flex-row items-center justify-center gap-2">
+                      <IconSymbol
+                        name={error.type === 'timeout' ? 'wifi.slash' : 'exclamationmark.triangle'}
+                        size={16}
+                        color={iconColors.destructive}
+                      />
+                      <Text className="text-sm font-medium text-white">
+                        {error.message}
+                      </Text>
+                    </View>
+                    <Text className="mt-1 text-center text-xs text-white/60">
+                      {error.hint}
+                    </Text>
+                    <Text className="mt-1.5 text-center text-xs font-semibold text-primary">
+                      {t.scan_tapRetry}
+                    </Text>
+                  </Pressable>
+                  {scanAttempts.current >= 2 && (
+                    <Pressable
+                      onPress={async () => {
+                        if (!user) return;
+                        const billId = await createBill({
+                          userId: user.id,
+                          name: placeData.placeName || 'Bill',
+                          total: 0,
+                          items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],
+                          ...metadataParams,
+                        });
+                        router.replace(`/bills/${billId}` as Href);
+                      }}
+                      className="mt-2 items-center border-t border-white/10 pt-2"
+                    >
+                      <Text className="text-xs font-semibold text-muted-foreground">
+                        {t.scan_enterManually}
+                      </Text>
+                    </Pressable>
+                  )}
+                </BlurView>
+              </View>
             )}
 
             {/* Scan button — glass with primary tint */}

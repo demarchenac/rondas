@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import * as Contacts from 'expo-contacts';
@@ -12,6 +12,7 @@ import { useQuery, useMutation } from 'convex/react';
 import type { Id } from '@/convex/_generated/dataModel';
 
 import { Text } from '@/components/ui/text';
+import { Button } from '@/components/ui/button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { api } from '@/convex/_generated/api';
@@ -187,40 +188,46 @@ export default function BillDetailScreen() {
       ...(suggestedContacts?.recent ?? []),
     ];
 
-    for (const selectedId of selectedContactIds) {
-      let name: string;
-      let phone: string;
-      let imageUri: string | undefined;
+    try {
+      for (const selectedId of selectedContactIds) {
+        let name: string;
+        let phone: string;
+        let imageUri: string | undefined;
 
-      if (selectedId.startsWith(SUGGESTED_PREFIX)) {
-        const convexId = selectedId.slice(SUGGESTED_PREFIX.length);
-        const sc = allSuggested.find((c) => c._id === convexId);
-        if (!sc) continue;
-        name = sc.name;
-        phone = sc.phone;
-        imageUri = sc.imageUri;
-      } else {
-        const contact = phoneContacts.find((c) => c.id === selectedId);
-        if (!contact) continue;
-        phone = contact.phoneNumbers?.[0]?.number ?? '';
-        name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
-        imageUri = contact.image?.uri;
+        if (selectedId.startsWith(SUGGESTED_PREFIX)) {
+          const convexId = selectedId.slice(SUGGESTED_PREFIX.length);
+          const sc = allSuggested.find((c) => c._id === convexId);
+          if (!sc) continue;
+          name = sc.name;
+          phone = sc.phone;
+          imageUri = sc.imageUri;
+        } else {
+          const contact = phoneContacts.find((c) => c.id === selectedId);
+          if (!contact) continue;
+          phone = contact.phoneNumbers?.[0]?.number ?? '';
+          name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
+          imageUri = contact.image?.uri;
+        }
+
+        await assignContactToItems({
+          id: id as Id<'bills'>,
+          userId,
+          itemIds,
+          contact: { name, phone, imageUri },
+        });
       }
 
-      await assignContactToItems({
-        id: id as Id<'bills'>,
-        userId,
-        itemIds,
-        contact: { name, phone, imageUri },
-      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setActiveDialog(null);
+      setSingleAssignItemId(null);
+      setSelectedItemIds(new Set());
+      setMultiSelectMode(false);
+    } catch (err) {
+      console.error('[Bill] assignContactToItems failed:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(t.error, t.error_mutationFailed);
     }
-
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setActiveDialog(null);
-    setSingleAssignItemId(null);
-    setSelectedItemIds(new Set());
-    setMultiSelectMode(false);
-  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, suggestedContacts, bill, id, assignContactToItems, userId]);
+  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, suggestedContacts, bill, id, assignContactToItems, t, userId]);
 
   const handleBulkDelete = useCallback(() => {
     if (selectedItemIds.size === 0 || !bill || !userId) return;
@@ -259,13 +266,20 @@ export default function BillDetailScreen() {
           text: t.remove,
           style: 'destructive',
           onPress: async () => {
-            await removeContactsBatch({
-              id: id as Id<'bills'>, userId,
-              itemIds: selectedIds.filter((itemId): itemId is string => !!itemId),
-              contactIds: [c.contactId],
-            });
-            setSelectedItemIds(new Set());
-            setMultiSelectMode(false);
+            try {
+              await removeContactsBatch({
+                id: id as Id<'bills'>, userId,
+                itemIds: selectedIds.filter((itemId): itemId is string => !!itemId),
+                contactIds: [c.contactId],
+              });
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              setSelectedItemIds(new Set());
+              setMultiSelectMode(false);
+            } catch (err) {
+              console.error('[Bill] removeContactsBatch failed:', err);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              Alert.alert(t.error, t.error_mutationFailed);
+            }
           },
         },
       ]);
@@ -277,16 +291,22 @@ export default function BillDetailScreen() {
 
   const handleConfirmUnassign = useCallback(async () => {
     if (selectedContactIds.size === 0 || !bill || !userId) return;
-    await removeContactsBatch({
-      id: id as Id<'bills'>, userId,
-      itemIds: Array.from(selectedItemIds),
-      contactIds: Array.from(selectedContactIds) as Id<'contacts'>[],
-    });
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setActiveDialog(null);
-    setSelectedItemIds(new Set());
-    setMultiSelectMode(false);
-  }, [selectedContactIds, selectedItemIds, bill, id, removeContactsBatch, userId]);
+    try {
+      await removeContactsBatch({
+        id: id as Id<'bills'>, userId,
+        itemIds: Array.from(selectedItemIds),
+        contactIds: Array.from(selectedContactIds) as Id<'contacts'>[],
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setActiveDialog(null);
+      setSelectedItemIds(new Set());
+      setMultiSelectMode(false);
+    } catch (err) {
+      console.error('[Bill] removeContactsBatch failed:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(t.error, t.error_mutationFailed);
+    }
+  }, [selectedContactIds, selectedItemIds, bill, id, removeContactsBatch, t, userId]);
 
   const handleAssignContact = useCallback(async (itemId: string) => {
     const granted = await ensureContactPermission();
@@ -320,8 +340,14 @@ export default function BillDetailScreen() {
         text: t.remove,
         style: 'destructive',
         onPress: async () => {
-            await removeContact({ id: id as Id<'bills'>, userId: userId!, itemId, contactId });
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            try {
+              await removeContact({ id: id as Id<'bills'>, userId: userId!, itemId, contactId });
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch (err) {
+              console.error('[Bill] removeContact failed:', err);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              Alert.alert(t.error, t.error_mutationFailed);
+            }
           },
       },
     ]);
@@ -329,17 +355,28 @@ export default function BillDetailScreen() {
 
   const handleTogglePaid = useCallback(async (contactId: Id<'contacts'>) => {
     if (!userId) return;
-    await togglePaid({ id: id as Id<'bills'>, userId: userId!, contactId });
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [id, togglePaid, userId]);
+    try {
+      await togglePaid({ id: id as Id<'bills'>, userId: userId!, contactId });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.error('[Bill] togglePaid failed:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(t.error, t.error_mutationFailed);
+    }
+  }, [id, togglePaid, t, userId]);
 
-  const handleSendWhatsApp = useCallback((contact: { name: string; phone?: string; items: string[]; amount: number }) => {
+  const handleSendWhatsApp = useCallback(async (contact: { name: string; phone?: string; items: string[]; amount: number }) => {
     if (!bill || !contact.phone) {
       Alert.alert(t.bill_noPhone, t.bill_noPhoneMessage);
       return;
     }
     const message = buildWhatsAppMessage({ bill, contact, t });
     const url = `https://wa.me/${toE164(contact.phone)}?text=${encodeURIComponent(message)}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (!canOpen) {
+      Alert.alert(t.error, t.error_whatsappNotAvailable);
+      return;
+    }
     Linking.openURL(url);
   }, [bill, t]);
 
@@ -352,8 +389,10 @@ export default function BillDetailScreen() {
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: `Bill summary for ${contact.name}` });
     } catch (err) {
       console.error('[Share] Error:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(t.error, t.error_shareFailed);
     }
-  }, [bill]);
+  }, [bill, t]);
 
   // --- Derived data ---
 
@@ -379,12 +418,13 @@ export default function BillDetailScreen() {
     const base = computeBase(itemsTotal, taxConfig);
     const computedTax = taxConfig.taxIncluded ? computeTax(itemsTotal, taxConfig) : (bill.tax ?? 0);
     const tipPercent = bill.tipPercent ?? 0;
-    const computedTip = Math.round(base * (tipPercent / 100));
+    const useCustomTip = bill.useCustomTip ?? false;
+    const computedTip = useCustomTip ? (bill.tip ?? 0) : Math.round(base * (tipPercent / 100));
     const beforeTip = base + computedTax;
     const total = base + computedTax + computedTip;
     const stateStyle = STATE_STYLES[bill.state];
     const stateLabel = t[STATE_LABEL_KEYS[bill.state]] as string;
-    return { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, beforeTip, total, stateStyle, stateLabel };
+    return { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, useCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel };
   }, [bill, t]);
 
   // --- Loading / Error states ---
@@ -399,16 +439,24 @@ export default function BillDetailScreen() {
 
   if (!bill || !billDerived || !userId) {
     return (
-      <View className="flex-1 items-center justify-center bg-background" style={{ paddingTop: insets.top }}>
-        <Text className="text-lg font-semibold text-foreground">{t.error}</Text>
-        <Pressable onPress={() => router.back()} className="mt-4">
-          <Text className="text-sm font-medium text-primary">{t.back}</Text>
-        </Pressable>
+      <View className="flex-1 items-center justify-center bg-background px-6" style={{ paddingTop: insets.top }}>
+        <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-muted/50">
+          <IconSymbol name="exclamationmark.triangle" size={32} color={iconColors.destructive} />
+        </View>
+        <Text className="text-lg font-semibold text-foreground">{t.error_billNotFound}</Text>
+        <Text className="mt-2 text-center text-sm text-muted-foreground">{t.error_billNotFoundHint}</Text>
+        <Button
+          variant="outline"
+          className="mt-6"
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)' as Href)}
+        >
+          <Text>{t.error_goHome}</Text>
+        </Button>
       </View>
     );
   }
 
-  const { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, computedTip, beforeTip, total, stateStyle, stateLabel } = billDerived;
+  const { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, useCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel } = billDerived;
 
   // Progress bar computation
   const totalItems = bill.items.length;
@@ -442,8 +490,15 @@ export default function BillDetailScreen() {
           onBack={() => router.back()}
           onUpdateName={(name) => updateBill({ id: id as Id<'bills'>, userId, name })}
           onDelete={async () => {
-            await removeBill({ id: id as Id<'bills'>, userId: userId! });
-            router.back();
+            try {
+              await removeBill({ id: id as Id<'bills'>, userId: userId! });
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              router.back();
+            } catch (err) {
+              console.error('[Bill] removeBill failed:', err);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              Alert.alert(t.error, t.error_mutationFailed);
+            }
           }}
         />
       </Animated.View>
@@ -536,6 +591,7 @@ export default function BillDetailScreen() {
             computedTax={computedTax}
             beforeTip={beforeTip}
             tipPercent={tipPercent}
+            useCustomTip={useCustomTip}
             computedTip={computedTip}
             total={total}
             billCountry={billCountry}
@@ -545,6 +601,16 @@ export default function BillDetailScreen() {
             t={t}
             onTipPress={() => setActiveDialog('tip')}
             onUpdateTax={handleUpdateTax}
+            onUpdateCustomTip={(tip) => updateBill({ id: id as Id<'bills'>, userId, tip, useCustomTip: true })}
+            onToggleCustomTip={(enabled) => {
+              if (enabled) {
+                updateBill({ id: id as Id<'bills'>, userId, useCustomTip: true });
+              } else {
+                // Recompute tip from percentage
+                const newTip = Math.round(base * (tipPercent / 100));
+                updateBill({ id: id as Id<'bills'>, userId, tip: newTip, useCustomTip: false });
+              }
+            }}
           />
         </Animated.View>
       </ScrollView>
@@ -569,9 +635,15 @@ export default function BillDetailScreen() {
         <View className="border-t border-border/30 px-7 pb-2 pt-3">
           <Pressable
             onPress={async () => {
-              await updateBill({ id: id as Id<'bills'>, userId, state: 'unsplit' });
-              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              router.back();
+              try {
+                await updateBill({ id: id as Id<'bills'>, userId, state: 'unsplit' });
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                router.back();
+              } catch (err) {
+                console.error('[Bill] confirm draft failed:', err);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                Alert.alert(t.error, t.error_mutationFailed);
+              }
             }}
             className="items-center rounded-xl bg-primary py-4 active:opacity-80"
           >
@@ -647,7 +719,7 @@ export default function BillDetailScreen() {
         subtotal={base}
         billCountry={billCountry}
         onSelectTip={async (pct, newTip) => {
-          await updateBill({ id: id as Id<'bills'>, userId, tipPercent: pct, tip: newTip });
+          await updateBill({ id: id as Id<'bills'>, userId, tipPercent: pct, tip: newTip, useCustomTip: false });
           setActiveDialog(null);
         }}
         onClose={() => setActiveDialog(null)}

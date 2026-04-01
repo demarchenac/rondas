@@ -170,6 +170,7 @@ export const en = {
   bill_deleteConfirm: 'Are you sure? This cannot be undone.',
   bill_tapToEdit: 'Tap item to edit · Tap + to assign contact',
   bill_tapToAssign: 'Tap + to assign',
+  bill_customTip: 'Custom tip',
 
   // People summary
   people_title: 'People',
@@ -249,6 +250,20 @@ export const en = {
   wa_tip: (pct: number) => `Tip (${pct}%)`,
   wa_total: (amount: string) => `*Total: ${amount}*`,
   wa_footer: '_Summary generated with the Rondas app_\n_rondas.app_',
+
+  // Error states
+  error_billNotFound: 'Bill not found',
+  error_billNotFoundHint: 'This bill may have been deleted or is no longer available.',
+  error_goHome: 'Go to Home',
+  error_mutationFailed: 'Something went wrong. Please try again.',
+  error_shareFailed: 'Failed to share. Please try again.',
+  error_timeout: 'Request timed out',
+  error_api: 'Service temporarily unavailable',
+  error_scanGeneric: 'Failed to scan bill',
+  error_hintTimeout: 'Check your connection and try again',
+  error_hintApi: 'Please wait a moment and try again',
+  error_hintScan: 'Try a clearer, well-lit photo',
+  error_whatsappNotAvailable: 'WhatsApp is not available on this device',
 
   // Infographic
   infographic_billFor: 'Bill for',

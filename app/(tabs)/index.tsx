@@ -68,8 +68,14 @@ export default function HomeScreen() {
         text: t.delete,
         style: 'destructive',
         onPress: async () => {
-          await removeBill({ id: billId, userId: user.id });
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          try {
+            await removeBill({ id: billId, userId: user.id });
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } catch (err) {
+            console.error('[Home] removeBill failed:', err);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            Alert.alert(t.error, t.error_mutationFailed);
+          }
         },
       },
     ]);
