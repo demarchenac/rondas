@@ -140,6 +140,11 @@ function FilterSheet({
                 isActive={draft.country === 'US'}
                 onPress={() => setDraft((f) => ({ ...f, country: 'US' }))}
               />
+              <FilterChip
+                label={`🌐 ${t.filter_international}`}
+                isActive={draft.country === 'all'}
+                onPress={() => setDraft((f) => ({ ...f, country: 'all' }))}
+              />
             </View>
           </View>
 

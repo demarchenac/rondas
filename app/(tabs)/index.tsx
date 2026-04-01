@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useColorScheme } from 'nativewind';
@@ -46,7 +46,7 @@ export default function HomeScreen() {
     bills,
     paginationStatus,
     loadMore,
-    activeAdvancedFilterCount,
+    nonDefaultFilterCount,
     userCountry,
   } = useBillFilters(user?.id);
 
@@ -84,11 +84,67 @@ export default function HomeScreen() {
   const { country } = useSettingsStore();
 
   const firstName = user?.firstName ?? user?.email?.split('@')[0] ?? 'there';
+  const hasNonDefaultFilters = nonDefaultFilterCount > 0;
+
+  // Build applied filter chips — always show all applied filters including defaults
   const defaults = defaultFilters(userCountry);
-  const hasActiveFilters =
-    activeFilters.state !== 'all' ||
-    activeAdvancedFilterCount > 0 ||
-    activeFilters.country !== defaults.country;
+  const appliedFilterChips = useMemo(() => {
+    const chips: { key: string; label: string; isDefault: boolean }[] = [];
+
+    // Country — always
+    const countryLabels: Record<string, string> = { CO: '🇨🇴 CO', US: '🇺🇸 US', all: '🌐 Int' };
+    chips.push({ key: 'country', label: countryLabels[activeFilters.country] ?? activeFilters.country, isDefault: activeFilters.country === defaults.country });
+
+    // State — always
+    const stateLabels: Record<string, string> = {
+      all: t.filter_all, draft: t.filter_draft, unsplit: t.filter_unsplit,
+      unresolved: t.filter_unresolved, split: t.filter_split,
+    };
+    chips.push({ key: 'state', label: stateLabels[activeFilters.state] ?? activeFilters.state, isDefault: activeFilters.state === defaults.state });
+
+    // Contacts — if any selected
+    if (activeFilters.contactIds.length > 0) {
+      chips.push({ key: 'contacts', label: t.filter_contactCount(activeFilters.contactIds.length), isDefault: false });
+    }
+
+    // Amount — if min or max set
+    if (activeFilters.minAmount != null && activeFilters.maxAmount != null) {
+      chips.push({ key: 'amount', label: t.filter_amountRange(
+        formatCurrency(activeFilters.minAmount, activeFilters.country),
+        formatCurrency(activeFilters.maxAmount, activeFilters.country),
+      ), isDefault: false });
+    } else if (activeFilters.minAmount != null) {
+      chips.push({ key: 'amount', label: t.filter_minAmount(formatCurrency(activeFilters.minAmount, activeFilters.country)), isDefault: false });
+    } else if (activeFilters.maxAmount != null) {
+      chips.push({ key: 'amount', label: t.filter_maxAmount(formatCurrency(activeFilters.maxAmount, activeFilters.country)), isDefault: false });
+    }
+
+    // Date — always
+    if (activeFilters.datePreset === 'custom') {
+      chips.push({ key: 'date', label: t.filter_customDates, isDefault: false });
+    } else {
+      const presetLabels: Record<string, string> = {
+        '1h': '1h', '1d': '1d', '7d': '7d', '30d': '30d',
+      };
+      chips.push({ key: 'date', label: t.filter_last(presetLabels[activeFilters.datePreset] ?? activeFilters.datePreset), isDefault: activeFilters.datePreset === defaults.datePreset });
+    }
+
+    return chips;
+  }, [activeFilters, defaults, t]);
+
+  // Dismiss handlers — reset individual filter to its default
+  const dismissFilter = useCallback((key: string) => {
+    setActiveFilters((f) => {
+      switch (key) {
+        case 'country': return { ...f, country: defaults.country };
+        case 'state': return { ...f, state: defaults.state };
+        case 'contacts': return { ...f, contactIds: [] };
+        case 'amount': return { ...f, minAmount: null, maxAmount: null };
+        case 'date': return { ...f, datePreset: defaults.datePreset, fromDate: null, toDate: null };
+        default: return f;
+      }
+    });
+  }, [defaults, setActiveFilters]);
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
@@ -124,38 +180,39 @@ export default function HomeScreen() {
       {/* Filter Bar */}
       <View className="px-5 py-2.5">
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View className="flex-row gap-2">
-            {/* Country chips */}
-            <FilterChip label="🇨🇴 CO" isActive={activeFilters.country === 'CO'} onPress={() => setActiveFilters((f) => ({ ...f, country: 'CO' }))} />
-            <FilterChip label="🇺🇸 US" isActive={activeFilters.country === 'US'} onPress={() => setActiveFilters((f) => ({ ...f, country: 'US' }))} />
-
-            {/* State chips */}
-            <FilterChip label={t.filter_all} isActive={activeFilters.state === 'all'} onPress={() => setActiveFilters((f) => ({ ...f, state: 'all' }))} />
-            {(billsByState?.draft ?? 0) > 0 && (
-              <FilterChip label={t.filter_draft} isActive={activeFilters.state === 'draft'} onPress={() => setActiveFilters((f) => ({ ...f, state: 'draft' }))} count={billsByState?.draft} />
-            )}
-            <FilterChip label={t.filter_unsplit} isActive={activeFilters.state === 'unsplit'} onPress={() => setActiveFilters((f) => ({ ...f, state: 'unsplit' }))} count={billsByState?.unsplit} />
-            <FilterChip label={t.filter_unresolved} isActive={activeFilters.state === 'unresolved'} onPress={() => setActiveFilters((f) => ({ ...f, state: 'unresolved' }))} count={billsByState?.unresolved} />
-            <FilterChip label={t.filter_split} isActive={activeFilters.state === 'split'} onPress={() => setActiveFilters((f) => ({ ...f, state: 'split' }))} count={billsByState?.split} />
-
-            {/* Advanced filters button */}
-            <FilterChip
-              label={t.filter_filters}
-              isActive={activeAdvancedFilterCount > 0}
-              count={activeAdvancedFilterCount > 0 ? activeAdvancedFilterCount : undefined}
-              onPress={() => setFilterSheetVisible(true)}
-              icon={<IconSymbol name="line.3.horizontal.decrease" size={12} color={activeAdvancedFilterCount > 0 ? iconColors.primaryForeground : iconColors.muted} />}
-            />
-
-            {/* Clear all */}
-            {hasActiveFilters && (
+          <View className="flex-row items-center gap-2">
+            {/* Clear button — only when non-default filters */}
+            {hasNonDefaultFilters && (
               <Pressable
-                onPress={() => setActiveFilters(defaultFilters(userCountry))}
-                className="items-center justify-center rounded-full px-2 py-1.5"
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setActiveFilters(defaultFilters(userCountry));
+                }}
+                className="items-center justify-center px-1 py-1.5"
               >
-                <IconSymbol name="xmark.circle.fill" size={18} color={iconColors.destructive} />
+                <IconSymbol name="trash" size={18} color={iconColors.destructive} />
               </Pressable>
             )}
+
+            {/* Filter button — always first */}
+            <FilterChip
+              label={t.filter_filters}
+              isActive={hasNonDefaultFilters}
+              count={hasNonDefaultFilters ? nonDefaultFilterCount : undefined}
+              onPress={() => setFilterSheetVisible(true)}
+              icon={<IconSymbol name="line.3.horizontal.decrease" size={12} color={hasNonDefaultFilters ? iconColors.primaryForeground : iconColors.muted} />}
+            />
+
+            {/* Applied non-default filter chips — each taps to open sheet, dismissible */}
+            {appliedFilterChips.filter((chip) => !chip.isDefault).map((chip) => (
+              <FilterChip
+                key={chip.key}
+                label={chip.label}
+                isActive
+                onPress={() => setFilterSheetVisible(true)}
+                onDismiss={() => dismissFilter(chip.key)}
+              />
+            ))}
           </View>
         </ScrollView>
       </View>

@@ -51,6 +51,7 @@ const MAPPING = {
   'envelope.fill': 'email',
   'wifi.slash': 'wifi-off',
   'exclamationmark.triangle': 'warning',
+  'trash': 'delete',
 } as IconMapping;
 
 /**

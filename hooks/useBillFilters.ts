@@ -46,7 +46,7 @@ export function useBillFilters(userId: string | undefined) {
       ...(activeFilters.state !== 'all' ? { state: activeFilters.state } : {}),
       ...(activeFilters.minAmount != null ? { minAmount: activeFilters.minAmount } : {}),
       ...(activeFilters.maxAmount != null ? { maxAmount: activeFilters.maxAmount } : {}),
-      ...(activeFilters.country ? { country: activeFilters.country } : {}),
+      ...(activeFilters.country && activeFilters.country !== 'all' ? { country: activeFilters.country } : {}),
       ...(fromDate ? { fromDate } : {}),
       ...(activeFilters.toDate ? { toDate: activeFilters.toDate } : {}),
     };
@@ -70,12 +70,13 @@ export function useBillFilters(userId: string | undefined) {
     );
   }, [rawBills, activeFilters.contactIds]);
 
-  // Count active advanced filters (excludes state — shown inline)
+  // Count filters that differ from defaults (powers badge + trash visibility)
   const defaults = defaultFilters(userCountry);
-  const activeAdvancedFilterCount = [
+  const nonDefaultFilterCount = [
+    activeFilters.country !== defaults.country,
+    activeFilters.state !== defaults.state,
     activeFilters.contactIds.length > 0,
     activeFilters.minAmount != null || activeFilters.maxAmount != null,
-    activeFilters.country !== defaults.country,
     activeFilters.datePreset !== defaults.datePreset,
   ].filter(Boolean).length;
 
@@ -88,7 +89,7 @@ export function useBillFilters(userId: string | undefined) {
     bills,
     paginationStatus,
     loadMore,
-    activeAdvancedFilterCount,
+    nonDefaultFilterCount,
     userCountry,
   };
 }

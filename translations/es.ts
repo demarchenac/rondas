@@ -56,6 +56,13 @@ export const es: typeof en = {
   filter_unresolved: 'Sin resolver',
   filter_split: 'Dividida',
   filter_filters: 'Filtros',
+  filter_international: 'Internacional',
+  filter_contactCount: (n: number) => `${n} ${n === 1 ? 'contacto' : 'contactos'}`,
+  filter_last: (label: string) => `Últimos ${label}`,
+  filter_customDates: 'Fechas personalizadas',
+  filter_minAmount: (amount: string) => `Mín ${amount}`,
+  filter_maxAmount: (amount: string) => `Máx ${amount}`,
+  filter_amountRange: (min: string, max: string) => `${min}–${max}`,
 
   // Filter sheet
   filterSheet_title: 'Filtros',

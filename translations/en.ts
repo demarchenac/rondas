@@ -54,6 +54,13 @@ export const en = {
   filter_unresolved: 'Unresolved',
   filter_split: 'Split',
   filter_filters: 'Filters',
+  filter_international: 'International',
+  filter_contactCount: (n: number) => `${n} ${n === 1 ? 'contact' : 'contacts'}`,
+  filter_last: (label: string) => `Last ${label}`,
+  filter_customDates: 'Custom dates',
+  filter_minAmount: (amount: string) => `Min ${amount}`,
+  filter_maxAmount: (amount: string) => `Max ${amount}`,
+  filter_amountRange: (min: string, max: string) => `${min}–${max}`,
 
   // Filter sheet
   filterSheet_title: 'Filters',
