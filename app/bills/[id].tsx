@@ -601,16 +601,6 @@ export default function BillDetailScreen() {
             t={t}
             onTipPress={() => setActiveDialog('tip')}
             onUpdateTax={handleUpdateTax}
-            onUpdateCustomTip={(tip) => updateBill({ id: id as Id<'bills'>, userId, tip, useCustomTip: true })}
-            onToggleCustomTip={(enabled) => {
-              if (enabled) {
-                updateBill({ id: id as Id<'bills'>, userId, useCustomTip: true });
-              } else {
-                // Recompute tip from percentage
-                const newTip = Math.round(base * (tipPercent / 100));
-                updateBill({ id: id as Id<'bills'>, userId, tip: newTip, useCustomTip: false });
-              }
-            }}
           />
         </Animated.View>
       </ScrollView>
@@ -716,11 +706,25 @@ export default function BillDetailScreen() {
       <TipDialog
         visible={activeDialog === 'tip'}
         tipPercent={tipPercent}
+        useCustomTip={useCustomTip}
+        customTip={bill.tip ?? 0}
         subtotal={base}
         billCountry={billCountry}
+        iconColors={iconColors}
         onSelectTip={async (pct, newTip) => {
           await updateBill({ id: id as Id<'bills'>, userId, tipPercent: pct, tip: newTip, useCustomTip: false });
           setActiveDialog(null);
+        }}
+        onSelectCustomTip={(tip) => {
+          updateBill({ id: id as Id<'bills'>, userId, tip, useCustomTip: true });
+        }}
+        onToggleCustomTip={(enabled) => {
+          if (enabled) {
+            updateBill({ id: id as Id<'bills'>, userId, useCustomTip: true });
+          } else {
+            const newTip = Math.round(base * (tipPercent / 100));
+            updateBill({ id: id as Id<'bills'>, userId, tip: newTip, useCustomTip: false });
+          }
         }}
         onClose={() => setActiveDialog(null)}
       />

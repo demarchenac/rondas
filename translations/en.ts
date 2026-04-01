@@ -171,6 +171,7 @@ export const en = {
   bill_tapToEdit: 'Tap item to edit · Tap + to assign contact',
   bill_tapToAssign: 'Tap + to assign',
   bill_customTip: 'Custom tip',
+  bill_tipCustom: 'Tip (custom)',
 
   // People summary
   people_title: 'People',

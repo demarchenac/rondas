@@ -173,6 +173,7 @@ export const es: typeof en = {
   bill_tapToEdit: 'Toca un ítem para editar · Toca + para asignar',
   bill_tapToAssign: 'Toca + para asignar',
   bill_customTip: 'Propina personalizada',
+  bill_tipCustom: 'Propina (personalizada)',
 
   // People summary
   people_title: 'Personas',
