@@ -149,6 +149,7 @@ export const create = mutation({
     tax: v.optional(v.number()),
     tip: v.optional(v.number()),
     tipPercent: v.optional(v.number()),
+    useCustomTip: v.optional(v.boolean()),
     items: v.array(
       v.object({
         name: v.string(),
@@ -209,6 +210,7 @@ export const update = mutation({
     tax: v.optional(v.number()),
     tip: v.optional(v.number()),
     tipPercent: v.optional(v.number()),
+    useCustomTip: v.optional(v.boolean()),
     country: v.optional(v.string()),
     items: v.optional(v.array(billItemValidator)),
   },

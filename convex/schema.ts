@@ -37,6 +37,7 @@ export default defineSchema({
     tax: v.optional(v.number()),
     tip: v.optional(v.number()),
     tipPercent: v.optional(v.number()),
+    useCustomTip: v.optional(v.boolean()),
     items: v.array(billItemValidator),
     splitStrategy: v.optional(splitStrategyValidator),
     contacts: v.array(billContactRefValidator),

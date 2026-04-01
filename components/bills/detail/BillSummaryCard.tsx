@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { formatCurrency } from '@/lib/format';
@@ -13,6 +13,7 @@ interface BillSummaryCardProps {
   computedTax: number;
   beforeTip: number;
   tipPercent: number;
+  useCustomTip: boolean;
   computedTip: number;
   total: number;
   billCountry: string;
@@ -22,6 +23,8 @@ interface BillSummaryCardProps {
   t: Translations;
   onTipPress: () => void;
   onUpdateTax: (value: string) => void;
+  onUpdateCustomTip: (tip: number) => void;
+  onToggleCustomTip: (enabled: boolean) => void;
 }
 
 function BillSummaryCard({
@@ -29,6 +32,7 @@ function BillSummaryCard({
   computedTax,
   beforeTip,
   tipPercent,
+  useCustomTip,
   computedTip,
   total,
   billCountry,
@@ -38,8 +42,11 @@ function BillSummaryCard({
   t,
   onTipPress,
   onUpdateTax,
+  onUpdateCustomTip,
+  onToggleCustomTip,
 }: BillSummaryCardProps) {
   const taxInput = useBufferedInput(String(computedTax), (v) => onUpdateTax(v));
+  const tipInput = useBufferedInput(String(computedTip), (v) => onUpdateCustomTip(Number(v) || 0));
 
   return (
     <View className="mx-7 mt-4 overflow-hidden rounded-xl bg-card">
@@ -81,19 +88,57 @@ function BillSummaryCard({
       </View>
       <View className="mx-4 h-px bg-border/30" />
 
-      {/* Tip */}
-      <Pressable
-        className="flex-row items-center justify-between px-4 py-3 active:bg-muted/30"
-        onPress={onTipPress}
-      >
-        <View className="flex-row items-center gap-1">
-          <Text className="text-sm text-foreground">{t.bill_tip(tipPercent)}</Text>
-          <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
+      {/* Tip — percentage selector or custom input */}
+      {useCustomTip ? (
+        <View className="px-4 py-3">
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-sm text-foreground">{t.bill_customTip}</Text>
+              <Switch
+                value={true}
+                onValueChange={(v) => onToggleCustomTip(v)}
+                trackColor={{ true: iconColors.primary }}
+                style={{ transform: [{ scale: 0.8 }] }}
+              />
+            </View>
+            <CurrencyInput
+              value={Number(tipInput.value) || 0}
+              onChangeValue={(n) => tipInput.onChangeText(String(n))}
+              onFocus={tipInput.onFocus}
+              onBlur={tipInput.onBlur}
+              country={billCountry}
+              className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
+            />
+          </View>
         </View>
-        <Text className="text-sm font-semibold tabular-nums text-foreground">
-          {formatCurrency(computedTip, billCountry)}
-        </Text>
-      </Pressable>
+      ) : (
+        <View className="px-4 py-3">
+          <View className="flex-row items-center justify-between">
+            <Pressable
+              className="flex-row items-center gap-1 active:opacity-70"
+              onPress={onTipPress}
+            >
+              <Text className="text-sm text-foreground">{t.bill_tip(tipPercent)}</Text>
+              <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
+            </Pressable>
+            <View className="flex-row items-center gap-2">
+              {computedTip > 0 && (
+                <Text className="text-sm font-semibold tabular-nums text-foreground">
+                  {formatCurrency(computedTip, billCountry)}
+                </Text>
+              )}
+              <Switch
+                value={false}
+                onValueChange={(v) => onToggleCustomTip(v)}
+                trackColor={{ true: iconColors.primary }}
+                style={{ transform: [{ scale: 0.8 }] }}
+              />
+            </View>
+          </View>
+          {/* Show read-only custom value if bill has one from before */}
+          {(computedTip === 0 && tipPercent === 0) ? null : null}
+        </View>
+      )}
 
       {/* Total — highlighted row */}
       <View className="h-px bg-border/50" />
