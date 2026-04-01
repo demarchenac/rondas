@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2026-03-31 (session 7 — Bill detail UI/UX redesign, performance fixes, form infrastructure)
+> Last updated: 2026-04-01 (session 8 — Error states, custom tip, filter bar rework)
 
 ---
 
@@ -405,7 +405,7 @@
 
 - [x] Add global error boundary
 - [x] Add empty states for all list screens
-- [ ] Add error states for failed API calls with retry buttons
+- [x] Add error states for failed API calls with retry buttons
 - [x] Add offline detection banner
 - [x] Add retry logic to email/WhatsApp notifications
 - [x] Add 60s timeout to Gemini API calls
@@ -585,6 +585,35 @@
 
 ---
 
+## Session 8 — Error States, Custom Tip, Filter Rework (2026-04-01)
+
+### Error Handling
+- [x] Classified scan errors (timeout/api/generic) with actionable hints
+- [x] High-contrast BlurView error toast over camera backgrounds
+- [x] Manual-entry escape hatch after 2 failed scan attempts
+- [x] Fullscreen bill-not-found state with muted icon backdrop
+- [x] try/catch on all mutation handlers with Alert.alert feedback
+- [x] WhatsApp canOpenURL check before deep link
+- [x] 12 new i18n error strings (EN + ES)
+- [x] 2 new icon mappings (wifi.slash, exclamationmark.triangle)
+
+### Custom Tip
+- [x] Per-bill custom tip toggle (useCustomTip field on bills schema)
+- [x] Toggle + CurrencyInput inside TipDialog modal
+- [x] Tip row shows "Tip (custom)" with chevron when custom active
+- [x] Selecting a tip % auto-disables custom tip
+
+### Filter Bar Rework
+- [x] Filter button renders first, opens FilterSheet for all changes
+- [x] Trash icon clears to defaults (visible only when non-default)
+- [x] Applied non-default filters show as dismissible chips with X icon
+- [x] Each chip taps to open FilterSheet
+- [x] "International" country filter (shows all countries)
+- [x] FilterChip gains optional onDismiss prop
+- [x] 8 new i18n strings for filter chip labels (EN + ES)
+
+---
+
 ## Progress Summary
 
 | Phase                             | Total Tasks | Done  |
@@ -598,8 +627,9 @@
 | Phase 7 — Bill Detail & History   | 32          | 31    |
 | Phase 8 — Settings                | 24          | 23    |
 | Phase 9 — Subscriptions           | 12          | 0     |
-| Phase 10 — Polish & Launch        | 16          | 6     |
+| Phase 10 — Polish & Launch        | 16          | 7     |
 | Codebase Review #1 Refactoring    | 48          | 48    |
 | Codebase Review #2 Fixes          | 20          | 20    |
 | Session 7 — Bill Detail Redesign  | 30          | 30    |
-| **Total**                         | **329**     | **296**|
+| Session 8 — Errors, Tip, Filters  | 19          | 19    |
+| **Total**                         | **348**     | **316**|
