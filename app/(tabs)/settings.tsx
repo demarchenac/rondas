@@ -66,7 +66,7 @@ export default function SettingsScreen() {
 
   const handleThemeChange = useCallback((newMode: ThemeMode) => {
     setMode(newMode);
-    setColorScheme(newMode === 'system' ? undefined : newMode);
+    if (newMode !== 'system') setColorScheme(newMode);
     syncConfig();
   }, [setMode, setColorScheme, syncConfig]);
 
