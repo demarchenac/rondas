@@ -30,6 +30,7 @@ import SortBar from '@/components/bills/detail/SortBar';
 import BillItemCard from '@/components/bills/detail/BillItemCard';
 import BillSummaryCard from '@/components/bills/detail/BillSummaryCard';
 import PeopleSummary from '@/components/bills/detail/PeopleSummary';
+import EqualSplitView from '@/components/bills/detail/EqualSplitView';
 import TipDialog from '@/components/bills/TipDialog';
 import CountryDialog from '@/components/bills/CountryDialog';
 import BulkToolbar from '@/components/bills/BulkToolbar';
@@ -60,6 +61,8 @@ export default function BillDetailScreen() {
   const removeBill = useMutation(api.bills.remove);
   const removeContactsBatch = useMutation(api.bills.removeContactsFromItems);
   const assignContactToItems = useMutation(api.bills.assignContactToItems);
+  const assignEqualSplit = useMutation(api.bills.assignEqualSplit);
+  const clearSplit = useMutation(api.bills.clearSplitAssignments);
 
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [activeDialog, setActiveDialog] = useState<DialogType>(null);
@@ -70,6 +73,18 @@ export default function BillDetailScreen() {
   const [phoneContacts, setPhoneContacts] = useState<(Contacts.Contact & { id: string })[]>([]);
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [singleAssignItemId, setSingleAssignItemId] = useState<string | null>(null);
+  const [numPeople, setNumPeople] = useState(2);
+  const [equalSplitMode, setEqualSplitMode] = useState(false);
+  // Sync equal split state from bill
+  const initializedRef = useRef(false);
+  if (bill && !initializedRef.current) {
+    initializedRef.current = true;
+    if (bill.splitStrategy === 'equal') {
+      setEqualSplitMode(true);
+      if (bill.numPeople) setNumPeople(bill.numPeople);
+    }
+  }
+
   const swipeOpenRef = useRef(false);
   const billRef = useRef(bill);
   billRef.current = bill;
@@ -365,6 +380,134 @@ export default function BillDetailScreen() {
     }
   }, [id, togglePaid, t, userId]);
 
+  const handleSplitEqually = useCallback(() => {
+    if (!bill || !userId) return;
+    if (bill.contacts.length > 0) {
+      Alert.alert(t.bill_equalSwitchTitle, t.bill_equalSwitchWarning, [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: t.confirm,
+          onPress: async () => {
+            try {
+              await clearSplit({ id: id as Id<'bills'>, userId });
+              setEqualSplitMode(true);
+              setNumPeople(2);
+            } catch (_err) {
+              Alert.alert(t.error, t.error_mutationFailed);
+            }
+          },
+        },
+      ]);
+    } else {
+      setEqualSplitMode(true);
+      setNumPeople(bill.numPeople ?? 2);
+    }
+  }, [bill, id, userId, clearSplit, t]);
+
+  const handleSplitByItem = useCallback(() => {
+    if (!bill || !userId) return;
+    if (bill.contacts.length > 0) {
+      Alert.alert(t.bill_equalSwitchTitle, t.bill_equalSwitchWarning, [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: t.confirm,
+          onPress: async () => {
+            try {
+              await clearSplit({ id: id as Id<'bills'>, userId });
+              setEqualSplitMode(false);
+            } catch (_err) {
+              Alert.alert(t.error, t.error_mutationFailed);
+            }
+          },
+        },
+      ]);
+    } else {
+      setEqualSplitMode(false);
+    }
+  }, [bill, id, userId, clearSplit, t]);
+
+  const handleEqualAssignContacts = useCallback(async () => {
+    const granted = await ensureContactPermission();
+    if (!granted) return;
+    setSelectedContactIds(new Set());
+    setSingleAssignItemId(null);
+    setActiveDialog('contactPicker');
+    loadContacts();
+  }, [ensureContactPermission, loadContacts]);
+
+  const handleConfirmEqualSplit = useCallback(async () => {
+    if (!bill || !userId) return;
+    // Build contact args from bill's current contacts
+    const contactArgs = bill.contacts.map((c) => ({
+      name: c.name,
+      phone: c.phone ?? '',
+      imageUri: c.imageUri,
+    }));
+    try {
+      await assignEqualSplit({
+        id: id as Id<'bills'>,
+        userId,
+        numPeople,
+        contacts: contactArgs,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err) {
+      console.error('[Bill] assignEqualSplit failed:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(t.error, t.error_mutationFailed);
+    }
+  }, [bill, id, userId, numPeople, assignEqualSplit, t]);
+
+  // Equal split: handle contact picker confirm (different from by-item flow)
+  const handleConfirmEqualContactPicker = useCallback(async () => {
+    if (selectedContactIds.size === 0 || !bill || !userId) return;
+    const allSuggested = [
+      ...(suggestedContacts?.frequent ?? []),
+      ...(suggestedContacts?.recent ?? []),
+    ];
+
+    const contactArgs: { name: string; phone: string; imageUri?: string }[] = [];
+
+    // Include existing contacts from bill
+    for (const c of bill.contacts) {
+      contactArgs.push({ name: c.name, phone: c.phone ?? '', imageUri: c.imageUri });
+    }
+
+    // Add newly selected contacts
+    for (const selectedId of selectedContactIds) {
+      if (selectedId.startsWith(SUGGESTED_PREFIX)) {
+        const convexId = selectedId.slice(SUGGESTED_PREFIX.length);
+        const sc = allSuggested.find((c) => c._id === convexId);
+        if (!sc) continue;
+        // Skip if already in bill contacts
+        if (contactArgs.some((ca) => ca.phone === sc.phone)) continue;
+        contactArgs.push({ name: sc.name, phone: sc.phone, imageUri: sc.imageUri });
+      } else {
+        const contact = phoneContacts.find((c) => c.id === selectedId);
+        if (!contact) continue;
+        const phone = contact.phoneNumbers?.[0]?.number ?? '';
+        const name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
+        if (contactArgs.some((ca) => ca.phone === phone)) continue;
+        contactArgs.push({ name, phone, imageUri: contact.image?.uri });
+      }
+    }
+
+    try {
+      await assignEqualSplit({
+        id: id as Id<'bills'>,
+        userId,
+        numPeople,
+        contacts: contactArgs,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setActiveDialog(null);
+    } catch (err) {
+      console.error('[Bill] assignEqualSplit failed:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(t.error, t.error_mutationFailed);
+    }
+  }, [selectedContactIds, bill, userId, suggestedContacts, phoneContacts, id, numPeople, assignEqualSplit, t]);
+
   const handleSendWhatsApp = useCallback(async (contact: { name: string; phone?: string; items: string[]; amount: number }) => {
     if (!bill || !contact.phone) {
       Alert.alert(t.bill_noPhone, t.bill_noPhoneMessage);
@@ -485,10 +628,13 @@ export default function BillDetailScreen() {
           unpaidPercent={unpaidOfAssigned}
           stateTextClass={stateStyle.textClass}
           hasContacts={totalContacts > 0}
+          splitStrategy={equalSplitMode ? 'equal' : bill.splitStrategy}
           iconColors={iconColors}
           t={t}
           onBack={() => router.back()}
           onUpdateName={(name) => updateBill({ id: id as Id<'bills'>, userId, name })}
+          onSplitEqually={handleSplitEqually}
+          onSplitByItem={handleSplitByItem}
           onDelete={async () => {
             try {
               await removeBill({ id: id as Id<'bills'>, userId: userId! });
@@ -518,55 +664,76 @@ export default function BillDetailScreen() {
           />
         </Animated.View>
 
-        {/* Sort bar + bulk edit */}
-        <Animated.View entering={animate ? FadeInDown.delay(120).duration(300) : undefined}>
-          <SortBar
-            sortStrategy={sortStrategy}
-            onSortChange={setSortStrategy}
-            multiSelectMode={multiSelectMode}
-            selectedCount={selectedItemIds.size}
-            onToggleMultiSelect={() => {
-              setMultiSelectMode(!multiSelectMode);
-              setSelectedItemIds(new Set());
-              setEditingItemId(null);
-            }}
-            t={t}
-          />
-        </Animated.View>
-
-        {/* Items */}
-        {sortedItems.map((item, index) => {
-          const itemId = item.id!;
-          const assignedContacts = bill.contacts.filter((c) => c.items.includes(itemId));
-          return (
-            <Animated.View
-              key={item.id ?? `legacy-${index}`}
-              entering={animate ? FadeInDown.delay(Math.min(index, 8) * 60 + 180).duration(350) : undefined}
-            >
-              <BillItemCard
-                item={item}
-                index={index}
-                billCountry={billCountry}
-                stateStyle={stateStyle}
-                assignedContacts={assignedContacts}
-                isEditing={editingItemId === itemId}
-                isDeleting={deletingId === item.id}
+        {/* Equal Split View OR Sort bar + Items */}
+        {equalSplitMode ? (
+          <Animated.View entering={animate ? FadeInDown.delay(120).duration(300) : undefined} className="px-5">
+            <EqualSplitView
+              items={bill.items}
+              contacts={bill.contacts}
+              total={total}
+              numPeople={numPeople}
+              billCountry={billCountry}
+              iconColors={iconColors}
+              t={t}
+              onNumPeopleChange={setNumPeople}
+              onAssignContacts={handleEqualAssignContacts}
+              onConfirm={handleConfirmEqualSplit}
+              onTogglePaid={handleTogglePaid}
+            />
+          </Animated.View>
+        ) : (
+          <>
+            {/* Sort bar + bulk edit */}
+            <Animated.View entering={animate ? FadeInDown.delay(120).duration(300) : undefined}>
+              <SortBar
+                sortStrategy={sortStrategy}
+                onSortChange={setSortStrategy}
                 multiSelectMode={multiSelectMode}
-                isSelected={selectedItemIds.has(itemId)}
-                iconColors={iconColors}
+                selectedCount={selectedItemIds.size}
+                onToggleMultiSelect={() => {
+                  setMultiSelectMode(!multiSelectMode);
+                  setSelectedItemIds(new Set());
+                  setEditingItemId(null);
+                }}
                 t={t}
-                swipeOpenRef={swipeOpenRef}
-                onPress={handleItemPress}
-                onRemoveItem={handleRemoveItem}
-                onSubmitEdit={handleSubmitEdit}
-                onDismissEdit={() => setEditingItemId(null)}
-                onAssignContact={handleAssignContact}
-                onRemoveContact={handleRemoveContact}
-                onToggleSelection={toggleItemSelection}
               />
             </Animated.View>
-          );
-        })}
+
+            {/* Items */}
+            {sortedItems.map((item, index) => {
+              const itemId = item.id!;
+              const assignedContacts = bill.contacts.filter((c) => c.items.includes(itemId));
+              return (
+                <Animated.View
+                  key={item.id ?? `legacy-${index}`}
+                  entering={animate ? FadeInDown.delay(Math.min(index, 8) * 60 + 180).duration(350) : undefined}
+                >
+                  <BillItemCard
+                    item={item}
+                    index={index}
+                    billCountry={billCountry}
+                    stateStyle={stateStyle}
+                    assignedContacts={assignedContacts}
+                    isEditing={editingItemId === itemId}
+                    isDeleting={deletingId === item.id}
+                    multiSelectMode={multiSelectMode}
+                    isSelected={selectedItemIds.has(itemId)}
+                    iconColors={iconColors}
+                    t={t}
+                    swipeOpenRef={swipeOpenRef}
+                    onPress={handleItemPress}
+                    onRemoveItem={handleRemoveItem}
+                    onSubmitEdit={handleSubmitEdit}
+                    onDismissEdit={() => setEditingItemId(null)}
+                    onAssignContact={handleAssignContact}
+                    onRemoveContact={handleRemoveContact}
+                    onToggleSelection={toggleItemSelection}
+                  />
+                </Animated.View>
+              );
+            })}
+          </>
+        )}
 
         {/* People summary */}
         {bill.contacts.length > 0 && (
@@ -661,6 +828,7 @@ export default function BillDetailScreen() {
         visible={activeDialog === 'share'}
         bill={bill}
         billCountry={billCountry}
+        splitStrategy={bill.splitStrategy}
         taxConfig={taxConfig}
         tipPercent={tipPercent}
         translatedTaxLabel={translatedTaxLabel}
@@ -679,7 +847,7 @@ export default function BillDetailScreen() {
         selectedContactIds={selectedContactIds}
         bottomInset={insets.bottom}
         onToggleContact={handleToggleContactSelection}
-        onConfirm={handleConfirmContactPicker}
+        onConfirm={equalSplitMode ? handleConfirmEqualContactPicker : handleConfirmContactPicker}
         onClose={handleCloseContactPicker}
       />
 

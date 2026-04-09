@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2026-04-01 (session 8 — Error states, custom tip, filter bar rework)
+> Last updated: 2026-04-05 (session 9 — Equal split, amount filter polish, Phase 8 fix)
 
 ---
 
@@ -137,7 +137,7 @@
 - [x] Build filter bar component above bill list
 - [x] Add filter by bill state (multi-select toggle)
 - [x] Add filter by contact (searchable multi-select in FilterSheet, client-side filtering)
-- [ ] Add filter by amount range (dual-handle slider)
+- [x] Add filter by amount range (CurrencyInput with dynamic bounds + auto-swap)
 - [x] Wire filters to Convex query or client-side filter logic
 - [x] Add "Clear filters" button
 
@@ -226,8 +226,8 @@
 - [x] Batch unassign contacts (multi-select with confirmation)
 - [x] Migrate contact-item references from indices to item IDs
 - [x] Auto-cleanup stale contact references on item deletion
-- [ ] Create split strategy screen (Equal Split)
-- [ ] Build number-of-people stepper for equal split
+- [x] Create split strategy via overflow menu (Equal Split)
+- [x] Build number-of-people stepper for equal split
 
 ### 5.2 Backend Mutations
 
@@ -620,16 +620,16 @@
 | --------------------------------- | ----------- | ----- |
 | Phase 1 — Setup                   | 38          | 35    |
 | Phase 2 — Auth Screens            | 23          | 23    |
-| Phase 3 — Home Screen             | 19          | 18    |
+| Phase 3 — Home Screen             | 19          | 19    |
 | Phase 4 — Bill Creation & AI      | 34          | 33    |
-| Phase 5 — Bill Splitting          | 21          | 19    |
+| Phase 5 — Bill Splitting          | 21          | 21    |
 | Phase 6 — Summary & Notifications | 12          | 10    |
 | Phase 7 — Bill Detail & History   | 32          | 31    |
-| Phase 8 — Settings                | 24          | 23    |
+| Phase 8 — Settings                | 24          | 24    |
 | Phase 9 — Subscriptions           | 12          | 0     |
 | Phase 10 — Polish & Launch        | 16          | 7     |
 | Codebase Review #1 Refactoring    | 48          | 48    |
 | Codebase Review #2 Fixes          | 20          | 20    |
 | Session 7 — Bill Detail Redesign  | 30          | 30    |
 | Session 8 — Errors, Tip, Filters  | 19          | 19    |
-| **Total**                         | **348**     | **316**|
+| **Total**                         | **348**     | **320**|

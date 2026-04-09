@@ -40,6 +40,7 @@ export default defineSchema({
     useCustomTip: v.optional(v.boolean()),
     items: v.array(billItemValidator),
     splitStrategy: v.optional(splitStrategyValidator),
+    numPeople: v.optional(v.number()),
     contacts: v.array(billContactRefValidator),
     category: v.optional(categoryValidator),
     country: v.optional(v.string()),

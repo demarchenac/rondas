@@ -53,6 +53,8 @@ export default function HomeScreen() {
   const billsByState = filterOptions?.billsByState;
   const activeBillCount = filterOptions?.activeBillCount ?? 0;
   const billContacts = filterOptions?.contacts ?? [];
+  const minTotal = filterOptions?.minTotal;
+  const maxTotal = filterOptions?.maxTotal;
 
   const removeBill = useMutation(api.bills.remove);
   const [refreshing, setRefreshing] = useState(false);
@@ -310,6 +312,9 @@ export default function HomeScreen() {
         billsByState={billsByState}
         activeBillCount={activeBillCount}
         availableContacts={billContacts}
+        country={userCountry}
+        minTotal={minTotal}
+        maxTotal={maxTotal}
         onApply={(f) => {
           setActiveFilters(f);
           setFilterSheetVisible(false);

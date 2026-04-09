@@ -10,9 +10,14 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.rondas.app",
+      "bundleIdentifier": "app.rondas.mobile",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Rondas necesita acceso a la cámara para escanear recibos y extraer los ítems automáticamente.",
+        "NSPhotoLibraryUsageDescription": "Rondas accede a tus fotos para escanear recibos guardados en tu galería.",
+        "NSPhotoLibraryAddUsageDescription": "Rondas guarda los resúmenes generados (infografías) en tu galería de fotos.",
+        "NSContactsUsageDescription": "Rondas usa tus contactos para asignar personas a los ítems de la cuenta y compartir el resumen por WhatsApp.",
+        "NSLocationWhenInUseUsageDescription": "Rondas usa tu ubicación para identificar automáticamente el lugar donde fue hecha la cuenta."
       }
     },
     "android": {
@@ -23,7 +28,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.rondas.app"
+      "package": "app.rondas.mobile"
     },
     "web": {
       "output": "static",
@@ -43,7 +48,16 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-localization",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "rondas",
+          "organization": "demarchenac"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -54,6 +68,7 @@
       "eas": {
         "projectId": "108dace2-7c2f-4aad-8a3f-d8695905f5d8"
       }
-    }
+    },
+    "owner": "demarchenac"
   }
 }

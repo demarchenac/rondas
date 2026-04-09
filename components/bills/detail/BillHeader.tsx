@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Pressable, TextInput, View } from 'react-native';
+import { ActionSheetIOS, Alert, Platform, Pressable, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -17,11 +17,14 @@ interface BillHeaderProps {
   unpaidPercent: number;
   stateTextClass: string;
   hasContacts: boolean;
+  splitStrategy?: string;
   iconColors: Record<string, string>;
   t: Translations;
   onBack: () => void;
   onUpdateName: (name: string) => void;
   onDelete: () => Promise<void>;
+  onSplitEqually?: () => void;
+  onSplitByItem?: () => void;
 }
 
 function BillHeader({
@@ -33,15 +36,60 @@ function BillHeader({
   unpaidPercent,
   stateTextClass,
   hasContacts,
+  splitStrategy,
   iconColors,
   t,
   onBack,
   onUpdateName,
   onDelete,
+  onSplitEqually,
+  onSplitByItem,
 }: BillHeaderProps) {
   const nameInput = useBufferedInput(billName, onUpdateName);
 
   const handleOverflowPress = () => {
+    // Build dynamic options based on current state
+    const options: { label: string; action: () => void; destructive?: boolean }[] = [];
+
+    if (state !== 'draft' && splitStrategy !== 'equal' && onSplitEqually) {
+      options.push({ label: t.bill_splitEqual, action: onSplitEqually });
+    }
+    if (splitStrategy === 'equal' && onSplitByItem) {
+      options.push({ label: t.bill_splitByItem, action: onSplitByItem });
+    }
+    options.push({ label: t.bill_deleteBill, action: () => confirmDelete(), destructive: true });
+
+    if (Platform.OS === 'ios') {
+      const labels = [...options.map((o) => o.label), t.cancel];
+      const destructiveIndex = options.findIndex((o) => o.destructive);
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: labels,
+          destructiveButtonIndex: destructiveIndex >= 0 ? destructiveIndex : undefined,
+          cancelButtonIndex: labels.length - 1,
+        },
+        (index) => {
+          if (index < options.length) options[index].action();
+        },
+      );
+    } else {
+      // Android: use Alert with buttons (max 3 buttons)
+      Alert.alert(
+        '',
+        undefined,
+        [
+          ...options.map((o) => ({
+            text: o.label,
+            style: (o.destructive ? 'destructive' : 'default') as 'destructive' | 'default',
+            onPress: o.action,
+          })),
+          { text: t.cancel, style: 'cancel' },
+        ],
+      );
+    }
+  };
+
+  const confirmDelete = () => {
     Alert.alert(
       t.bill_deleteBill,
       t.bill_deleteConfirm,
