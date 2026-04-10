@@ -69,11 +69,19 @@
       "expo-file-system",
       "expo-system-ui",
       "expo-asset",
-      "expo-dev-client"
+      "expo-dev-client",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "rondas",
+          "organization": "demarchenac"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": false
+      "reactCompiler": true
     },
     "extra": {
       "router": {},
