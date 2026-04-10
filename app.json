@@ -71,6 +71,16 @@
       "expo-asset",
       "expo-dev-client",
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": [
+              "$rootDir/../node_modules/@react-native-async-storage/async-storage/android/local_repo"
+            ]
+          }
+        }
+      ],
+      [
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
