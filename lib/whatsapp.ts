@@ -8,6 +8,9 @@ interface BillData {
   category?: string;
   country?: string;
   tipPercent?: number;
+  splitStrategy?: string;
+  numPeople?: number;
+  total: number;
   location?: { address?: string };
   photoTakenAt?: string;
   _creationTime: number;
@@ -33,6 +36,29 @@ export function buildWhatsAppMessage(params: {
   const tipPercent = bill.tipPercent ?? 0;
   const translatedTax = getTaxLabel(taxConfig, t);
   const sep = '─────────────';
+
+  // Equal split: simplified message
+  if (bill.splitStrategy === 'equal' && bill.numPeople) {
+    const lines: string[] = [];
+    lines.push(`🧾 *${bill.name}*`);
+    if (bill.location?.address) lines.push(`📍 ${bill.location.address}`);
+    const billDate = bill.photoTakenAt ?? new Date(bill._creationTime).toISOString();
+    const d = new Date(billDate);
+    if (!isNaN(d.getTime())) {
+      const locale = billCountry === 'US' ? 'en-US' : 'es-CO';
+      lines.push(`🕐 ${d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`);
+    }
+    lines.push('');
+    lines.push(t.wa_equalSplit(
+      formatCurrency(contact.amount, billCountry),
+      formatCurrency(bill.total, billCountry),
+      bill.numPeople,
+    ));
+    lines.push('');
+    lines.push(sep);
+    lines.push(t.wa_footer);
+    return lines.join('\n');
+  }
 
   // Per-contact item shares
   const itemLines = contact.items

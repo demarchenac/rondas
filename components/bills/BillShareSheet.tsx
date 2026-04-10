@@ -20,6 +20,7 @@ interface BillShareSheetProps {
   visible: boolean;
   bill: ResolvedBill;
   billCountry: 'CO' | 'US';
+  splitStrategy?: string;
   taxConfig: TaxConfig;
   tipPercent: number;
   translatedTaxLabel: string;
@@ -35,6 +36,7 @@ function BillShareSheet({
   visible,
   bill,
   billCountry,
+  splitStrategy,
   taxConfig,
   tipPercent,
   translatedTaxLabel,
@@ -70,18 +72,29 @@ function BillShareSheet({
 
         <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
           {bill.contacts.map((contact, ci) => {
+            const isEqualSplit = splitStrategy === 'equal';
+
             // Compute per-contact amounts
-            const contactItemAmounts = contact.items.map((itemId) => {
-              const item = bill.items.find((i) => i.id === itemId);
-              if (!item) return 0;
-              const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-              return Math.round(item.subtotal / numContacts);
-            });
-            const contactItemsTotal = contactItemAmounts.reduce((s, a) => s + a, 0);
-            const contactBase = computeBase(contactItemsTotal, taxConfig);
-            const contactTax = computeTax(contactItemsTotal, taxConfig);
-            const contactTip = Math.round(contactBase * (tipPercent / 100));
-            const contactTotal = contactBase + contactTax + contactTip;
+            let contactTotal: number;
+            let contactTax: number;
+            let contactTip: number;
+            if (isEqualSplit) {
+              contactTotal = contact.amount;
+              contactTax = 0;
+              contactTip = 0;
+            } else {
+              const contactItemAmounts = contact.items.map((itemId) => {
+                const item = bill.items.find((i) => i.id === itemId);
+                if (!item) return 0;
+                const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
+                return Math.round(item.subtotal / numContacts);
+              });
+              const contactItemsTotal = contactItemAmounts.reduce((s, a) => s + a, 0);
+              const contactBase = computeBase(contactItemsTotal, taxConfig);
+              contactTax = computeTax(contactItemsTotal, taxConfig);
+              contactTip = Math.round(contactBase * (tipPercent / 100));
+              contactTotal = contactBase + contactTax + contactTip;
+            }
 
             return (
             <View key={ci} className="mb-4">
@@ -102,7 +115,9 @@ function BillShareSheet({
                   <View>
                     <Text className="text-base font-semibold text-foreground">{contact.name}</Text>
                     <Text className="text-xs text-muted-foreground">
-                      {t.share_itemCount(contact.items.length)}
+                      {isEqualSplit
+                        ? t.share_equalPerPerson(formatCurrency(contactTotal, billCountry), bill.contacts.length)
+                        : t.share_itemCount(contact.items.length)}
                     </Text>
                   </View>
                 </View>
@@ -111,35 +126,46 @@ function BillShareSheet({
                 </Text>
               </View>
 
-              {/* Contact items — two column */}
-              <View className="ml-[52px] mt-2 flex-row flex-wrap">
-                {contact.items.map((itemId) => {
-                  const item = bill.items.find((i) => i.id === itemId);
-                  if (!item) return null;
-                  const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-                  const share = Math.round(item.subtotal / numContacts);
-                  return (
-                    <View key={itemId} className="w-1/2 pr-2 mb-1">
-                      <Text className="text-xs text-foreground" numberOfLines={1}>{item.name}</Text>
-                      <Text className="text-[11px] text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-
-              {/* Tax & Tip breakdown */}
-              <View className="ml-[52px] mt-2 gap-1">
-                <View className="flex-row justify-between">
-                  <Text className="text-[11px] text-muted-foreground">{translatedTaxLabel}</Text>
-                  <Text className="text-[11px] text-muted-foreground">{formatCurrency(contactTax, billCountry)}</Text>
+              {/* Contact items — two column (only for by-item split) */}
+              {!isEqualSplit && (
+                <View className="ml-[52px] mt-2 flex-row flex-wrap">
+                  {contact.items.map((itemId) => {
+                    const item = bill.items.find((i) => i.id === itemId);
+                    if (!item) return null;
+                    const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
+                    const share = Math.round(item.subtotal / numContacts);
+                    return (
+                      <View key={itemId} className="w-1/2 pr-2 mb-1">
+                        <Text className="text-xs text-foreground" numberOfLines={1}>{item.name}</Text>
+                        <Text className="text-[11px] text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
+                      </View>
+                    );
+                  })}
                 </View>
-                {tipPercent > 0 && (
+              )}
+
+              {/* Equal split label */}
+              {isEqualSplit && (
+                <View className="ml-[52px] mt-2">
+                  <Text className="text-xs text-muted-foreground">{t.share_equalSplit}</Text>
+                </View>
+              )}
+
+              {/* Tax & Tip breakdown (only for by-item split) */}
+              {!isEqualSplit && (
+                <View className="ml-[52px] mt-2 gap-1">
                   <View className="flex-row justify-between">
-                    <Text className="text-[11px] text-muted-foreground">{t.bill_tip(tipPercent)}</Text>
-                    <Text className="text-[11px] text-muted-foreground">{formatCurrency(contactTip, billCountry)}</Text>
+                    <Text className="text-[11px] text-muted-foreground">{translatedTaxLabel}</Text>
+                    <Text className="text-[11px] text-muted-foreground">{formatCurrency(contactTax, billCountry)}</Text>
                   </View>
-                )}
-              </View>
+                  {tipPercent > 0 && (
+                    <View className="flex-row justify-between">
+                      <Text className="text-[11px] text-muted-foreground">{t.bill_tip(tipPercent)}</Text>
+                      <Text className="text-[11px] text-muted-foreground">{formatCurrency(contactTip, billCountry)}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
 
               {/* Actions */}
               <View className="ml-[52px] mt-3 flex-row gap-2">
@@ -194,16 +220,18 @@ function BillShareSheet({
                     billName={bill.name}
                     contactName={contact.name}
                     contactImageUri={contact.imageUri}
-                    items={contact.items
-                      .map((itemId) => {
-                        const item = bill.items.find((i) => i.id === itemId);
-                        if (!item) return null;
-                        const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-                        const amount = Math.round(item.subtotal / numContacts);
-                        if (amount === 0) return null;
-                        return { name: item.name, amount };
-                      })
-                      .filter((i): i is { name: string; amount: number } => i !== null)}
+                    items={isEqualSplit
+                      ? [{ name: t.share_equalSplit, amount: contactTotal }]
+                      : contact.items
+                        .map((itemId) => {
+                          const item = bill.items.find((i) => i.id === itemId);
+                          if (!item) return null;
+                          const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
+                          const amount = Math.round(item.subtotal / numContacts);
+                          if (amount === 0) return null;
+                          return { name: item.name, amount };
+                        })
+                        .filter((i): i is { name: string; amount: number } => i !== null)}
                     taxConfig={taxConfig}
                     tipPercent={tipPercent}
                     location={bill.location?.address}

@@ -81,6 +81,7 @@ export const en = {
   filterSheet_preset7d: '7d',
   filterSheet_preset30d: '30d',
   filterSheet_presetCustom: 'Custom',
+  filterSheet_amountHint: (min: string, max: string) => `Your bills: ${min} — ${max}`,
 
   // Bill states
   state_draft: 'Draft',
@@ -179,6 +180,14 @@ export const en = {
   bill_tapToAssign: 'Tap + to assign',
   bill_customTip: 'Custom tip',
   bill_tipCustom: 'Tip (custom)',
+  bill_splitEqual: 'Split equally',
+  bill_splitByItem: 'Split by item',
+  bill_equalPeople: 'Number of People',
+  bill_equalPerPerson: 'Per Person',
+  bill_equalConfirm: 'Split Equally',
+  bill_equalSwitchWarning: 'Switching will remove current assignments. Continue?',
+  bill_equalSwitchTitle: 'Change split method',
+  bill_equalRemainder: (amount: string) => `+${amount} to first person`,
 
   // People summary
   people_title: 'People',
@@ -222,6 +231,8 @@ export const en = {
   share_whatsapp: 'WhatsApp',
   share_share: 'Share',
   share_itemCount: (n: number) => n === 1 ? '1 item' : `${n} items`,
+  share_equalSplit: 'Equal split',
+  share_equalPerPerson: (amount: string, n: number) => `${amount} each · ${n} people`,
 
   // Contact picker
   contactPicker_title: 'Select Contacts',
@@ -257,6 +268,7 @@ export const en = {
   wa_beforeTip: 'Before tip',
   wa_tip: (pct: number) => `Tip (${pct}%)`,
   wa_total: (amount: string) => `*Total: ${amount}*`,
+  wa_equalSplit: (amount: string, total: string, n: number) => `Equal split — ${total} / ${n} people\n\n*Your share: ${amount}*`,
   wa_footer: '_Summary generated with the Rondas app_\n_rondas.app_',
 
   // Error states

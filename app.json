@@ -7,10 +7,9 @@
     "icon": "./assets/images/icon.png",
     "scheme": "rondas",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.rondas.app",
+      "bundleIdentifier": "app.rondas.mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -22,8 +21,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.rondas.app"
+      "package": "app.rondas.mobile"
     },
     "web": {
       "output": "static",
@@ -43,7 +41,43 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-localization",
+      "expo-font",
+      "expo-image",
+      "expo-sharing",
+      "expo-web-browser",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Rondas usa tus contactos para asignar personas a los ítems de la cuenta y compartir el resumen por WhatsApp."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Rondas usa tu ubicación para identificar automáticamente el lugar donde fue hecha la cuenta."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Rondas accede a tus fotos para escanear recibos guardados en tu galería.",
+          "cameraPermission": "Rondas necesita acceso a la cámara para escanear recibos y extraer los ítems automáticamente."
+        }
+      ],
+      "expo-file-system",
+      "expo-system-ui",
+      "expo-asset",
+      "expo-dev-client",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "rondas",
+          "organization": "demarchenac"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -54,6 +88,7 @@
       "eas": {
         "projectId": "108dace2-7c2f-4aad-8a3f-d8695905f5d8"
       }
-    }
+    },
+    "owner": "demarchenac"
   }
 }

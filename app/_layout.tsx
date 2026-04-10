@@ -18,6 +18,13 @@ import OfflineBanner from '@/components/OfflineBanner';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://2292b3138ea83933a76d4bac6a9a89d9@o4511188898807808.ingest.us.sentry.io/4511188908900352',
+  sendDefaultPii: true,
+  enableLogs: true,
+});
 
 function RootLayoutNav() {
   const { user, loading } = useAuth();
@@ -52,7 +59,7 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   return (
     <GestureHandlerRootView className="flex-1">
       <ErrorBoundary>
@@ -65,4 +72,4 @@ export default function RootLayout() {
       </ErrorBoundary>
     </GestureHandlerRootView>
   );
-}
+});

@@ -53,7 +53,7 @@ export default function SetupScreen() {
     settingsStore.setDefaultTipPercent(tip);
     settingsStore.setLanguage(language);
     themeStore.setMode(theme);
-    setColorScheme(theme === 'system' ? undefined : theme);
+    if (theme !== 'system') setColorScheme(theme);
 
     // Save config to Convex
     if (user) {
@@ -142,7 +142,7 @@ export default function SetupScreen() {
               onChange={(value: ThemeMode) => {
                 setTheme(value);
                 themeStore.setMode(value);
-                setColorScheme(value === 'system' ? undefined : value);
+                if (value !== 'system') setColorScheme(value);
               }}
             />
           </SettingsRow>

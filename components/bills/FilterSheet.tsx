@@ -7,6 +7,8 @@ import { useT } from '@/lib/i18n';
 import { useColorScheme } from 'nativewind';
 import { ICON_COLORS } from '@/constants/colors';
 import { cn } from '@/lib/cn';
+import { formatCurrency } from '@/lib/format';
+import CurrencyInput from '@/components/form/CurrencyInput';
 import FilterChip from '@/components/bills/FilterChip';
 import type { Id, Doc } from '@/convex/_generated/dataModel';
 import type { BillState } from '@/lib/billHelpers';
@@ -18,6 +20,9 @@ interface FilterSheetProps {
   billsByState?: { draft: number; unsplit: number; split: number; unresolved: number };
   activeBillCount: number;
   availableContacts: Doc<'contacts'>[];
+  country: string;
+  minTotal?: number;
+  maxTotal?: number;
   onApply: (filters: FilterState) => void;
   onClear: () => void;
   onClose: () => void;
@@ -31,6 +36,9 @@ function FilterSheet({
   billsByState,
   activeBillCount,
   availableContacts,
+  country,
+  minTotal,
+  maxTotal,
   onApply,
   onClear,
   onClose,
@@ -245,36 +253,33 @@ function FilterSheet({
               </Text>
             </View>
             <View className="flex-row items-center gap-3">
-              <View className="flex-1 flex-row items-center rounded-lg bg-muted-foreground/[0.08] px-3.5">
-                <Text className="text-sm text-muted-foreground">$</Text>
-                <TextInput
-                  value={draft.minAmount != null ? String(draft.minAmount) : ''}
-                  onChangeText={(text) => {
-                    const num = text ? parseFloat(text) : null;
-                    setDraft((f) => ({ ...f, minAmount: num }));
-                  }}
+              <View className="flex-1 rounded-lg bg-muted-foreground/[0.08] px-3.5">
+                <CurrencyInput
+                  value={draft.minAmount ?? 0}
+                  onChangeValue={(v) => setDraft((f) => ({ ...f, minAmount: v || null }))}
+                  country={country}
                   placeholder={t.filterSheet_amountMin}
                   placeholderTextColor={iconColors.muted}
-                  keyboardType="numeric"
-                  className="flex-1 py-2 pl-1 text-[14px] text-foreground"
+                  className="py-2 text-[14px]"
                 />
               </View>
               <Text className="text-sm text-muted-foreground">—</Text>
-              <View className="flex-1 flex-row items-center rounded-lg bg-muted-foreground/[0.08] px-3.5">
-                <Text className="text-sm text-muted-foreground">$</Text>
-                <TextInput
-                  value={draft.maxAmount != null ? String(draft.maxAmount) : ''}
-                  onChangeText={(text) => {
-                    const num = text ? parseFloat(text) : null;
-                    setDraft((f) => ({ ...f, maxAmount: num }));
-                  }}
+              <View className="flex-1 rounded-lg bg-muted-foreground/[0.08] px-3.5">
+                <CurrencyInput
+                  value={draft.maxAmount ?? 0}
+                  onChangeValue={(v) => setDraft((f) => ({ ...f, maxAmount: v || null }))}
+                  country={country}
                   placeholder={t.filterSheet_amountMax}
                   placeholderTextColor={iconColors.muted}
-                  keyboardType="numeric"
-                  className="flex-1 py-2 pl-1 text-[14px] text-foreground"
+                  className="py-2 text-[14px]"
                 />
               </View>
             </View>
+            {minTotal != null && maxTotal != null && maxTotal > 0 && (
+              <Text className="mt-2 text-[11px] text-muted-foreground">
+                {t.filterSheet_amountHint(formatCurrency(minTotal, country), formatCurrency(maxTotal, country))}
+              </Text>
+            )}
           </View>
 
           {/* Date Range */}
@@ -343,7 +348,16 @@ function FilterSheet({
             </Text>
           </Pressable>
           <Pressable
-            onPress={() => onApply(draft)}
+            onPress={() => {
+              // Auto-swap if min > max
+              const applied = { ...draft };
+              if (applied.minAmount != null && applied.maxAmount != null && applied.minAmount > applied.maxAmount) {
+                const tmp = applied.minAmount;
+                applied.minAmount = applied.maxAmount;
+                applied.maxAmount = tmp;
+              }
+              onApply(applied);
+            }}
             className="flex-[2] items-center rounded-xl bg-primary py-3.5"
           >
             <Text className="text-sm font-bold text-primary-foreground">

@@ -124,17 +124,25 @@ export const billFilterOptions = query({
 
     const billsByState = { draft: 0, unsplit: 0, split: 0, unresolved: 0 };
     let activeBillCount = 0;
+    let minTotal = Infinity;
+    let maxTotal = 0;
     for (const bill of bills) {
       billsByState[bill.state as keyof typeof billsByState]++;
-      if (bill.state !== 'draft') activeBillCount++;
+      if (bill.state !== 'draft') {
+        activeBillCount++;
+        if (bill.total < minTotal) minTotal = bill.total;
+        if (bill.total > maxTotal) maxTotal = bill.total;
+      }
     }
+    // If no active bills, reset to sensible defaults
+    if (activeBillCount === 0) { minTotal = 0; maxTotal = 0; }
 
     const contacts = await ctx.db
       .query('contacts')
       .withIndex('by_user', (q) => q.eq('userId', args.userId))
       .collect();
 
-    return { billsByState, activeBillCount, contacts };
+    return { billsByState, activeBillCount, contacts, minTotal, maxTotal };
   },
 });
 
@@ -294,7 +302,7 @@ export const assignContactToItem = mutation({
     if (isNewOnBill) await incrementReference(ctx, contactId);
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
-    const state = computeBillState(bill.items, updated);
+    const state = computeBillState(bill.items, updated, 'by_item');
 
     await ctx.db.patch(args.id, { contacts: updated, state, splitStrategy: 'by_item' });
   },
@@ -329,7 +337,7 @@ export const assignContactToItems = mutation({
     if (isNewOnBill) await incrementReference(ctx, contactId);
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
-    const state = computeBillState(bill.items, updated);
+    const state = computeBillState(bill.items, updated, 'by_item');
 
     await ctx.db.patch(args.id, { contacts: updated, state, splitStrategy: 'by_item' });
   },
@@ -360,7 +368,7 @@ export const removeContactFromItem = mutation({
     }
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
-    const state = computeBillState(bill.items, updated);
+    const state = computeBillState(bill.items, updated, bill.splitStrategy);
 
     await ctx.db.patch(args.id, { contacts: updated, state });
   },
@@ -396,7 +404,7 @@ export const removeContactsFromItems = mutation({
     }
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
-    const state = computeBillState(bill.items, updated);
+    const state = computeBillState(bill.items, updated, bill.splitStrategy);
 
     await ctx.db.patch(args.id, { contacts: updated, state });
   },
@@ -416,9 +424,92 @@ export const togglePaymentStatus = mutation({
     const contacts = bill.contacts.map((c) =>
       c.contactId === args.contactId ? { ...c, paid: !c.paid } : c,
     );
-    const state = computeBillState(bill.items, contacts);
+    const state = computeBillState(bill.items, contacts, bill.splitStrategy);
 
     await ctx.db.patch(args.id, { contacts, state });
+  },
+});
+
+// --- Equal split mutations ---
+
+export const assignEqualSplit = mutation({
+  args: {
+    id: v.id('bills'),
+    userId: v.string(),
+    numPeople: v.number(),
+    contacts: v.array(contactArgValidator),
+  },
+  handler: async (ctx, args) => {
+    if (args.numPeople < 2 || args.numPeople > 20) {
+      throw new Error('Number of people must be between 2 and 20');
+    }
+    for (const c of args.contacts) {
+      assertMaxLength(c.name, 100, 'Contact name');
+    }
+    const bill = await ctx.db.get(args.id);
+    if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
+
+    const perPerson = Math.floor(bill.total / args.numPeople);
+    const remainder = bill.total - perPerson * args.numPeople;
+
+    // Decrement refs for any previously assigned contacts being replaced
+    for (const ref of bill.contacts) {
+      await decrementReference(ctx, ref.contactId);
+    }
+
+    const contacts: ContactRef[] = [];
+    for (let i = 0; i < args.contacts.length; i++) {
+      const contactId = await getOrCreate(ctx, args.userId, args.contacts[i]);
+      await incrementReference(ctx, contactId);
+      contacts.push({
+        contactId,
+        items: [],
+        amount: i === 0 ? perPerson + remainder : perPerson,
+        paid: false,
+      });
+    }
+
+    // Preserve paid status for contacts that were already on the bill
+    for (const newContact of contacts) {
+      const prev = bill.contacts.find((c) => c.contactId === newContact.contactId);
+      if (prev) newContact.paid = prev.paid;
+    }
+
+    const state = computeBillState(bill.items, contacts, 'equal');
+
+    await ctx.db.patch(args.id, {
+      contacts,
+      state,
+      splitStrategy: 'equal',
+      numPeople: args.numPeople,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const clearSplitAssignments = mutation({
+  args: {
+    id: v.id('bills'),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const bill = await ctx.db.get(args.id);
+    if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
+
+    // Decrement refs for all contacts
+    for (const ref of bill.contacts) {
+      await decrementReference(ctx, ref.contactId);
+    }
+
+    await ctx.db.patch(args.id, {
+      contacts: [],
+      state: 'unsplit',
+      splitStrategy: undefined,
+      numPeople: undefined,
+      updatedAt: Date.now(),
+    });
   },
 });
 
@@ -427,8 +518,13 @@ export const togglePaymentStatus = mutation({
 function computeBillState(
   items: { id?: string; subtotal: number }[],
   contacts: { items: string[]; paid: boolean }[],
+  splitStrategy?: string,
 ): 'unsplit' | 'split' | 'unresolved' {
   if (contacts.length === 0) return 'unsplit';
+  if (splitStrategy === 'equal') {
+    const allPaid = contacts.every((c) => c.paid);
+    return allPaid ? 'split' : 'unresolved';
+  }
   const allItemsCovered = items.every((item) =>
     item.id ? contacts.some((c) => c.items.includes(item.id!)) : false,
   );

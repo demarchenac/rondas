@@ -83,6 +83,7 @@ export const es: typeof en = {
   filterSheet_preset7d: '7d',
   filterSheet_preset30d: '30d',
   filterSheet_presetCustom: 'Personalizado',
+  filterSheet_amountHint: (min: string, max: string) => `Tus cuentas: ${min} — ${max}`,
 
   // Bill states
   state_draft: 'Borrador',
@@ -181,6 +182,14 @@ export const es: typeof en = {
   bill_tapToAssign: 'Toca + para asignar',
   bill_customTip: 'Propina personalizada',
   bill_tipCustom: 'Propina (personalizada)',
+  bill_splitEqual: 'Dividir en partes iguales',
+  bill_splitByItem: 'Dividir por artículo',
+  bill_equalPeople: 'Número de personas',
+  bill_equalPerPerson: 'Por persona',
+  bill_equalConfirm: 'Dividir equitativamente',
+  bill_equalSwitchWarning: 'Cambiar eliminará las asignaciones actuales. ¿Continuar?',
+  bill_equalSwitchTitle: 'Cambiar método de división',
+  bill_equalRemainder: (amount: string) => `+${amount} a la primera persona`,
 
   // People summary
   people_title: 'Personas',
@@ -224,6 +233,8 @@ export const es: typeof en = {
   share_whatsapp: 'WhatsApp',
   share_share: 'Compartir',
   share_itemCount: (n: number) => n === 1 ? '1 ítem' : `${n} ítems`,
+  share_equalSplit: 'División igual',
+  share_equalPerPerson: (amount: string, n: number) => `${amount} c/u · ${n} personas`,
 
   // Contact picker
   contactPicker_title: 'Seleccionar contactos',
@@ -259,6 +270,7 @@ export const es: typeof en = {
   wa_beforeTip: 'Antes de propina',
   wa_tip: (pct: number) => `Propina (${pct}%)`,
   wa_total: (amount: string) => `*Total: ${amount}*`,
+  wa_equalSplit: (amount: string, total: string, n: number) => `División igual — ${total} / ${n} personas\n\n*Tu parte: ${amount}*`,
   wa_footer: '_Resumen generado con la app Rondas_\n_rondas.app_',
 
   // Error states
