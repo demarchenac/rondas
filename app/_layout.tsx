@@ -8,8 +8,9 @@ import * as Sentry from '@sentry/react-native';
 import { ConvexProvider } from 'convex/react';
 import { convex } from '@/lib/convex';
 
-// Just import AuthContext module — don't render AuthProvider
-import '@/lib/AuthContext';
+// Import auth module directly (has requireEnv + SecureStore + Crypto)
+// but NOT AuthContext (which has WebBrowser.maybeCompleteAuthSession)
+import { REDIRECT_URI } from '@/lib/auth';
 
 Sentry.init({
   dsn: 'https://2292b3138ea83933a76d4bac6a9a89d9@o4511188898807808.ingest.us.sentry.io/4511188908900352',
@@ -22,9 +23,10 @@ export default Sentry.wrap(function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <ConvexProvider client={convex}>
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ec4899' }}>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#fff' }}>Step 2c-1: Import AuthContext only</Text>
-            <Text style={{ color: '#fbcfe8', marginTop: 8 }}>Module imported but AuthProvider not rendered</Text>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#14b8a6' }}>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#fff' }}>Step 2c-2: auth.ts only</Text>
+            <Text style={{ color: '#ccfbf1', marginTop: 8 }}>requireEnv + SecureStore + Crypto</Text>
+            <Text style={{ color: '#ccfbf1', marginTop: 4 }}>Redirect: {REDIRECT_URI}</Text>
           </View>
         </ConvexProvider>
       </KeyboardProvider>
