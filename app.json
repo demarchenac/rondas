@@ -65,7 +65,11 @@
           "photosPermission": "Rondas accede a tus fotos para escanear recibos guardados en tu galería.",
           "cameraPermission": "Rondas necesita acceso a la cámara para escanear recibos y extraer los ítems automáticamente."
         }
-      ]
+      ],
+      "expo-file-system",
+      "expo-system-ui",
+      "expo-asset",
+      "expo-dev-client"
     ],
     "experiments": {
       "typedRoutes": true,
