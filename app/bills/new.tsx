@@ -18,7 +18,7 @@ import * as Location from 'expo-location';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-import { Swipeable } from 'react-native-gesture-handler';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useAction, useMutation, useQuery } from 'convex/react';
 import { randomUUID } from 'expo-crypto';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -552,7 +552,7 @@ export default function NewBillScreen() {
         {/* Items list — flat rows, no card wrapper */}
         {bill.items.map((item, index) => (
           <SwipeableItem key={item.id} isDeleting={deletingIndex === index}>
-          <Swipeable
+          <ReanimatedSwipeable
             renderRightActions={renderDeleteAction}
             rightThreshold={80}
             overshootRight
@@ -642,7 +642,7 @@ export default function NewBillScreen() {
                 )}
               </View>
             )}
-          </Swipeable>
+          </ReanimatedSwipeable>
           </SwipeableItem>
         ))}
 
