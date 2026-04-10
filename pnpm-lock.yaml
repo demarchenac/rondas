@@ -182,8 +182,8 @@ importers:
         specifier: 15.15.4
         version: 15.15.4(react-native@0.85.0(@babel/core@7.29.0)(@react-native/metro-config@0.85.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
       react-native-view-shot:
-        specifier: 4.0.3
-        version: 4.0.3(react-native@0.85.0(@babel/core@7.29.0)(@react-native/metro-config@0.85.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
+        specifier: 5.0.0-alpha.3
+        version: 5.0.0-alpha.3(react-native@0.85.0(@babel/core@7.29.0)(@react-native/metro-config@0.85.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
       react-native-web:
         specifier: ~0.21.0
         version: 0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -4556,11 +4556,12 @@ packages:
       react: '*'
       react-native: '*'
 
-  react-native-view-shot@4.0.3:
-    resolution: {integrity: sha512-USNjYmED7C0me02c1DxKA0074Hw+y/nxo+xJKlffMvfUWWzL5ELh/TJA/pTnVqFurIrzthZDPtDM7aBFJuhrHQ==}
+  react-native-view-shot@5.0.0-alpha.3:
+    resolution: {integrity: sha512-oZP8NeXQx/cBsI4lXPueIiNzbHojjAHslpRyvRn9z51FstiKfrqw2hNSxYZ8JcnEeakRcNrov6XrlwoTGzCXUg==}
+    engines: {node: '>=20', npm: '>=10'}
     peerDependencies:
-      react: '*'
-      react-native: '*'
+      react: '>=18.0.0'
+      react-native: '>=0.76.0'
 
   react-native-web@0.21.2:
     resolution: {integrity: sha512-SO2t9/17zM4iEnFvlu2DA9jqNbzNhoUP+AItkoCOyFmDMOhUnBBznBDCYN92fGdfAkfQlWzPoez6+zLxFNsZEg==}
@@ -10317,7 +10318,7 @@ snapshots:
       react-native: 0.85.0(@babel/core@7.29.0)(@react-native/metro-config@0.85.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3)
       warn-once: 0.1.1
 
-  react-native-view-shot@4.0.3(react-native@0.85.0(@babel/core@7.29.0)(@react-native/metro-config@0.85.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3):
+  react-native-view-shot@5.0.0-alpha.3(react-native@0.85.0(@babel/core@7.29.0)(@react-native/metro-config@0.85.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3):
     dependencies:
       html2canvas: 1.4.1
       react: 19.2.3
