@@ -5,7 +5,7 @@ import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useMutation } from 'convex/react';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -258,7 +258,7 @@ export default function HomeScreen() {
                 entering={shouldAnimate ? FadeInDown.delay(Math.min(index, 8) * 60).duration(350) : undefined}
                 className="px-5 py-[3px]"
               >
-                <ReanimatedSwipeable
+                <Swipeable
                   renderRightActions={() => (
                     <Pressable
                       onPress={() => handleDeleteBill(item._id)}
@@ -276,7 +276,7 @@ export default function HomeScreen() {
                     onPress={() => router.push(`/bills/${item._id}` as Href)}
                     t={t}
                   />
-                </ReanimatedSwipeable>
+                </Swipeable>
               </Animated.View>
             );
           }}
