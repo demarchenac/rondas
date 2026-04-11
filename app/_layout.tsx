@@ -1,24 +1,15 @@
 import '@/lib/polyfills';
 import '../global.css';
-import { useEffect } from 'react';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { PortalHost } from '@rn-primitives/portal';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'nativewind';
+import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
-
-import { ConvexProvider } from 'convex/react';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import { convex } from '@/lib/convex';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import OfflineBanner from '@/components/OfflineBanner';
-import { useThemeStore } from '@/stores/useThemeStore';
-import { useSettingsStore } from '@/stores/useSettingsStore';
-import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import * as Sentry from '@sentry/react-native';
+import { ConvexProvider } from 'convex/react';
+import { convex } from '@/lib/convex';
+
+// Test auth.ts import with fixed env.ts
+import { REDIRECT_URI } from '@/lib/auth';
 
 Sentry.init({
   dsn: 'https://2292b3138ea83933a76d4bac6a9a89d9@o4511188898807808.ingest.us.sentry.io/4511188908900352',
@@ -26,50 +17,17 @@ Sentry.init({
   enableLogs: true,
 });
 
-function RootLayoutNav() {
-  const { user, loading } = useAuth();
-  const { colorScheme, setColorScheme } = useColorScheme();
-  const mode = useThemeStore((s) => s.mode);
-  const hasCompletedSetup = useSettingsStore((s) => s.hasCompletedSetup);
-  const isDark = colorScheme === 'dark';
-
-  // Sync persisted theme preference on mount
-  useEffect(() => {
-    if (mode !== 'system') {
-      setColorScheme(mode);
-    }
-  }, [mode, setColorScheme]);
-
-  useAuthRedirect({ user, loading, hasCompletedSetup });
-
-  return (
-    <ConvexProvider client={convex}>
-      <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="setup" options={{ presentation: 'modal', gestureEnabled: false }} />
-          <Stack.Screen name="bills/new" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="auth" />
-        </Stack>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        <PortalHost />
-      </ThemeProvider>
-    </ConvexProvider>
-  );
-}
-
 export default Sentry.wrap(function RootLayout() {
   return (
-    <GestureHandlerRootView className="flex-1">
-      <ErrorBoundary>
-        <OfflineBanner />
-        <KeyboardProvider>
-          <AuthProvider>
-            <RootLayoutNav />
-          </AuthProvider>
-        </KeyboardProvider>
-      </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardProvider>
+        <ConvexProvider client={convex}>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#059669' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff' }}>Step 3: auth.ts with fixed env</Text>
+            <Text style={{ color: '#a7f3d0', marginTop: 8 }}>REDIRECT: {REDIRECT_URI}</Text>
+          </View>
+        </ConvexProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 });
