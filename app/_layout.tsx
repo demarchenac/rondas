@@ -12,8 +12,14 @@ import { getRandomValues } from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 
-// Import ENV object (triggers requireEnv calls)
-import { ENV } from '@/constants/env';
+// Replicate requireEnv INLINE — no import from constants/env
+function requireEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) throw new Error(`Missing: ${key}`);
+  return value;
+}
+const WORKOS_ID = requireEnv("EXPO_PUBLIC_WORKOS_CLIENT_ID");
+const REDIRECT = process.env.EXPO_PUBLIC_WORKOS_REDIRECT_URI ?? "rondas://auth/callback";
 
 Sentry.init({
   dsn: 'https://2292b3138ea83933a76d4bac6a9a89d9@o4511188898807808.ingest.us.sentry.io/4511188908900352',
@@ -26,10 +32,10 @@ export default Sentry.wrap(function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <ConvexProvider client={convex}>
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#d946ef' }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff' }}>Step 2c-5: ENV object</Text>
-            <Text style={{ color: '#f5d0fe', marginTop: 8 }}>WORKOS_ID: {ENV.WORKOS_CLIENT_ID.slice(0, 15)}...</Text>
-            <Text style={{ color: '#f5d0fe', marginTop: 4 }}>REDIRECT: {ENV.REDIRECT_URI}</Text>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ea580c' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff' }}>Step 2c-6: Inline requireEnv</Text>
+            <Text style={{ color: '#fed7aa', marginTop: 8 }}>WORKOS: {WORKOS_ID.slice(0, 15)}...</Text>
+            <Text style={{ color: '#fed7aa', marginTop: 4 }}>REDIRECT: {REDIRECT}</Text>
           </View>
         </ConvexProvider>
       </KeyboardProvider>
