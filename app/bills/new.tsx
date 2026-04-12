@@ -9,7 +9,6 @@ import {
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated from 'react-native-reanimated';
 import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-router';
-import { usePreventRemove } from '@react-navigation/core';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -167,20 +166,25 @@ export default function NewBillScreen() {
   const navigation = useNavigation();
 
   // Prevent dismiss when bill data exists — shows confirmation alert
-  usePreventRemove(!!bill, ({ data }) => {
-    Alert.alert(
-      t.scan_discardTitle,
-      t.scan_discardMessage,
-      [
-        { text: t.scan_keepEditing, style: 'cancel' },
-        {
-          text: t.scan_discard,
-          style: 'destructive',
-          onPress: () => navigation.dispatch(data.action),
-        },
-      ]
-    );
-  });
+  useEffect(() => {
+    if (!bill) return;
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      e.preventDefault();
+      Alert.alert(
+        t.scan_discardTitle,
+        t.scan_discardMessage,
+        [
+          { text: t.scan_keepEditing, style: 'cancel' },
+          {
+            text: t.scan_discard,
+            style: 'destructive',
+            onPress: () => navigation.dispatch(e.data.action),
+          },
+        ]
+      );
+    });
+    return unsubscribe;
+  }, [navigation, bill, t]);
 
   const handleItemPress = useCallback((index: number) => {
     // Don't open edit mode if a swipe just happened
