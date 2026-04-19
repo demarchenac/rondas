@@ -18,6 +18,7 @@ import OfflineBanner from '@/components/OfflineBanner';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
+import { useSubscriptionSync } from '@/hooks/useSubscriptionSync';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -41,6 +42,7 @@ function RootLayoutNav() {
   }, [mode, setColorScheme]);
 
   useAuthRedirect({ user, loading, hasCompletedSetup });
+  useSubscriptionSync(user?.id);
 
   return (
     <ConvexProvider client={convex}>
@@ -50,6 +52,7 @@ function RootLayoutNav() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="setup" options={{ presentation: 'modal', gestureEnabled: false }} />
           <Stack.Screen name="bills/new" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
           <Stack.Screen name="auth" />
         </Stack>
         <StatusBar style={isDark ? 'light' : 'dark'} />

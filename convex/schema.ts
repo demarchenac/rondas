@@ -26,7 +26,20 @@ export default defineSchema({
       extractPhotoTime: v.boolean(),
       useLocation: v.boolean(),
     })),
+    proOverride: v.optional(v.boolean()),
+    proOverrideAt: v.optional(v.number()),
+    totalBillsCreated: v.optional(v.number()),
   }).index('by_workos_id', ['workosId']),
+
+  promoCodes: defineTable({
+    code: v.string(),
+    type: v.union(v.literal('lifetime'), v.literal('duration')),
+    durationDays: v.optional(v.number()),
+    maxUses: v.number(),
+    uses: v.number(),
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index('by_code', ['code']),
 
   bills: defineTable({
     userId: v.string(),

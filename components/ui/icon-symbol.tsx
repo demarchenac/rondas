@@ -38,6 +38,7 @@ const MAPPING = {
   'globe.americas.fill': 'public',
   'map.fill': 'map',
   'clock.fill': 'schedule',
+  'lock.fill': 'lock',
   'location.fill': 'location-on',
   'percent': 'percent',
   'chevron.left': 'chevron-left',

@@ -102,8 +102,24 @@ export const extractBillItems = action({
     mimeType: v.string(),
     scanId: v.id('scans'),
     userId: v.string(),
+    isPro: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<ExtractedBill> => {
+    const proStatus = await ctx.runQuery(api.users.getProStatus, { workosId: args.userId });
+    const TRIAL_BILL_LIMIT = 2;
+    const isPro = args.isPro === true || proStatus.proOverride;
+    const inTrial = proStatus.totalBillsCreated < TRIAL_BILL_LIMIT;
+
+    if (!isPro && !inTrial) {
+      await ctx.runMutation(api.scans.updateScan, {
+        id: args.scanId,
+        userId: args.userId,
+        status: 'error',
+        error: 'pro_required',
+      });
+      throw new Error('pro_required');
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       await ctx.runMutation(api.scans.updateScan, {
@@ -139,7 +155,7 @@ export const extractBillItems = action({
             },
           ],
           generationConfig: {
-            thinking_config: { thinking_budget: 1024 },
+            thinking_config: { thinking_budget: 512 },
           },
         }),
       });

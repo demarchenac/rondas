@@ -8,6 +8,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
+import { useMutation } from 'convex/react';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
@@ -15,6 +16,9 @@ import { useColorScheme } from 'nativewind';
 import { useT } from '@/lib/i18n';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { IMAGE_QUALITY } from '@/constants/media';
+import { useProGate } from '@/hooks/useProGate';
+import { useAuth } from '@/lib/AuthContext';
+import { api } from '@/convex/_generated/api';
 
 interface FABProps {
   bottom: number;
@@ -26,6 +30,41 @@ function FAB({ bottom }: FABProps) {
   const t = useT();
   const router = useRouter();
   const { extractPhotoTime, useLocation: useLocationSetting } = useSettingsStore();
+  const { unlocked, isPro, showPaywall } = useProGate();
+  const { user } = useAuth();
+  const createBill = useMutation(api.bills.create);
+
+  const createBlankBill = useCallback(async () => {
+    if (!user) return;
+    try {
+      const billId = await createBill({
+        userId: user.id,
+        name: 'Bill',
+        total: 0,
+        items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],
+        isPro,
+      });
+      router.push(`/bills/${billId}` as Href);
+    } catch (err) {
+      const msg = (err as Error).message ?? '';
+      if (msg.includes('monthly_limit_reached')) {
+        showPaywall();
+        return;
+      }
+      Alert.alert(t.error, t.error_mutationFailed);
+    }
+  }, [user, createBill, isPro, router, showPaywall, t]);
+
+  const gateScanOrRun = useCallback(
+    (fn: () => void) => {
+      if (!unlocked) {
+        showPaywall();
+        return;
+      }
+      fn();
+    },
+    [unlocked, showPaywall],
+  );
 
   const pickFromCamera = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -83,22 +122,24 @@ function FAB({ bottom }: FABProps) {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: [t.cancel, t.home_takePhoto, t.home_chooseLibrary],
+          options: [t.cancel, t.home_takePhoto, t.home_chooseLibrary, t.gate_manualEntry],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
-          if (buttonIndex === 1) pickFromCamera();
-          if (buttonIndex === 2) pickFromLibrary();
+          if (buttonIndex === 1) gateScanOrRun(pickFromCamera);
+          if (buttonIndex === 2) gateScanOrRun(pickFromLibrary);
+          if (buttonIndex === 3) createBlankBill();
         },
       );
     } else {
       Alert.alert(t.home_addBill, t.home_addBillHow, [
         { text: t.cancel, style: 'cancel' },
-        { text: t.home_takePhoto, onPress: pickFromCamera },
-        { text: t.home_chooseLibrary, onPress: pickFromLibrary },
+        { text: t.home_takePhoto, onPress: () => gateScanOrRun(pickFromCamera) },
+        { text: t.home_chooseLibrary, onPress: () => gateScanOrRun(pickFromLibrary) },
+        { text: t.gate_manualEntry, onPress: createBlankBill },
       ]);
     }
-  }, [pickFromCamera, pickFromLibrary, t]);
+  }, [pickFromCamera, pickFromLibrary, createBlankBill, gateScanOrRun, t]);
 
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({

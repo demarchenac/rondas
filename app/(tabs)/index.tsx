@@ -5,7 +5,8 @@ import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import SwipeableRow from '@/components/bills/SwipeableRow';
+import { useProGate, FREE_HISTORY_DAYS } from '@/hooks/useProGate';
 import { useMutation } from 'convex/react';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -58,6 +59,8 @@ export default function HomeScreen() {
 
   const removeBill = useMutation(api.bills.remove);
   const [refreshing, setRefreshing] = useState(false);
+  const { isPro, showPaywall } = useProGate();
+  const historyCutoff = Date.now() - FREE_HISTORY_DAYS * 24 * 60 * 60 * 1000;
 
   // Track animated IDs to prevent re-animation on FlashList recycle
   const animatedIds = useRef(new Set<string>());
@@ -258,25 +261,21 @@ export default function HomeScreen() {
                 entering={shouldAnimate ? FadeInDown.delay(Math.min(index, 8) * 60).duration(350) : undefined}
                 className="px-5 py-[3px]"
               >
-                <ReanimatedSwipeable
-                  renderRightActions={() => (
-                    <Pressable
-                      onPress={() => handleDeleteBill(item._id)}
-                      className="ml-2 w-20 items-center justify-center rounded-xl bg-destructive"
-                    >
-                      <IconSymbol name="xmark" size={18} color={iconColors.primaryForeground} />
-                      <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
-                    </Pressable>
-                  )}
-                  rightThreshold={80}
-                  overshootRight={false}
-                >
+                <SwipeableRow onDelete={() => handleDeleteBill(item._id)}>
                   <BillCard
                     bill={item}
-                    onPress={() => router.push(`/bills/${item._id}` as Href)}
+                    onPress={() => {
+                      const locked = !isPro && item._creationTime < historyCutoff;
+                      if (locked) {
+                        showPaywall();
+                        return;
+                      }
+                      router.push(`/bills/${item._id}` as Href);
+                    }}
+                    locked={!isPro && item._creationTime < historyCutoff}
                     t={t}
                   />
-                </ReanimatedSwipeable>
+                </SwipeableRow>
               </Animated.View>
             );
           }}

@@ -37,6 +37,7 @@ import { useT } from '@/lib/i18n';
 import SwipeableItem from '@/components/bills/SwipeableItem';
 import KeyboardDoneButton from '@/components/bills/KeyboardDoneButton';
 import ScanningOverlay from '@/components/bills/ScanningOverlay';
+import { useProGate } from '@/hooks/useProGate';
 
 interface BillItem {
   id: string;
@@ -89,6 +90,7 @@ export default function NewBillScreen() {
   const createScan = useMutation(api.scans.createScan);
   const deleteScan = useMutation(api.scans.deleteScan);
   const createBill = useMutation(api.bills.create);
+  const { isPro } = useProGate();
   const [scanId, setScanId] = useState<Id<'scans'> | null>(null);
   const scanProgress = useQuery(
     api.scans.getScan,
@@ -156,7 +158,9 @@ export default function NewBillScreen() {
   type ScanErrorType = 'timeout' | 'api' | 'generic';
   interface ScanError { type: ScanErrorType; message: string; hint: string; }
 
+  type ScanPhase = 'uploading' | 'analyzing' | 'thinking' | 'extracting' | 'complete';
   const [scanning, setScanning] = useState(false);
+  const [localPhase, setLocalPhase] = useState<ScanPhase>('uploading');
   const [saving, setSaving] = useState(false);
   const [bill, setBill] = useState<ExtractedBill | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
@@ -199,63 +203,77 @@ export default function NewBillScreen() {
     if (!imageUri || !user) return;
     setError(null);
     setScanning(true);
+    setLocalPhase('uploading');
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+    const minPhaseDelay = () => new Promise<void>((r) => setTimeout(r, 700));
+
     try {
-      // Resize and compress to reduce payload (~90% smaller)
-      const compressed = await manipulateAsync(
-        imageUri,
-        [{ resize: { width: 800 } }],
-        { compress: 0.6, format: SaveFormat.JPEG },
-      );
+      // "Subiendo imagen..." phase — local, before any backend state
+      const [compressed] = await Promise.all([
+        manipulateAsync(
+          imageUri,
+          [{ resize: { width: 800 } }],
+          { compress: 0.6, format: SaveFormat.JPEG },
+        ),
+        minPhaseDelay(),
+      ]);
 
       const base64 = await FileSystem.readAsStringAsync(compressed.uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
+      // Transition to backend-driven phases
+      setLocalPhase('analyzing');
+
       const newScanId = await createScan({ userId: user.id });
       setScanId(newScanId);
 
-      const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg', scanId: newScanId, userId: user!.id });
-      const preparedItems = prepareItems(
-        result.items.map((item) => ({ ...item, id: generateItemId() }))
-      );
+      const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg', scanId: newScanId, userId: user!.id, isPro });
 
-      const { country, defaultTipPercent } = useSettingsStore.getState();
-      const category = result.category || 'dining';
-      const itemsTotal = preparedItems.reduce((sum, i) => sum + i.subtotal, 0);
-      const taxConfig = getTaxConfig(country, category);
+      // Celebration: show completion state while creating bill in parallel
+      setLocalPhase('complete');
 
-      // Base: item prices without tax
-      const base = computeBase(itemsTotal, taxConfig);
+      const createBillAsync = async () => {
+        const preparedItems = prepareItems(
+          result.items.map((item) => ({ ...item, id: generateItemId() }))
+        );
 
-      // Tax: extracted from tax-inclusive prices for CO, from Gemini for US
-      const tax = taxConfig.taxIncluded
-        ? computeTax(itemsTotal, taxConfig)
-        : (result.tax || 0);
+        const { country, defaultTipPercent } = useSettingsStore.getState();
+        const category = result.category || 'dining';
+        const itemsTotal = preparedItems.reduce((sum, i) => sum + i.subtotal, 0);
+        const taxConfig = getTaxConfig(country, category);
 
-      // Tip: computed on base (without tax)
-      const tip = Math.round(base * (defaultTipPercent / 100));
+        const base = computeBase(itemsTotal, taxConfig);
+        const tax = taxConfig.taxIncluded
+          ? computeTax(itemsTotal, taxConfig)
+          : (result.tax || 0);
+        const tip = Math.round(base * (defaultTipPercent / 100));
+        const calculatedTotal = base + tax + tip;
 
-      // Total: base + tax + tip
-      const calculatedTotal = base + tax + tip;
+        const itemsForDB = preparedItems.map(({ id: _id, ...rest }) => rest);
 
-      // Strip client IDs — server generates them
-      const itemsForDB = preparedItems.map(({ id: _id, ...rest }) => rest);
+        return createBill({
+          userId: user.id,
+          name: placeData.placeName || 'Bill',
+          total: calculatedTotal,
+          tax,
+          tip,
+          tipPercent: defaultTipPercent,
+          items: itemsForDB,
+          category,
+          country,
+          isPro,
+          ...metadataParams,
+        });
+      };
 
-      // Create bill as draft in DB and navigate to detail
-      const billId = await createBill({
-        userId: user.id,
-        name: placeData.placeName || 'Bill',
-        total: calculatedTotal,
-        tax,
-        tip,
-        tipPercent: defaultTipPercent,
-        items: itemsForDB,
-        category,
-        country,
-        ...metadataParams,
-      });
+      // Show celebration for 800ms while bill creation runs in parallel
+      const [billId] = await Promise.all([
+        createBillAsync(),
+        new Promise<void>((r) => setTimeout(r, 800)),
+      ]);
+
       if (newScanId) deleteScan({ id: newScanId, userId: user!.id }).catch(() => {});
       scanAttempts.current = 0;
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -263,7 +281,6 @@ export default function NewBillScreen() {
     } catch (err) {
       console.error('[Scan] Error:', err);
       const msg = String(err).toLowerCase();
-      // Classify error — substring matching is brittle but Convex/Gemini don't expose typed errors
       let classified: ScanError;
       if (msg.includes('timeout') || msg.includes('timed out')) {
         classified = { type: 'timeout', message: t.error_timeout, hint: t.error_hintTimeout };
@@ -277,6 +294,7 @@ export default function NewBillScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setScanning(false);
+      setLocalPhase('uploading');
       setScanId(null);
     }
   };
@@ -334,6 +352,7 @@ export default function NewBillScreen() {
         tax: bill.tax,
         tip: bill.tip,
         items: bill.items.filter((i) => i.name.trim() !== ''),
+        isPro,
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setBill(null); // Clear bill so usePreventRemove allows navigation
@@ -417,6 +436,7 @@ export default function NewBillScreen() {
                           name: placeData.placeName || 'Bill',
                           total: 0,
                           items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],
+                          isPro,
                           ...metadataParams,
                         });
                         router.replace(`/bills/${billId}` as Href);
@@ -484,7 +504,7 @@ export default function NewBillScreen() {
 
         {/* Scanning overlay */}
         {scanning && (
-          <ScanningOverlay scanProgress={scanProgress} billCountry={country} t={t} />
+          <ScanningOverlay scanProgress={scanProgress} localPhase={localPhase} billCountry={country} t={t} />
         )}
       </View>
     );

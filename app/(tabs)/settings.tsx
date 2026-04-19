@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, View, Platform } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useMutation } from 'convex/react';
+import { useRouter, type Href } from 'expo-router';
 
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -17,6 +18,10 @@ import { useAuth } from '@/lib/AuthContext';
 import { useT } from '@/lib/i18n';
 import { api } from '@/convex/_generated/api';
 import { US_STATE_RATES, type Country } from '@/constants/taxes';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/cn';
+import { useProGate } from '@/hooks/useProGate';
+import { presentCodeRedemptionSheet, presentCustomerCenter } from '@/lib/revenueCat';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -29,8 +34,45 @@ export default function SettingsScreen() {
   } = useSettingsStore();
   const { user, signOut } = useAuth();
   const t = useT();
+  const router = useRouter();
   const updateConfigMutation = useMutation(api.users.updateConfig);
+  const redeemCode = useMutation(api.promoCodes.redeemCode);
   const [statePickerVisible, setStatePickerVisible] = useState(false);
+  const { isPro } = useProGate();
+  const [promoCode, setPromoCode] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+  const [showPromoInput, setShowPromoInput] = useState(false);
+
+  const handleRedeemCode = useCallback(async () => {
+    if (!user || !promoCode.trim()) return;
+    setRedeeming(true);
+    try {
+      await redeemCode({ workosId: user.id, code: promoCode.trim() });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(t.promo_success);
+      setPromoCode('');
+      setShowPromoInput(false);
+    } catch (err: unknown) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const msg = (err as Error).message ?? '';
+      let label = t.promo_invalid;
+      if (msg.includes('expired')) label = t.promo_expired;
+      else if (msg.includes('max_uses')) label = t.promo_maxUses;
+      else if (msg.includes('already_pro')) label = t.promo_alreadyPro;
+      Alert.alert(label);
+    } finally {
+      setRedeeming(false);
+    }
+  }, [user, promoCode, redeemCode, t]);
+
+  const handleStoreRedeem = useCallback(async () => {
+    if (Platform.OS !== 'ios') return;
+    try {
+      await presentCodeRedemptionSheet();
+    } catch (err) {
+      if (__DEV__) console.warn('[Settings] store redeem failed:', err);
+    }
+  }, []);
 
   const syncConfig = useCallback(() => {
     if (!user) return;
@@ -111,23 +153,94 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Pro Upsell */}
-        <Pressable className="overflow-hidden rounded-2xl border border-pro/30 bg-pro-bg active:scale-[0.98]">
-          <View className="flex-row items-center gap-4 p-5">
-            <View className="h-12 w-12 items-center justify-center rounded-xl bg-pro/10">
-              <IconSymbol name="crown.fill" size={24} color={iconColors.pro} />
+        {/* Pro Upsell / Active card */}
+        {isPro ? (
+          <Pressable
+            onPress={() => presentCustomerCenter().catch(() => {})}
+            className="overflow-hidden rounded-2xl border border-pro/30 bg-pro-bg active:scale-[0.98]"
+          >
+            <View className="flex-row items-center gap-4 p-5">
+              <View className="h-12 w-12 items-center justify-center rounded-xl bg-pro/10">
+                <IconSymbol name="crown.fill" size={24} color={iconColors.pro} />
+              </View>
+              <View className="flex-1 gap-1">
+                <Text className="text-base font-bold text-foreground">{t.settings_proActive}</Text>
+                <Text className="text-sm text-muted-foreground">
+                  {t.settings_manageSubscription}
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={14} color={iconColors.muted} />
             </View>
-            <View className="flex-1 gap-1">
-              <Text className="text-base font-bold text-foreground">{t.settings_upgradePro}</Text>
-              <Text className="text-sm text-muted-foreground">
-                {t.settings_proDescription}
-              </Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={() => router.push('/paywall' as Href)}
+            className="overflow-hidden rounded-2xl border border-pro/30 bg-pro-bg active:scale-[0.98]"
+          >
+            <View className="flex-row items-center gap-4 p-5">
+              <View className="h-12 w-12 items-center justify-center rounded-xl bg-pro/10">
+                <IconSymbol name="crown.fill" size={24} color={iconColors.pro} />
+              </View>
+              <View className="flex-1 gap-1">
+                <Text className="text-base font-bold text-foreground">{t.settings_upgradePro}</Text>
+                <Text className="text-sm text-muted-foreground">
+                  {t.settings_proDescription}
+                </Text>
+              </View>
+              <View className="rounded-full bg-pro px-3 py-1.5">
+                <Text className="text-xs font-bold text-white">{t.settings_proPrice(country)}</Text>
+              </View>
             </View>
-            <View className="rounded-full bg-pro px-3 py-1.5">
-              <Text className="text-xs font-bold text-white">{t.settings_proPrice(country)}</Text>
-            </View>
+          </Pressable>
+        )}
+
+        {/* Promo code section */}
+        {!isPro && (
+          <View className="gap-2">
+            {!showPromoInput ? (
+              <Pressable onPress={() => setShowPromoInput(true)} className="items-center py-2">
+                <Text className="text-sm font-medium text-muted-foreground">{t.settings_promoCode}</Text>
+              </Pressable>
+            ) : (
+              <View className="gap-2 rounded-2xl border border-border bg-card p-4">
+                <Text className="text-sm font-semibold text-foreground">{t.promo_title}</Text>
+                <View className="flex-row gap-2">
+                  <Input
+                    value={promoCode}
+                    onChangeText={setPromoCode}
+                    placeholder={t.settings_promoCodePlaceholder}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    className="flex-1"
+                  />
+                  <Pressable
+                    onPress={handleRedeemCode}
+                    disabled={redeeming || !promoCode.trim()}
+                    className={cn(
+                      'items-center justify-center rounded-xl bg-primary px-4',
+                      (redeeming || !promoCode.trim()) && 'opacity-50',
+                    )}
+                  >
+                    {redeeming ? (
+                      <ActivityIndicator color={iconColors.primaryForeground} size="small" />
+                    ) : (
+                      <Text className="text-sm font-semibold text-primary-foreground">
+                        {t.settings_promoCodeRedeem}
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+                {Platform.OS === 'ios' && (
+                  <Pressable onPress={handleStoreRedeem} className="items-center py-2">
+                    <Text className="text-xs font-medium text-muted-foreground">
+                      {t.settings_promoCodeStoreRedeem}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
           </View>
-        </Pressable>
+        )}
 
         {/* Preferences */}
         <SettingsSection title={t.settings_preferences}>

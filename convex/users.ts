@@ -71,6 +71,23 @@ export const updateProfile = mutation({
   },
 });
 
+export const getProStatus = query({
+  args: { workosId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_workos_id', (q) => q.eq('workosId', args.workosId))
+      .unique();
+
+    if (!user) return { proOverride: false, totalBillsCreated: 0 };
+
+    return {
+      proOverride: user.proOverride === true,
+      totalBillsCreated: user.totalBillsCreated ?? 0,
+    };
+  },
+});
+
 export const updateConfig = mutation({
   args: {
     workosId: v.string(),

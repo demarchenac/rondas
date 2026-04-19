@@ -148,6 +148,9 @@ export const billFilterOptions = query({
 
 // --- Mutations ---
 
+const TRIAL_BILL_LIMIT = 2;
+const FREE_MONTHLY_BILL_LIMIT = 3;
+
 export const create = mutation({
   args: {
     userId: v.string(),
@@ -170,25 +173,64 @@ export const create = mutation({
     country: v.optional(v.string()),
     photoTakenAt: v.optional(v.string()),
     location: v.optional(locationValidator),
+    isPro: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     assertMaxLength(args.name, 200, 'Bill name');
     for (const item of args.items) {
       assertMaxLength(item.name, 200, 'Item name');
     }
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_workos_id', (q) => q.eq('workosId', args.userId))
+      .unique();
+
+    const totalBillsCreated = user?.totalBillsCreated ?? 0;
+    const proOverride = user?.proOverride === true;
+    const isPro = args.isPro === true || proOverride;
+    const inTrial = totalBillsCreated < TRIAL_BILL_LIMIT;
+
+    if (!isPro && !inTrial) {
+      const now = Date.now();
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const monthStart = startOfMonth.getTime();
+
+      const billsThisMonth = await ctx.db
+        .query('bills')
+        .withIndex('by_user', (q) => q.eq('userId', args.userId))
+        .collect();
+      const count = billsThisMonth.filter((b) => (b.createdAt ?? 0) >= monthStart).length;
+
+      if (count >= FREE_MONTHLY_BILL_LIMIT) {
+        throw new Error('monthly_limit_reached');
+      }
+    }
+
     const items = args.items.map((item) => ({
       ...item,
       id: crypto.randomUUID(),
     }));
     const now = Date.now();
-    return await ctx.db.insert('bills', {
-      ...args,
+    const { isPro: _isPro, ...insertArgs } = args;
+    const billId = await ctx.db.insert('bills', {
+      ...insertArgs,
       items,
       state: 'draft',
       contacts: [],
       createdAt: now,
       updatedAt: now,
     });
+
+    if (user) {
+      await ctx.db.patch(user._id, {
+        totalBillsCreated: totalBillsCreated + 1,
+      });
+    }
+
+    return billId;
   },
 });
 

@@ -13,6 +13,7 @@ import type * as bills from "../bills.js";
 import type * as contacts from "../contacts.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
+import type * as promoCodes from "../promoCodes.js";
 import type * as scans from "../scans.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
@@ -29,6 +30,7 @@ declare const fullApi: ApiFromModules<{
   contacts: typeof contacts;
   migrations: typeof migrations;
   notifications: typeof notifications;
+  promoCodes: typeof promoCodes;
   scans: typeof scans;
   users: typeof users;
   validators: typeof validators;

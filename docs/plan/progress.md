@@ -374,15 +374,15 @@
 
 - [ ] Create RevenueCat account
 - [ ] Install `react-native-purchases` SDK
-- [ ] Configure RevenueCat with App Store product IDs
-- [ ] Create monthly Pro product in App Store Connect ($1.99/month)
-- [ ] Create yearly Pro product in App Store Connect ($14.99/year)
+- [ ] Configure RevenueCat with App Store + Google Play product IDs
+- [ ] Create monthly Pro products with regionalized pricing in App Store Connect
+- [ ] Create yearly Pro products with regionalized pricing (~25% off)
 - [ ] Configure offerings in RevenueCat dashboard
 
 ### 9.2 Paywall Screen
 
 - [ ] Create paywall screen with Pro feature highlights
-- [ ] Display monthly and yearly pricing options
+- [ ] Display monthly and yearly pricing options (localized per region)
 - [ ] Handle purchase flow via RevenueCat
 - [ ] Handle restore purchases
 - [ ] Show success state after purchase
@@ -391,11 +391,22 @@
 
 - [ ] Create Zustand store for subscription status
 - [ ] Sync subscription status from RevenueCat on app launch
+- [ ] Gate features: check `revenueCatIsPro || user.proOverride`
 - [ ] Gate item-based split behind Pro check
-- [ ] Gate bills beyond 5/month behind Pro check
+- [ ] Gate bills beyond 2/month behind Pro check
 - [ ] Gate contacts beyond 3 per bill behind Pro check
 - [ ] Gate dark theme behind Pro check
 - [ ] Show paywall when user hits a gated feature
+
+### 9.4 Promo Codes
+
+- [ ] Create Convex `promo_codes` table (code, type, expiresAt, maxUses, uses)
+- [ ] Create `redeemCode` mutation (validate, increment uses, set proOverride)
+- [ ] Add `proOverride` field to users table
+- [ ] Configure launch Offer Codes in App Store Connect ($4.900 COP × 2 months)
+- [ ] Configure launch Promo Codes in Google Play Console
+- [ ] Add promo code input in settings screen
+- [ ] Add `presentCodeRedemptionSheet()` for iOS store offer codes
 
 ---
 

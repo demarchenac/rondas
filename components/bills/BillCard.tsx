@@ -19,6 +19,7 @@ export interface BillCardProps {
   bill: Bill;
   onPress: () => void;
   t: Translations;
+  locked?: boolean;
 }
 
 const CATEGORY_ICONS: Record<string, 'fork.knife' | 'cart' | 'wrench.adjustable'> = {
@@ -27,7 +28,7 @@ const CATEGORY_ICONS: Record<string, 'fork.knife' | 'cart' | 'wrench.adjustable'
   service: 'wrench.adjustable',
 };
 
-function BillCard({ bill, onPress, t }: BillCardProps) {
+function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const stateStyle = STATE_STYLES[bill.state as BillState];
@@ -51,8 +52,14 @@ function BillCard({ bill, onPress, t }: BillCardProps) {
         stateStyle.borderClass,
         isDraft && 'opacity-60',
         bill.state === 'unresolved' && 'bg-amber-500/[0.03]',
+        locked && 'opacity-50',
       )}
     >
+      {locked && (
+        <View className="absolute right-3 top-3 z-10 h-7 w-7 items-center justify-center rounded-full bg-pro/15">
+          <IconSymbol name="lock.fill" size={14} color={iconColors.pro} />
+        </View>
+      )}
       {/* Top row: category icon + name + badge */}
       <View className="flex-row items-center justify-between gap-2">
         <View className="flex-1 flex-row items-center gap-1.5">

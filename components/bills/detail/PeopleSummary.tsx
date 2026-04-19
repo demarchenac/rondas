@@ -10,6 +10,7 @@ import { computeContactTotal } from '@/lib/billSplit';
 import type { TaxConfig } from '@/constants/taxes';
 import type { Id } from '@/convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
+import { useProGate } from '@/hooks/useProGate';
 
 interface ResolvedContact {
   contactId: Id<'contacts'>;
@@ -50,6 +51,7 @@ function PeopleSummary({
   t,
   onTogglePaid,
 }: PeopleSummaryProps) {
+  const { unlocked, showPaywall } = useProGate();
   const paidCount = contacts.filter((c) => c.paid).length;
   const allPaid = paidCount === contacts.length;
 
@@ -61,6 +63,11 @@ function PeopleSummary({
   }, [contacts, billItems, taxConfig, tipPercent]);
 
   const handleToggle = (contactId: Id<'contacts'>) => {
+    if (!unlocked) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      showPaywall();
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onTogglePaid(contactId);
   };

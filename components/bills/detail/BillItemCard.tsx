@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Image } from '@/lib/expo-image';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import SwipeableRow from '@/components/bills/SwipeableRow';
 import { useForm } from '@tanstack/react-form';
 import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/input';
@@ -179,17 +179,9 @@ function BillItemCard({
 
   return (
     <SwipeableItem isDeleting={isDeleting}>
-      <ReanimatedSwipeable
-        renderRightActions={() => (
-          <View className="w-20 items-center justify-center rounded-r-xl bg-destructive">
-            <IconSymbol name="xmark" size={18} color={iconColors.primaryForeground} />
-            <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
-          </View>
-        )}
-        rightThreshold={80}
-        overshootRight
-        onSwipeableOpen={() => onRemoveItem(itemId)}
-        onSwipeableOpenStartDrag={() => { swipeOpenRef.current = true; }}
+      <SwipeableRow
+        onDelete={() => onRemoveItem(itemId)}
+        onSwipeStart={() => { swipeOpenRef.current = true; }}
       >
         {isEditing ? (
           <BillItemEditForm
@@ -284,7 +276,7 @@ function BillItemCard({
             )}
           </Pressable>
         )}
-      </ReanimatedSwipeable>
+      </SwipeableRow>
     </SwipeableItem>
   );
 }
