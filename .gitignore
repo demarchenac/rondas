@@ -47,3 +47,6 @@ app-example
 
 # graphify output
 graphify-out/
+
+# Dev notes (synced to Obsidian vault)
+docs/dev-notes/

@@ -1,0 +1,2 @@
+~/.claude/hooks/branch-naming.sh
+pnpm run typecheck
