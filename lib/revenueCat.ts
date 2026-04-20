@@ -3,7 +3,7 @@ import Purchases, { type CustomerInfo, type PurchasesOffering, type PurchasesPac
 import { ENV } from '@/constants/env';
 import { useSubscriptionStore } from '@/stores/useSubscriptionStore';
 
-export const PRO_ENTITLEMENT_ID = 'pro';
+export const PRO_ENTITLEMENT_ID = 'Rondas Pro';
 
 let configured = false;
 
