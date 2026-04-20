@@ -5,6 +5,7 @@ import { useColorScheme } from 'nativewind';
 import * as Haptics from 'expo-haptics';
 import { FontAwesome } from '@expo/vector-icons';
 
+import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -42,9 +43,10 @@ export default function LoginScreen() {
       <View className="flex-1 items-center justify-center px-8">
         {/* Branding */}
         <View className="items-center gap-3">
-          <View className="h-24 w-24 items-center justify-center rounded-3xl bg-primary/10">
-            <IconSymbol name="receipt" size={48} color={iconColors.primary} />
-          </View>
+          <Image
+            source={require('@/assets/images/icon.png')}
+            className="h-24 w-24 rounded-3xl"
+          />
           <Text className="text-4xl font-extrabold tracking-tight text-foreground">
             {t.auth_appName}
           </Text>

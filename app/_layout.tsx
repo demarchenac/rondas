@@ -42,10 +42,10 @@ function RootLayoutNav() {
   }, [mode, setColorScheme]);
 
   useAuthRedirect({ user, loading, hasCompletedSetup });
-  useSubscriptionSync(user?.id);
 
   return (
     <ConvexProvider client={convex}>
+      <SubscriptionSyncBridge userId={user?.id} />
       <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
@@ -60,6 +60,11 @@ function RootLayoutNav() {
       </ThemeProvider>
     </ConvexProvider>
   );
+}
+
+function SubscriptionSyncBridge({ userId }: { userId?: string }) {
+  useSubscriptionSync(userId);
+  return null;
 }
 
 export default Sentry.wrap(function RootLayout() {
