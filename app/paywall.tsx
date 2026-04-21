@@ -138,6 +138,8 @@ export default function PaywallScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
       >
         <View className="flex-row items-center justify-between px-5 py-3">
           <Pressable onPress={() => router.back()} className="h-9 w-9 items-center justify-center rounded-full bg-muted/60">
