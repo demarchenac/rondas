@@ -1,16 +1,21 @@
 # Subscriptions (RevenueCat)
 
-## Tiers
+## Tiers (Usage-based with Reverse Trial)
 
-| Feature | Free | Pro |
+First 2 bills: ALL features unlocked (reverse trial). After trial:
+
+| Feature | Free (post-trial) | Pro |
 |---|---|---|
-| Bills per month | 2 | Unlimited |
-| Split types | Equal only | Equal + item-based |
-| Contacts per bill | 3 | Unlimited |
-| Bill history | 30 days | Full |
-| Theme | Light only | Light / Dark / System |
+| AI receipt scanning | Manual entry only | Unlimited scans |
+| Bills per month | 3 | Unlimited |
+| Split types | Equal + item-based | Equal + item-based |
+| Contacts per bill | Unlimited | Unlimited |
+| Bill history | 90 days (locked after) | Full |
+| Theme | Light / Dark / System | Light / Dark / System |
 | Language toggle | Yes | Yes |
 | Payment tracking | No | Yes |
+| WhatsApp sharing | Yes | Yes |
+| Infographic | Yes | Yes |
 
 ## Pricing (regionalized)
 

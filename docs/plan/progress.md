@@ -1,6 +1,6 @@
 # Rondas — Progress Tracker
 
-> Last updated: 2026-04-05 (session 9 — Equal split, amount filter polish, Phase 8 fix)
+> Last updated: 2026-04-21 (session 10 — Subscriptions, feature gating, app icon, Apple setup)
 
 ---
 
@@ -372,41 +372,66 @@
 
 ### 9.1 RevenueCat Setup
 
-- [ ] Create RevenueCat account
-- [ ] Install `react-native-purchases` SDK
-- [ ] Configure RevenueCat with App Store + Google Play product IDs
-- [ ] Create monthly Pro products with regionalized pricing in App Store Connect
-- [ ] Create yearly Pro products with regionalized pricing (~25% off)
-- [ ] Configure offerings in RevenueCat dashboard
+- [x] Create RevenueCat account and project
+- [x] Install `react-native-purchases` + `react-native-purchases-ui` SDK
+- [x] Configure RevenueCat with App Store product IDs (`rondas_pro_monthly`, `rondas_pro_yearly`)
+- [x] Create monthly Pro product with regionalized pricing in App Store Connect
+- [x] Create yearly Pro product with regionalized pricing (~25% off)
+- [x] Configure offerings in RevenueCat dashboard (default offering with monthly + annual packages)
+- [x] Configure In-App Purchase P8 key in RevenueCat
+- [x] Configure App Store Connect API key in RevenueCat
+- [x] Complete Paid Apps Agreement (W-8BEN, bank account, tax forms)
+- [x] Sign in with Apple configured (WorkOS + Apple Developer)
 
 ### 9.2 Paywall Screen
 
-- [ ] Create paywall screen with Pro feature highlights
-- [ ] Display monthly and yearly pricing options (localized per region)
-- [ ] Handle purchase flow via RevenueCat
-- [ ] Handle restore purchases
-- [ ] Show success state after purchase
+- [x] Create paywall screen with Pro feature highlights (`app/paywall.tsx`)
+- [x] Display monthly and yearly pricing options (localized via RevenueCat Offering)
+- [x] Handle purchase flow via RevenueCat (sandbox yearly purchase verified)
+- [x] Handle restore purchases
+- [x] Show success state after purchase (dismiss paywall, Pro active)
+- [x] Custom paywall with remote paywall fallback (hybrid approach)
+- [x] Customer Center integration via `react-native-purchases-ui`
 
-### 9.3 Feature Gating
+### 9.3 Feature Gating (Usage-based with Reverse Trial)
 
-- [ ] Create Zustand store for subscription status
-- [ ] Sync subscription status from RevenueCat on app launch
-- [ ] Gate features: check `revenueCatIsPro || user.proOverride`
-- [ ] Gate item-based split behind Pro check
-- [ ] Gate bills beyond 2/month behind Pro check
-- [ ] Gate contacts beyond 3 per bill behind Pro check
-- [ ] Gate dark theme behind Pro check
-- [ ] Show paywall when user hits a gated feature
+- [x] Create `useSubscriptionStore` Zustand store for subscription status
+- [x] Create `useProGate` hook (`isPro`, `inTrial`, `showPaywall`)
+- [x] Create `useSubscriptionSync` hook (syncs Convex proOverride + RevenueCat status)
+- [x] Sync subscription status from RevenueCat on app launch (`lib/revenueCat.ts`)
+- [x] Gate AI scan behind Pro/trial check (FAB + `convex/ai.ts` server-side)
+- [x] Gate bills beyond 3/month behind Pro check (FAB + `convex/bills.ts` server-side)
+- [x] Gate payment tracking behind Pro/trial check (`PeopleSummary.tsx`)
+- [x] Gate bill history >90 days with lock icon (`BillCard.tsx` + `index.tsx`)
+- [x] Show paywall when user hits a gated feature
+- [x] Add manual entry option in FAB (always available, bypasses scan gate)
+- [x] Reverse trial: first 2 bills have all features unlocked
+- [x] `totalBillsCreated` counter in Convex users table (lifetime, never resets)
 
 ### 9.4 Promo Codes
 
-- [ ] Create Convex `promo_codes` table (code, type, expiresAt, maxUses, uses)
-- [ ] Create `redeemCode` mutation (validate, increment uses, set proOverride)
-- [ ] Add `proOverride` field to users table
+- [x] Create Convex `promoCodes` table (code, type, expiresAt, maxUses, uses)
+- [x] Create `redeemCode` mutation (validate, increment uses, set proOverride)
+- [x] Create `createCode` mutation (admin use)
+- [x] Add `proOverride` + `proOverrideAt` fields to users table
+- [x] Add `getProStatus` query to users
+- [x] Add promo code input in settings screen
+- [x] Add promo code input in paywall screen
+- [x] Add `presentCodeRedemptionSheet()` for iOS store offer codes
+- [x] Create "GiftedByDemar" lifetime code in Convex
 - [ ] Configure launch Offer Codes in App Store Connect ($4.900 COP × 2 months)
-- [ ] Configure launch Promo Codes in Google Play Console
-- [ ] Add promo code input in settings screen
-- [ ] Add `presentCodeRedemptionSheet()` for iOS store offer codes
+- [ ] Configure Promo Codes in Google Play Console
+- [ ] Test promo code redemption E2E (with non-subscribed account)
+
+### 9.5 Settings & UI
+
+- [x] Pro upsell card → links to paywall when free
+- [x] Pro active card → shows "Rondas Pro" + links to Customer Center when Pro
+- [x] Update Pro pricing in translations to $9.900 COP / $4.99 USD
+- [x] ~50 new translation strings (EN + ES) for paywall, gates, promo codes
+- [x] Regionalized pricing docs (`docs/research/pricing.schema.md`)
+- [x] Updated subscription rules docs (`docs/rules/subscriptions.md`)
+- [ ] Add "Free" indicator for non-Pro users in UI
 
 ---
 
@@ -424,24 +449,27 @@
 ### 10.2 Loading States
 
 - [x] Add skeleton loaders for bill list (Skeleton.tsx + BillCardSkeleton with staggered fade-in)
-- [ ] Add loading spinner for AI extraction
+- [x] Add loading/scanning overlay for AI extraction (ScanningOverlay with streaming items)
 - [ ] Add loading indicators for send actions
 
 ### 10.3 Animations
 
-- [ ] Add FAB press animation
-- [ ] Add bill card entrance animation
+- [x] Add FAB press animation (spring scale on press)
+- [x] Add bill card entrance animation (FadeInDown staggered)
+- [x] Add swipe-to-delete with haptics (3-zone: idle/reveal/commit)
 - [ ] Add state badge transition animation
 
 ### 10.4 App Store Preparation
 
-- [ ] Configure app icon (all required sizes)
-- [ ] Configure splash screen
+- [x] Configure app icon (R-receipt logo, 1024×1024)
+- [x] Configure splash screen (transparent foreground on navy background)
+- [x] Configure Android adaptive icon (foreground/background/monochrome via rembg)
+- [x] Configure `app.json` with bundle ID, version, permissions descriptions
+- [x] Submit for TestFlight internal testing (build #26)
+- [x] Fix bugs from TestFlight testing (Error 23, Convex deploy, keyboard inputs)
 - [ ] Write App Store description (English + Spanish)
 - [ ] Prepare screenshots for App Store (6.7" and 6.1" screens)
-- [ ] Configure `app.json` with bundle ID, version, permissions descriptions
-- [ ] Submit for TestFlight internal testing
-- [ ] Fix bugs from TestFlight testing
+- [ ] Privacy Policy URL
 - [ ] Submit for App Store review
 
 ---
@@ -627,6 +655,8 @@
 
 ## Progress Summary
 
+> Last updated: 2026-04-21 (Session 10 — Subscriptions, feature gating, app icon, Apple setup)
+
 | Phase                             | Total Tasks | Done  |
 | --------------------------------- | ----------- | ----- |
 | Phase 1 — Setup                   | 38          | 35    |
@@ -637,10 +667,10 @@
 | Phase 6 — Summary & Notifications | 12          | 10    |
 | Phase 7 — Bill Detail & History   | 32          | 31    |
 | Phase 8 — Settings                | 24          | 24    |
-| Phase 9 — Subscriptions           | 12          | 0     |
-| Phase 10 — Polish & Launch        | 16          | 7     |
+| Phase 9 — Subscriptions           | 46          | 40    |
+| Phase 10 — Polish & Launch        | 17          | 13    |
 | Codebase Review #1 Refactoring    | 48          | 48    |
 | Codebase Review #2 Fixes          | 20          | 20    |
 | Session 7 — Bill Detail Redesign  | 30          | 30    |
 | Session 8 — Errors, Tip, Filters  | 19          | 19    |
-| **Total**                         | **348**     | **320**|
+| **Total**                         | **383**     | **366**|
