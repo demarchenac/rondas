@@ -14,6 +14,7 @@ interface SettingsState {
   language: Language;
   extractPhotoTime: boolean;
   useLocation: boolean;
+  syncContacts: boolean;
   country: Country;
   usState: string;
   defaultTipPercent: number;
@@ -21,6 +22,7 @@ interface SettingsState {
   setLanguage: (value: Language) => void;
   setExtractPhotoTime: (value: boolean) => void;
   setUseLocation: (value: boolean) => void;
+  setSyncContacts: (value: boolean) => void;
   setCountry: (value: Country) => void;
   setUsState: (value: string) => void;
   setDefaultTipPercent: (value: number) => void;
@@ -33,6 +35,7 @@ export const useSettingsStore = create<SettingsState>()(
       language: deviceLanguage,
       extractPhotoTime: true,
       useLocation: true,
+      syncContacts: true,
       country: 'CO',
       usState: 'FL',
       defaultTipPercent: 10,
@@ -40,6 +43,7 @@ export const useSettingsStore = create<SettingsState>()(
       setLanguage: (value) => set({ language: value }),
       setExtractPhotoTime: (value) => set({ extractPhotoTime: value }),
       setUseLocation: (value) => set({ useLocation: value }),
+      setSyncContacts: (value) => set({ syncContacts: value }),
       setCountry: (value) => set({ country: value }),
       setUsState: (value) => set({ usState: value }),
       setDefaultTipPercent: (value) => set({ defaultTipPercent: value }),

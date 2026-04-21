@@ -3,14 +3,16 @@ import * as Contacts from 'expo-contacts';
 import * as Sentry from '@sentry/react-native';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 
 let didSync = false;
 
 export function useContactSync(userId: string | undefined) {
   const syncFromDevice = useMutation(api.contacts.syncFromDevice);
+  const syncContacts = useSettingsStore((s) => s.syncContacts);
 
   useEffect(() => {
-    if (!userId || didSync) return;
+    if (!userId || !syncContacts || didSync) return;
 
     (async () => {
       try {

@@ -126,6 +126,8 @@ export const en = {
   settings_extractTimeInfo: "Reads the date and time from your receipt photo's metadata (EXIF)",
   settings_captureLocation: 'Capture location',
   settings_captureLocationInfo: "Tags bills with your location or the venue from the photo's GPS data",
+  settings_syncContacts: 'Sync contact photos',
+  settings_syncContactsInfo: 'Updates contact names and photos from your device when the app opens',
   settings_account: 'Account',
   settings_signOut: 'Sign Out',
   settings_signOutConfirm: 'Are you sure you want to sign out?',

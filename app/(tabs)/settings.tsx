@@ -40,8 +40,8 @@ export default function SettingsScreen() {
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { mode, setMode } = useThemeStore();
   const {
-    extractPhotoTime, useLocation, country, usState, defaultTipPercent, language,
-    setExtractPhotoTime, setUseLocation, setCountry, setUsState, setDefaultTipPercent, setLanguage,
+    extractPhotoTime, useLocation, syncContacts, country, usState, defaultTipPercent, language,
+    setExtractPhotoTime, setUseLocation, setSyncContacts, setCountry, setUsState, setDefaultTipPercent, setLanguage,
   } = useSettingsStore();
   const { user, signOut } = useAuth();
   const t = useT();
@@ -129,6 +129,7 @@ export default function SettingsScreen() {
   const handleLanguageChange = useCallback((v: Language) => { setLanguage(v); syncConfig(); }, [setLanguage, syncConfig]);
   const handleExtractPhotoTimeChange = useCallback((v: boolean) => { setExtractPhotoTime(v); syncConfig(); }, [setExtractPhotoTime, syncConfig]);
   const handleUseLocationChange = useCallback((v: boolean) => { setUseLocation(v); syncConfig(); }, [setUseLocation, syncConfig]);
+  const handleSyncContactsChange = useCallback((v: boolean) => { setSyncContacts(v); syncConfig(); }, [setSyncContacts, syncConfig]);
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
@@ -345,11 +346,24 @@ export default function SettingsScreen() {
             iconColor={iconColors.success}
             label={t.settings_captureLocation}
             info={t.settings_captureLocationInfo}
-            last
           >
             <Switch
               value={useLocation}
               onValueChange={handleUseLocationChange}
+              trackColor={{ false: '#263354', true: '#38bdf8' }}
+              thumbColor="#fff"
+            />
+          </SettingsRow>
+          <SettingsRow
+            icon="person.crop.circle.badge.checkmark"
+            iconColor={iconColors.accent}
+            label={t.settings_syncContacts}
+            info={t.settings_syncContactsInfo}
+            last
+          >
+            <Switch
+              value={syncContacts}
+              onValueChange={handleSyncContactsChange}
               trackColor={{ false: '#263354', true: '#38bdf8' }}
               thumbColor="#fff"
             />
