@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from '@/lib/expo-image';
@@ -17,6 +17,12 @@ function InfographicPreview({ uri, visible, onShare, onClose }: InfographicPrevi
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const imageWidth = screenWidth - 48;
+  const [imageAspect, setImageAspect] = useState(0.55);
+
+  const handleLoad = useCallback((e: { source: { width: number; height: number } }) => {
+    const { width, height } = e.source;
+    if (width > 0 && height > 0) setImageAspect(width / height);
+  }, []);
 
   return (
     <Modal
@@ -25,23 +31,24 @@ function InfographicPreview({ uri, visible, onShare, onClose }: InfographicPrevi
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black">
+      <View className="flex-1 bg-background">
         {/* Drag indicator */}
         <View className="items-center pb-2 pt-3">
-          <View className="h-1 w-10 rounded-full bg-white/30" />
+          <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
         </View>
 
         {/* Infographic image */}
         <ScrollView
           className="flex-1"
-          contentContainerClassName="items-center px-6 py-4"
+          contentContainerClassName="items-center px-6 pt-2 pb-4"
           showsVerticalScrollIndicator={false}
         >
           {uri && (
             <Image
               source={{ uri }}
-              style={{ width: imageWidth, aspectRatio: 0.55 }}
+              style={{ width: imageWidth, aspectRatio: imageAspect }}
               contentFit="contain"
+              onLoad={handleLoad}
             />
           )}
         </ScrollView>
