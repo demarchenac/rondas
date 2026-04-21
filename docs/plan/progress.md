@@ -450,14 +450,14 @@
 
 - [x] Add skeleton loaders for bill list (Skeleton.tsx + BillCardSkeleton with staggered fade-in)
 - [x] Add loading/scanning overlay for AI extraction (ScanningOverlay with streaming items)
-- [ ] Add loading indicators for send actions
+- [x] Add loading indicator + infographic preview modal for share actions
 
 ### 10.3 Animations
 
 - [x] Add FAB press animation (spring scale on press)
 - [x] Add bill card entrance animation (FadeInDown staggered)
 - [x] Add swipe-to-delete with haptics (3-zone: idle/reveal/commit)
-- [ ] Add state badge transition animation
+- [x] Add state badge transition animation (scale bounce in AnimatedBadge)
 
 ### 10.4 App Store Preparation
 

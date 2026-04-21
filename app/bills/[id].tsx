@@ -37,6 +37,7 @@ import BulkToolbar from '@/components/bills/BulkToolbar';
 import ContactPickerSheet, { SUGGESTED_PREFIX } from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import BillShareSheet from '@/components/bills/BillShareSheet';
+import InfographicPreview from '@/components/bills/InfographicPreview';
 
 const CONTACTS_CACHE_TTL = 5 * 60_000; // 5 minutes
 
@@ -75,6 +76,9 @@ export default function BillDetailScreen() {
   const [singleAssignItemId, setSingleAssignItemId] = useState<string | null>(null);
   const [numPeople, setNumPeople] = useState(2);
   const [equalSplitMode, setEqualSplitMode] = useState(false);
+  const [capturingIndex, setCapturingIndex] = useState<number | null>(null);
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [previewContactName, setPreviewContactName] = useState('');
   // Sync equal split state from bill
   const initializedRef = useRef(false);
   if (bill && !initializedRef.current) {
@@ -527,15 +531,35 @@ export default function BillDetailScreen() {
     if (!bill) return;
     const ref = infographicRefs.current[contactIndex];
     if (!ref?.capture) return;
+    setCapturingIndex(contactIndex);
     try {
       const uri = await ref.capture();
-      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: `Bill summary for ${contact.name}` });
+      setPreviewUri(uri);
+      setPreviewContactName(contact.name);
+    } catch (err) {
+      console.error('[Share] Error:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(t.error, t.error_shareFailed);
+    } finally {
+      setCapturingIndex(null);
+    }
+  }, [bill, t]);
+
+  const handleConfirmShare = useCallback(async () => {
+    if (!previewUri) return;
+    try {
+      await Sharing.shareAsync(previewUri, { mimeType: 'image/png', dialogTitle: previewContactName });
     } catch (err) {
       console.error('[Share] Error:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(t.error, t.error_shareFailed);
     }
-  }, [bill, t]);
+  }, [previewUri, previewContactName, t]);
+
+  const handleClosePreview = useCallback(() => {
+    setPreviewUri(null);
+    setPreviewContactName('');
+  }, []);
 
   // --- Derived data ---
 
@@ -837,7 +861,15 @@ export default function BillDetailScreen() {
         onTogglePaid={handleTogglePaid}
         onSendWhatsApp={handleSendWhatsApp}
         onShareInfographic={handleShareInfographic}
+        capturingIndex={capturingIndex}
         onClose={() => setActiveDialog(null)}
+      />
+
+      <InfographicPreview
+        uri={previewUri}
+        visible={previewUri !== null}
+        onShare={handleConfirmShare}
+        onClose={handleClosePreview}
       />
 
       <ContactPickerSheet

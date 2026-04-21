@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Pressable, ScrollView } from 'react-native';
+import { ActivityIndicator, Modal, View, Pressable, ScrollView } from 'react-native';
 import { Image } from '@/lib/expo-image';
 import ViewShot from 'react-native-view-shot';
 import { Text } from '@/components/ui/text';
@@ -29,6 +29,7 @@ interface BillShareSheetProps {
   onTogglePaid: (contactId: Id<'contacts'>) => void;
   onSendWhatsApp: (contact: ResolvedContact) => void;
   onShareInfographic: (contact: ResolvedContact, contactIndex: number) => void;
+  capturingIndex: number | null;
   onClose: () => void;
 }
 
@@ -45,6 +46,7 @@ function BillShareSheet({
   onTogglePaid,
   onSendWhatsApp,
   onShareInfographic,
+  capturingIndex,
   onClose,
 }: BillShareSheetProps) {
   const t = useT();
@@ -203,10 +205,20 @@ function BillShareSheet({
                 {/* Share infographic */}
                 <Pressable
                   onPress={() => onShareInfographic(contact, ci)}
-                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border bg-primary/10 border-primary/20"
+                  disabled={capturingIndex !== null}
+                  className={cn(
+                    'flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border bg-primary/10 border-primary/20',
+                    capturingIndex !== null && 'opacity-50',
+                  )}
                 >
-                  <Share2 size={14} color={iconColors.primary} />
-                  <Text className="text-[13px] font-semibold text-primary">{t.share_share}</Text>
+                  {capturingIndex === ci ? (
+                    <ActivityIndicator size="small" color={iconColors.primary} />
+                  ) : (
+                    <>
+                      <Share2 size={14} color={iconColors.primary} />
+                      <Text className="text-[13px] font-semibold text-primary">{t.share_share}</Text>
+                    </>
+                  )}
                 </Pressable>
               </View>
 
