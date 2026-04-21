@@ -32,6 +32,7 @@ interface BillShareSheetProps {
   onShareInfographic: (contact: ResolvedContact, contactIndex: number) => void;
   capturingIndex: number | null;
   previewUri: string | null;
+  previewAspect: number;
   onConfirmShare: () => void;
   onClosePreview: () => void;
   onClose: () => void;
@@ -52,6 +53,7 @@ function BillShareSheet({
   onShareInfographic,
   capturingIndex,
   previewUri,
+  previewAspect,
   onConfirmShare,
   onClosePreview,
   onClose,
@@ -272,6 +274,7 @@ function BillShareSheet({
       </View>
       <InfographicPreview
         uri={previewUri}
+        imageAspect={previewAspect}
         visible={previewUri !== null}
         onShare={onConfirmShare}
         onClose={onClosePreview}

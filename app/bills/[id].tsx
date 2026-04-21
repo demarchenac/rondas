@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Image as RNImage, Linking, Pressable, ScrollView, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
@@ -77,6 +77,7 @@ export default function BillDetailScreen() {
   const [equalSplitMode, setEqualSplitMode] = useState(false);
   const [capturingIndex, setCapturingIndex] = useState<number | null>(null);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [previewAspect, setPreviewAspect] = useState(1);
   const [previewContactName, setPreviewContactName] = useState('');
   // Sync equal split state from bill
   const initializedRef = useRef(false);
@@ -533,6 +534,10 @@ export default function BillDetailScreen() {
     setCapturingIndex(contactIndex);
     try {
       const uri = await ref.capture();
+      const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+        RNImage.getSize(uri, (w, h) => resolve({ width: w, height: h }), reject);
+      });
+      setPreviewAspect(width > 0 && height > 0 ? width / height : 0.55);
       setPreviewUri(uri);
       setPreviewContactName(contact.name);
     } catch (err) {
@@ -862,6 +867,7 @@ export default function BillDetailScreen() {
         onShareInfographic={handleShareInfographic}
         capturingIndex={capturingIndex}
         previewUri={previewUri}
+        previewAspect={previewAspect}
         onConfirmShare={handleConfirmShare}
         onClosePreview={handleClosePreview}
         onClose={() => setActiveDialog(null)}
