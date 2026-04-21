@@ -1,14 +1,21 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { ActionSheetIOS, Alert, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import SwipeableRow from '@/components/bills/SwipeableRow';
 import { useProGate, FREE_HISTORY_DAYS } from '@/hooks/useProGate';
 import { useMutation } from 'convex/react';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import { IMAGE_QUALITY } from '@/constants/media';
 import type { Id } from '@/convex/_generated/dataModel';
 import type { ResolvedBill } from '@/lib/filters';
 import { defaultFilters } from '@/lib/filters';
@@ -58,9 +65,124 @@ export default function HomeScreen() {
   const maxTotal = filterOptions?.maxTotal;
 
   const removeBill = useMutation(api.bills.remove);
+  const createBill = useMutation(api.bills.create);
   const [refreshing, setRefreshing] = useState(false);
-  const { isPro, showPaywall } = useProGate();
+  const { isPro, unlocked, showPaywall } = useProGate();
   const historyCutoff = Date.now() - FREE_HISTORY_DAYS * 24 * 60 * 60 * 1000;
+  const { extractPhotoTime, useLocation: useLocationSetting, country } = useSettingsStore();
+
+  const addScale = useSharedValue(1);
+  const addAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: addScale.value }],
+  }));
+
+  const createBlankBill = useCallback(async () => {
+    if (!user) return;
+    try {
+      const billId = await createBill({
+        userId: user.id,
+        name: 'Bill',
+        total: 0,
+        items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],
+        isPro,
+      });
+      router.push(`/bills/${billId}` as Href);
+    } catch (err) {
+      const msg = (err as Error).message ?? '';
+      if (msg.includes('monthly_limit_reached')) {
+        showPaywall();
+        return;
+      }
+      if (__DEV__) console.warn('[Home] createBlankBill error:', msg);
+      Alert.alert(t.error, msg || t.error_mutationFailed);
+    }
+  }, [user, createBill, isPro, router, showPaywall, t]);
+
+  const gateScanOrRun = useCallback(
+    (fn: () => void) => {
+      if (!unlocked) {
+        showPaywall();
+        return;
+      }
+      fn();
+    },
+    [unlocked, showPaywall],
+  );
+
+  const pickFromCamera = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t.home_permissionNeeded, t.home_permissionCamera);
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: IMAGE_QUALITY,
+      exif: extractPhotoTime,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const photoTakenAt = extractPhotoTime ? (asset.exif?.DateTimeOriginal ?? asset.exif?.DateTime) : undefined;
+      const params: Record<string, string> = { imageUri: asset.uri };
+      if (photoTakenAt) params.photoTakenAt = String(photoTakenAt);
+      if (useLocationSetting) params.resolveLocation = 'device';
+      router.push({ pathname: '/bills/new', params } as Href);
+    }
+  }, [router, extractPhotoTime, useLocationSetting, t]);
+
+  const pickFromLibrary = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t.home_permissionNeeded, t.home_permissionLibrary);
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: IMAGE_QUALITY,
+      exif: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const photoTakenAt = extractPhotoTime ? (asset.exif?.DateTimeOriginal ?? asset.exif?.DateTime) : undefined;
+      const gpsLat = asset.exif?.GPSLatitude;
+      const gpsLng = asset.exif?.GPSLongitude;
+      const gpsLatRef = asset.exif?.GPSLatitudeRef;
+      const gpsLngRef = asset.exif?.GPSLongitudeRef;
+      const params: Record<string, string> = { imageUri: asset.uri };
+      if (photoTakenAt) params.photoTakenAt = String(photoTakenAt);
+      if (gpsLat != null && gpsLng != null) {
+        params.latitude = String(gpsLatRef === 'S' ? -gpsLat : gpsLat);
+        params.longitude = String(gpsLngRef === 'W' ? -gpsLng : gpsLng);
+        params.resolveLocation = 'exif';
+      }
+      router.push({ pathname: '/bills/new', params } as Href);
+    }
+  }, [router, extractPhotoTime, t]);
+
+  const handleAddPress = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: [t.cancel, t.home_takePhoto, t.home_chooseLibrary, t.gate_manualEntry],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) gateScanOrRun(pickFromCamera);
+          if (buttonIndex === 2) gateScanOrRun(pickFromLibrary);
+          if (buttonIndex === 3) createBlankBill();
+        },
+      );
+    } else {
+      Alert.alert(t.home_addBill, t.home_addBillHow, [
+        { text: t.cancel, style: 'cancel' },
+        { text: t.home_takePhoto, onPress: () => gateScanOrRun(pickFromCamera) },
+        { text: t.home_chooseLibrary, onPress: () => gateScanOrRun(pickFromLibrary) },
+        { text: t.gate_manualEntry, onPress: createBlankBill },
+      ]);
+    }
+  }, [pickFromCamera, pickFromLibrary, createBlankBill, gateScanOrRun, t]);
 
   // Track animated IDs to prevent re-animation on FlashList recycle
   const animatedIds = useRef(new Set<string>());
@@ -85,8 +207,6 @@ export default function HomeScreen() {
       },
     ]);
   }, [removeBill, t, user]);
-
-  const { country } = useSettingsStore();
 
   const firstName = user?.firstName ?? user?.email?.split('@')[0] ?? 'there';
   const hasNonDefaultFilters = nonDefaultFilterCount > 0;
@@ -156,36 +276,48 @@ export default function HomeScreen() {
       {/* Header */}
       <View className="px-5 pb-1 pt-4">
         <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-2xl font-extrabold tracking-tight text-foreground">
-              {t.home_greeting(firstName)}
-            </Text>
-            <View className="mt-1 flex-row items-center gap-3">
-              <Text className="text-xs text-muted-foreground">
-                {t.home_billCount(activeBillCount)}
-              </Text>
-              {bills.length > 0 && (
-                <Text className="text-xs font-semibold text-foreground">
-                  {formatCurrency(bills.reduce((sum, b) => sum + b.total, 0), country)}
+          <View className="flex-row items-center gap-3">
+            <Pressable
+              onPress={() => router.push('/(tabs)/settings' as Href)}
+              className="relative"
+            >
+              <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <Text className="text-base font-bold text-primary">
+                  {(user?.firstName?.[0] ?? user?.email?.[0] ?? '?').toUpperCase()}
                 </Text>
+              </View>
+              {isPro && (
+                <View className="absolute bottom-0 right-0 h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-pro">
+                  <IconSymbol name="crown.fill" size={10} color="#fff" />
+                </View>
               )}
+            </Pressable>
+            <View>
+              <Text className="text-2xl font-extrabold tracking-tight text-foreground">
+                {t.home_greeting(firstName)}
+              </Text>
+              <View className="mt-1 flex-row items-center gap-3">
+                <Text className="text-xs text-muted-foreground">
+                  {t.home_billCount(activeBillCount)}
+                </Text>
+                {bills.length > 0 && (
+                  <Text className="text-xs font-semibold text-foreground">
+                    {formatCurrency(bills.reduce((sum, b) => sum + b.total, 0), country)}
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
-          <Pressable
-            onPress={() => router.push('/(tabs)/settings' as Href)}
-            className="relative"
-          >
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Text className="text-base font-bold text-primary">
-                {(user?.firstName?.[0] ?? user?.email?.[0] ?? '?').toUpperCase()}
-              </Text>
-            </View>
-            {isPro && (
-              <View className="absolute bottom-0 right-0 h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-pro">
-                <IconSymbol name="crown.fill" size={10} color="#fff" />
-              </View>
-            )}
-          </Pressable>
+          <Animated.View style={addAnimatedStyle}>
+            <Pressable
+              onPress={handleAddPress}
+              onPressIn={() => { addScale.value = withSpring(0.88, { damping: 15, stiffness: 400 }); }}
+              onPressOut={() => { addScale.value = withSpring(1, { damping: 10, stiffness: 300 }); }}
+              className="h-10 w-10 items-center justify-center rounded-full bg-primary"
+            >
+              <IconSymbol name="plus" size={22} color={iconColors.primaryForeground} />
+            </Pressable>
+          </Animated.View>
         </View>
       </View>
 
