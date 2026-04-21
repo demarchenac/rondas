@@ -173,11 +173,18 @@ export default function HomeScreen() {
           </View>
           <Pressable
             onPress={() => router.push('/(tabs)/settings' as Href)}
-            className="h-10 w-10 items-center justify-center rounded-full bg-primary/10"
+            className="relative"
           >
-            <Text className="text-base font-bold text-primary">
-              {(user?.firstName?.[0] ?? user?.email?.[0] ?? '?').toUpperCase()}
-            </Text>
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Text className="text-base font-bold text-primary">
+                {(user?.firstName?.[0] ?? user?.email?.[0] ?? '?').toUpperCase()}
+              </Text>
+            </View>
+            {isPro && (
+              <View className="absolute bottom-0 right-0 h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-pro">
+                <IconSymbol name="crown.fill" size={10} color="#fff" />
+              </View>
+            )}
           </Pressable>
         </View>
       </View>

@@ -1,11 +1,8 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from 'nativewind';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { ICON_COLORS } from '@/constants/colors';
 import { useT } from '@/lib/i18n';
 
 interface InfographicPreviewProps {
@@ -18,31 +15,20 @@ interface InfographicPreviewProps {
 function InfographicPreview({ uri, visible, onShare, onClose }: InfographicPreviewProps) {
   const t = useT();
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
-  const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { width: screenWidth } = useWindowDimensions();
   const imageWidth = screenWidth - 48;
 
   return (
     <Modal
       visible={visible}
-      animationType="fade"
-      transparent
+      animationType="slide"
+      presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
-        {/* Header */}
-        <View
-          className="flex-row items-center justify-between px-5 py-3"
-          style={{ paddingTop: insets.top + 8 }}
-        >
-          <Pressable
-            onPress={onClose}
-            className="h-9 w-9 items-center justify-center rounded-full bg-white/10"
-          >
-            <IconSymbol name="xmark" size={14} color="#fff" />
-          </Pressable>
-          <View className="w-9" />
+      <View className="flex-1 bg-black">
+        {/* Drag indicator */}
+        <View className="items-center pb-2 pt-3">
+          <View className="h-1 w-10 rounded-full bg-white/30" />
         </View>
 
         {/* Infographic image */}
@@ -61,7 +47,7 @@ function InfographicPreview({ uri, visible, onShare, onClose }: InfographicPrevi
         </ScrollView>
 
         {/* Footer */}
-        <View className="px-6 pb-2" style={{ paddingBottom: insets.bottom + 8 }}>
+        <View className="px-6" style={{ paddingBottom: insets.bottom + 8 }}>
           <Pressable
             onPress={onShare}
             className="items-center justify-center rounded-2xl bg-primary py-4"
