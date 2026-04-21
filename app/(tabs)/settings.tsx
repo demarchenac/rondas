@@ -24,6 +24,16 @@ import { cn } from '@/lib/cn';
 import { useProGate } from '@/hooks/useProGate';
 import { presentCodeRedemptionSheet, presentCustomerCenter } from '@/lib/revenueCat';
 
+function formatOtaDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = d.getHours() % 12 || 12;
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
+  return `${y}-${m}-${day} ${h}:${min} ${ampm}`;
+}
+
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { colorScheme, setColorScheme } = useColorScheme();
@@ -364,7 +374,7 @@ export default function SettingsScreen() {
           <Text className="text-xs text-muted-foreground">{t.settings_version}</Text>
           {Updates.updateId && (
             <Text className="text-[10px] text-muted-foreground/60">
-              OTA: {Updates.updateId.slice(0, 8)} · {Updates.createdAt?.toLocaleDateString() ?? ''}
+              OTA: {Updates.updateId.slice(0, 8)}{Updates.createdAt ? ` · ${formatOtaDate(Updates.createdAt)}` : ''}
             </Text>
           )}
           <Text className="text-xs text-muted-foreground">{t.settings_madeIn}</Text>
