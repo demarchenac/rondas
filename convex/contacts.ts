@@ -104,6 +104,46 @@ export const suggested = query({
   },
 });
 
+export const syncFromDevice = mutation({
+  args: {
+    userId: v.string(),
+    deviceContacts: v.array(
+      v.object({
+        phone: v.string(),
+        name: v.string(),
+        imageUri: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const allContacts = await ctx.db
+      .query('contacts')
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .collect();
+
+    const deviceByPhone = new Map(
+      args.deviceContacts.map((c) => [c.phone, c]),
+    );
+
+    let updated = 0;
+    for (const contact of allContacts) {
+      const device = deviceByPhone.get(contact.phone);
+      if (!device) continue;
+
+      const patches: Record<string, unknown> = {};
+      if (device.name !== contact.name) patches.name = device.name;
+      if (device.imageUri !== contact.imageUri) patches.imageUri = device.imageUri;
+
+      if (Object.keys(patches).length > 0) {
+        await ctx.db.patch(contact._id, patches);
+        updated++;
+      }
+    }
+
+    return { updated };
+  },
+});
+
 // --- Mutations ---
 
 export const update = mutation({

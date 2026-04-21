@@ -35,6 +35,7 @@ import Skeleton from '@/components/ui/Skeleton';
 import FilterChip from '@/components/bills/FilterChip';
 import FilterSheet from '@/components/bills/FilterSheet';
 import { useBillFilters } from '@/hooks/useBillFilters';
+import { useContactSync } from '@/hooks/useContactSync';
 
 type Bill = ResolvedBill;
 
@@ -45,6 +46,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const t = useT();
+  useContactSync(user?.id);
 
   const {
     activeFilters,
