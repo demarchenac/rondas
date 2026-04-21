@@ -1,9 +1,11 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { useT } from '@/lib/i18n';
+
+const CHROME_HEIGHT = 20 + 8 + 24 + 56 + 16; // grabber + topPad + imagePad + button + bottomPad
 
 interface InfographicPreviewProps {
   uri: string | null;
@@ -15,7 +17,7 @@ interface InfographicPreviewProps {
 function InfographicPreview({ uri, visible, onShare, onClose }: InfographicPreviewProps) {
   const t = useT();
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const imageWidth = screenWidth - 48;
   const [imageAspect, setImageAspect] = useState(0.55);
 
@@ -24,20 +26,24 @@ function InfographicPreview({ uri, visible, onShare, onClose }: InfographicPrevi
     if (width > 0 && height > 0) setImageAspect(width / height);
   }, []);
 
+  const detent = useMemo(() => {
+    const imageHeight = imageWidth / imageAspect;
+    const totalHeight = imageHeight + CHROME_HEIGHT + insets.bottom;
+    const fraction = Math.min(Math.max(totalHeight / screenHeight, 0.4), 0.95);
+    return [fraction];
+  }, [imageWidth, imageAspect, insets.bottom, screenHeight]);
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
+      // @ts-expect-error — RN 0.85 iOS sheet props, types may lag behind
+      sheetAllowedDetents={detent}
+      sheetGrabberVisible
     >
-      <View className="flex-1 bg-background">
-        {/* Drag indicator */}
-        <View className="items-center pb-2 pt-3">
-          <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-        </View>
-
-        {/* Infographic image */}
+      <View className="flex-1 bg-background pt-2">
         <ScrollView
           className="flex-1"
           contentContainerClassName="items-center px-6 pt-2 pb-4"
@@ -53,7 +59,6 @@ function InfographicPreview({ uri, visible, onShare, onClose }: InfographicPrevi
           )}
         </ScrollView>
 
-        {/* Footer */}
         <View className="px-6" style={{ paddingBottom: insets.bottom + 8 }}>
           <Pressable
             onPress={onShare}
