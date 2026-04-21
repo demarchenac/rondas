@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn, FadeOut,
-  useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS,
+  useSharedValue, useAnimatedStyle, withTiming, runOnJS,
 } from 'react-native-reanimated';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
@@ -42,7 +42,7 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
         const duration = Math.min(Math.max((remaining / speed) * 1000, 150), 400);
         translateY.value = withTiming(screenHeight, { duration }, () => runOnJS(dismiss)());
       } else {
-        translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+        translateY.value = withTiming(0, { duration: 200 });
       }
     });
 
@@ -56,7 +56,7 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
   const contentHeight = Math.min(imageHeight + CHROME_HEIGHT + insets.bottom + 16, screenHeight * 0.9);
 
   // Trigger enter animation on mount
-  translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+  translateY.value = withTiming(0, { duration: 200 });
 
   return (
     <View className="absolute inset-0" style={{ zIndex: 100 }}>

@@ -3,7 +3,7 @@ import { ActivityIndicator, Modal, View, Pressable, ScrollView } from 'react-nat
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn, FadeOut,
-  useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS,
+  useSharedValue, useAnimatedStyle, withTiming, runOnJS,
 } from 'react-native-reanimated';
 import { Image } from '@/lib/expo-image';
 import ViewShot from 'react-native-view-shot';
@@ -73,7 +73,7 @@ function BillShareSheet({
 
   useEffect(() => {
     if (visible) {
-      translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+      translateY.value = withTiming(0, { duration: 300 });
     }
   }, [visible, translateY]);
 
@@ -91,7 +91,7 @@ function BillShareSheet({
         const duration = Math.min(Math.max((remaining / speed) * 1000, 150), 400);
         translateY.value = withTiming(1000, { duration }, () => runOnJS(dismiss)());
       } else {
-        translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+        translateY.value = withTiming(0, { duration: 200 });
       }
     });
 
