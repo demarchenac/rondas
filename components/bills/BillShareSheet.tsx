@@ -1,8 +1,8 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { ActivityIndicator, Modal, View, Pressable, ScrollView } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  FadeIn, FadeOut, SlideInDown, SlideOutDown,
+  FadeIn, FadeOut,
   useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS,
 } from 'react-native-reanimated';
 import { Image } from '@/lib/expo-image';
@@ -69,7 +69,13 @@ function BillShareSheet({
   const t = useT();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
-  const translateY = useSharedValue(0);
+  const translateY = useSharedValue(1000);
+
+  useEffect(() => {
+    if (visible) {
+      translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+    }
+  }, [visible, translateY]);
 
   const dismiss = useCallback(() => { onClose(); }, [onClose]);
 
@@ -83,10 +89,7 @@ function BillShareSheet({
         const remaining = 1000 - e.translationY;
         const speed = Math.max(e.velocityY, 800);
         const duration = Math.min(Math.max((remaining / speed) * 1000, 150), 400);
-        translateY.value = withTiming(1000, { duration }, () => {
-          translateY.value = 0;
-          runOnJS(dismiss)();
-        });
+        translateY.value = withTiming(1000, { duration }, () => runOnJS(dismiss)());
       } else {
         translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
       }
@@ -118,8 +121,6 @@ function BillShareSheet({
         {/* Sheet */}
         <GestureDetector gesture={panGesture}>
           <Animated.View
-            entering={SlideInDown.duration(300)}
-            exiting={SlideOutDown.duration(200)}
             className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-background"
             style={[{ top: 48, paddingBottom: bottomInset }, sheetStyle]}
           >

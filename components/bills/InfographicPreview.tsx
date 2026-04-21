@@ -3,7 +3,7 @@ import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  FadeIn, FadeOut, SlideInDown, SlideOutDown,
+  FadeIn, FadeOut,
   useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS,
 } from 'react-native-reanimated';
 import { Image } from '@/lib/expo-image';
@@ -27,7 +27,7 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const imageWidth = screenWidth - 64;
-  const translateY = useSharedValue(0);
+  const translateY = useSharedValue(screenHeight);
 
   const dismiss = useCallback(() => { onClose(); }, [onClose]);
 
@@ -37,13 +37,10 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
     })
     .onEnd((e) => {
       if (e.translationY > DISMISS_THRESHOLD || e.velocityY > VELOCITY_THRESHOLD) {
-        const remaining = 1000 - e.translationY;
+        const remaining = screenHeight - e.translationY;
         const speed = Math.max(e.velocityY, 800);
         const duration = Math.min(Math.max((remaining / speed) * 1000, 150), 400);
-        translateY.value = withTiming(1000, { duration }, () => {
-          translateY.value = 0;
-          runOnJS(dismiss)();
-        });
+        translateY.value = withTiming(screenHeight, { duration }, () => runOnJS(dismiss)());
       } else {
         translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
       }
@@ -58,9 +55,11 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
   const imageHeight = imageWidth / imageAspect;
   const contentHeight = Math.min(imageHeight + CHROME_HEIGHT + insets.bottom + 16, screenHeight * 0.9);
 
+  // Trigger enter animation on mount
+  translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+
   return (
     <View className="absolute inset-0" style={{ zIndex: 100 }}>
-      {/* Backdrop */}
       <Animated.View
         entering={FadeIn.duration(200)}
         exiting={FadeOut.duration(150)}
@@ -70,11 +69,8 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
         <Pressable className="flex-1" onPress={onClose} />
       </Animated.View>
 
-      {/* Sheet with follow-finger swipe */}
       <GestureDetector gesture={panGesture}>
         <Animated.View
-          entering={SlideInDown.duration(300)}
-          exiting={SlideOutDown.duration(200)}
           className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-background"
           style={[{ height: contentHeight, paddingBottom: insets.bottom + 8 }, sheetStyle]}
         >
