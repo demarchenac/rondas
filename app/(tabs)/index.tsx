@@ -31,6 +31,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useT } from '@/lib/i18n';
 import BillCard from '@/components/bills/BillCard';
 import BillCardSkeleton from '@/components/bills/BillCardSkeleton';
+import Skeleton from '@/components/ui/Skeleton';
 import FilterChip from '@/components/bills/FilterChip';
 import FilterSheet from '@/components/bills/FilterSheet';
 import { useBillFilters } from '@/hooks/useBillFilters';
@@ -275,50 +276,63 @@ export default function HomeScreen() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="px-5 pb-1 pt-4">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-3">
-            <Pressable
-              onPress={() => router.push('/(tabs)/settings' as Href)}
-              className="relative"
-            >
-              <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Text className="text-base font-bold text-primary">
-                  {(user?.firstName?.[0] ?? user?.email?.[0] ?? '?').toUpperCase()}
-                </Text>
-              </View>
-              {isPro && (
-                <View className="absolute bottom-0 right-0 h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-pro">
-                  <IconSymbol name="crown.fill" size={10} color="#fff" />
-                </View>
-              )}
-            </Pressable>
-            <View>
-              <Text className="text-2xl font-extrabold tracking-tight text-foreground">
-                {t.home_greeting(firstName)}
-              </Text>
-              <View className="mt-1 flex-row items-center gap-3">
-                <Text className="text-xs text-muted-foreground">
-                  {t.home_billCount(activeBillCount)}
-                </Text>
-                {bills.length > 0 && (
-                  <Text className="text-xs font-semibold text-foreground">
-                    {formatCurrency(bills.reduce((sum, b) => sum + b.total, 0), country)}
-                  </Text>
-                )}
+        {!user ? (
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-3">
+              <Skeleton width={40} height={40} borderRadius={20} />
+              <View className="gap-2">
+                <Skeleton width={160} height={22} borderRadius={6} />
+                <Skeleton width={90} height={12} borderRadius={4} />
               </View>
             </View>
+            <Skeleton width={40} height={40} borderRadius={20} />
           </View>
-          <Animated.View style={addAnimatedStyle}>
-            <Pressable
-              onPress={handleAddPress}
-              onPressIn={() => { addScale.value = withSpring(0.88, { damping: 15, stiffness: 400 }); }}
-              onPressOut={() => { addScale.value = withSpring(1, { damping: 10, stiffness: 300 }); }}
-              className="h-10 w-10 items-center justify-center rounded-full bg-primary"
-            >
-              <IconSymbol name="plus" size={22} color={iconColors.primaryForeground} />
-            </Pressable>
-          </Animated.View>
-        </View>
+        ) : (
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-3">
+              <Pressable
+                onPress={() => router.push('/(tabs)/settings' as Href)}
+                className="relative"
+              >
+                <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <Text className="text-base font-bold text-primary">
+                    {(user.firstName?.[0] ?? user.email?.[0] ?? '?').toUpperCase()}
+                  </Text>
+                </View>
+                {isPro && (
+                  <View className="absolute bottom-0 right-0 h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-pro">
+                    <IconSymbol name="crown.fill" size={10} color="#fff" />
+                  </View>
+                )}
+              </Pressable>
+              <View>
+                <Text className="text-2xl font-extrabold tracking-tight text-foreground">
+                  {t.home_greeting(firstName)}
+                </Text>
+                <View className="mt-1 flex-row items-center gap-3">
+                  <Text className="text-xs text-muted-foreground">
+                    {t.home_billCount(activeBillCount)}
+                  </Text>
+                  {bills.length > 0 && (
+                    <Text className="text-xs font-semibold text-foreground">
+                      {formatCurrency(bills.reduce((sum, b) => sum + b.total, 0), country)}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+            <Animated.View style={addAnimatedStyle}>
+              <Pressable
+                onPress={handleAddPress}
+                onPressIn={() => { addScale.value = withSpring(0.88, { damping: 15, stiffness: 400 }); }}
+                onPressOut={() => { addScale.value = withSpring(1, { damping: 10, stiffness: 300 }); }}
+                className="h-10 w-10 items-center justify-center rounded-full bg-primary"
+              >
+                <IconSymbol name="plus" size={22} color={iconColors.primaryForeground} />
+              </Pressable>
+            </Animated.View>
+          </View>
+        )}
       </View>
 
       {/* Filter Bar */}
