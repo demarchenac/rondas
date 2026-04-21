@@ -431,7 +431,7 @@
 - [x] ~50 new translation strings (EN + ES) for paywall, gates, promo codes
 - [x] Regionalized pricing docs (`docs/research/pricing.schema.md`)
 - [x] Updated subscription rules docs (`docs/rules/subscriptions.md`)
-- [ ] Add "Free" indicator for non-Pro users in UI
+- [x] Add Pro badge overlay on avatar in settings (crown icon, gold circle)
 
 ---
 

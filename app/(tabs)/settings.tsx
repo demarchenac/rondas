@@ -137,11 +137,18 @@ export default function SettingsScreen() {
       >
         {/* Profile Card */}
         <View className="items-center gap-3 rounded-2xl border border-border bg-card px-6 py-6">
-          <View className="h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-            <Text className="text-3xl font-bold text-primary">
-              {user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?'}
-              {user?.lastName?.[0] ?? ''}
-            </Text>
+          <View className="relative">
+            <View className="h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+              <Text className="text-3xl font-bold text-primary">
+                {user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?'}
+                {user?.lastName?.[0] ?? ''}
+              </Text>
+            </View>
+            {isPro && (
+              <View className="absolute bottom-0 right-0 h-6 w-6 items-center justify-center rounded-full border-2 border-card bg-pro">
+                <IconSymbol name="crown.fill" size={12} color="#fff" />
+              </View>
+            )}
           </View>
           <View className="items-center gap-0.5">
             <Text className="text-lg font-semibold text-foreground">
