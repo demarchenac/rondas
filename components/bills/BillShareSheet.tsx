@@ -3,7 +3,7 @@ import { ActivityIndicator, Modal, View, Pressable, ScrollView } from 'react-nat
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn, FadeOut, SlideInDown, SlideOutDown,
-  useSharedValue, useAnimatedStyle, withSpring, runOnJS,
+  useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS,
 } from 'react-native-reanimated';
 import { Image } from '@/lib/expo-image';
 import ViewShot from 'react-native-view-shot';
@@ -23,6 +23,7 @@ import type { Id } from '@/convex/_generated/dataModel';
 import type { ResolvedBill, ResolvedContact } from '@/lib/filters';
 
 const DISMISS_THRESHOLD = 80;
+const VELOCITY_THRESHOLD = 500;
 
 interface BillShareSheetProps {
   visible: boolean;
@@ -78,10 +79,16 @@ function BillShareSheet({
       translateY.value = Math.max(0, e.translationY);
     })
     .onEnd((e) => {
-      if (e.translationY > DISMISS_THRESHOLD) {
-        runOnJS(dismiss)();
+      if (e.translationY > DISMISS_THRESHOLD || e.velocityY > VELOCITY_THRESHOLD) {
+        const remaining = 1000 - e.translationY;
+        const speed = Math.max(e.velocityY, 800);
+        const duration = Math.min(Math.max((remaining / speed) * 1000, 150), 400);
+        translateY.value = withTiming(1000, { duration }, () => {
+          runOnJS(dismiss)();
+        });
+      } else {
+        translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
       }
-      translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
     });
 
   const sheetStyle = useAnimatedStyle(() => ({

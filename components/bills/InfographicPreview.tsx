@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn, FadeOut, SlideInDown, SlideOutDown,
-  useSharedValue, useAnimatedStyle, withSpring, runOnJS,
+  useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS,
 } from 'react-native-reanimated';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
@@ -12,6 +12,7 @@ import { useT } from '@/lib/i18n';
 
 const CHROME_HEIGHT = 12 + 16 + 56 + 16;
 const DISMISS_THRESHOLD = 80;
+const VELOCITY_THRESHOLD = 500;
 
 interface InfographicPreviewProps {
   uri: string | null;
@@ -35,10 +36,16 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
       translateY.value = Math.max(0, e.translationY);
     })
     .onEnd((e) => {
-      if (e.translationY > DISMISS_THRESHOLD) {
-        runOnJS(dismiss)();
+      if (e.translationY > DISMISS_THRESHOLD || e.velocityY > VELOCITY_THRESHOLD) {
+        const remaining = 1000 - e.translationY;
+        const speed = Math.max(e.velocityY, 800);
+        const duration = Math.min(Math.max((remaining / speed) * 1000, 150), 400);
+        translateY.value = withTiming(1000, { duration }, () => {
+          runOnJS(dismiss)();
+        });
+      } else {
+        translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
       }
-      translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
     });
 
   const sheetStyle = useAnimatedStyle(() => ({
