@@ -22,14 +22,18 @@ export function useContactSync(userId: string | undefined) {
 
       const deviceContacts = data
         .filter((c) => c.phoneNumbers?.[0]?.number)
-        .map((c) => ({
-          phone: c.phoneNumbers![0]!.number!,
-          name: `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || (c.name ?? ''),
-          imageUri: c.image?.uri,
-        }));
+        .map((c) => {
+          const entry: { phone: string; name: string; imageUri?: string } = {
+            phone: c.phoneNumbers![0]!.number!,
+            name: `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || (c.name ?? ''),
+          };
+          if (c.image?.uri) entry.imageUri = c.image.uri;
+          return entry;
+        });
 
       if (deviceContacts.length > 0) {
-        await syncFromDevice({ userId, deviceContacts });
+        const result = await syncFromDevice({ userId, deviceContacts });
+        if (__DEV__) console.log(`[ContactSync] ${deviceContacts.length} device contacts, ${result.updated} updated`);
       }
 
       didSync = true;
