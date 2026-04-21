@@ -131,6 +131,8 @@ export default function SettingsScreen() {
       <ScrollView
         className="flex-1 px-5"
         contentContainerClassName="gap-6 pb-12 pt-4"
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Card */}

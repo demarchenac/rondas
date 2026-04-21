@@ -128,7 +128,7 @@ function FilterSheet({
           </Pressable>
         </View>
 
-        <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
+        <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           {/* Country */}
           <View className="mb-2 rounded-xl bg-muted/10 p-4">
             <View className="mb-2.5 flex-row items-center gap-2">
@@ -309,9 +309,9 @@ function FilterSheet({
             {draft.datePreset === 'custom' && (
               <View className="mt-3 flex-row items-center gap-3">
                 <TextInput
-                  value={draft.fromDate ? new Date(draft.fromDate).toISOString().split('T')[0] : ''}
-                  onChangeText={(text) => {
-                    const ts = Date.parse(text);
+                  defaultValue={draft.fromDate ? new Date(draft.fromDate).toISOString().split('T')[0] : ''}
+                  onEndEditing={(e) => {
+                    const ts = Date.parse(e.nativeEvent.text);
                     setDraft((f) => ({ ...f, fromDate: isNaN(ts) ? null : ts }));
                   }}
                   placeholder={`${t.filterSheet_dateFrom} (YYYY-MM-DD)`}
@@ -320,9 +320,9 @@ function FilterSheet({
                 />
                 <Text className="text-sm text-muted-foreground">—</Text>
                 <TextInput
-                  value={draft.toDate ? new Date(draft.toDate).toISOString().split('T')[0] : ''}
-                  onChangeText={(text) => {
-                    const ts = Date.parse(text);
+                  defaultValue={draft.toDate ? new Date(draft.toDate).toISOString().split('T')[0] : ''}
+                  onEndEditing={(e) => {
+                    const ts = Date.parse(e.nativeEvent.text);
                     setDraft((f) => ({ ...f, toDate: isNaN(ts) ? null : ts }));
                   }}
                   placeholder={`${t.filterSheet_dateTo} (YYYY-MM-DD)`}

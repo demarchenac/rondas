@@ -51,7 +51,8 @@ function FAB({ bottom }: FABProps) {
         showPaywall();
         return;
       }
-      Alert.alert(t.error, t.error_mutationFailed);
+      if (__DEV__) console.warn('[FAB] createBlankBill error:', msg);
+      Alert.alert(t.error, msg || t.error_mutationFailed);
     }
   }, [user, createBill, isPro, router, showPaywall, t]);
 

@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import Purchases, { type CustomerInfo, type PurchasesOffering, type PurchasesPackage } from 'react-native-purchases';
+import Purchases, { LOG_LEVEL, type CustomerInfo, type PurchasesOffering, type PurchasesPackage } from 'react-native-purchases';
 import { ENV } from '@/constants/env';
 import { useSubscriptionStore } from '@/stores/useSubscriptionStore';
 
@@ -17,6 +17,7 @@ export async function initRevenueCat(workosId: string): Promise<void> {
   }
 
   try {
+    Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
     if (!configured) {
       Purchases.configure({ apiKey, appUserID: workosId });
       configured = true;

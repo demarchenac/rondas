@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, View , Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
@@ -22,7 +22,6 @@ import {
   presentCodeRedemptionSheet,
   presentRemotePaywall,
 } from '@/lib/revenueCat';
-import { Platform } from 'react-native';
 
 type SelectedPlan = 'monthly' | 'yearly';
 
@@ -47,21 +46,11 @@ export default function PaywallScreen() {
     let cancelled = false;
     getOffering().then(async (o) => {
       if (cancelled) return;
-      const hasPackages = !!(o?.monthly || o?.annual);
-      if (!hasPackages) {
-        // Fallback to remote paywall (configured in RevenueCat dashboard)
-        const result = await presentRemotePaywall();
-        if (cancelled) return;
-        if (result === 'purchased') {
-          router.back();
-        } else {
-          // Remote paywall dismissed/errored — show local "unavailable" state
-          setOffering(o);
-          setLoadingOffering(false);
-        }
-        return;
-      }
       setOffering(o);
+      setLoadingOffering(false);
+    }).catch((err) => {
+      if (cancelled) return;
+      if (__DEV__) console.warn('[Paywall] getOffering error:', err);
       setLoadingOffering(false);
     });
     return () => { cancelled = true; };
