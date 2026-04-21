@@ -19,6 +19,7 @@ import { useT } from '@/lib/i18n';
 import { api } from '@/convex/_generated/api';
 import { US_STATE_RATES, type Country } from '@/constants/taxes';
 import { Input } from '@/components/ui/input';
+import * as Updates from 'expo-updates';
 import { cn } from '@/lib/cn';
 import { useProGate } from '@/hooks/useProGate';
 import { presentCodeRedemptionSheet, presentCustomerCenter } from '@/lib/revenueCat';
@@ -361,6 +362,11 @@ export default function SettingsScreen() {
         {/* Footer */}
         <View className="items-center gap-1 pt-4">
           <Text className="text-xs text-muted-foreground">{t.settings_version}</Text>
+          {Updates.updateId && (
+            <Text className="text-[10px] text-muted-foreground/60">
+              OTA: {Updates.updateId.slice(0, 8)} · {Updates.createdAt?.toLocaleDateString() ?? ''}
+            </Text>
+          )}
           <Text className="text-xs text-muted-foreground">{t.settings_madeIn}</Text>
         </View>
       </ScrollView>
