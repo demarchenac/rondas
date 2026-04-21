@@ -13,6 +13,7 @@ import { ICON_COLORS } from '@/constants/colors';
 import { useColorScheme } from 'nativewind';
 import { cn } from '@/lib/cn';
 import BillInfographic from './BillInfographic';
+import InfographicPreview from './InfographicPreview';
 import type { Id } from '@/convex/_generated/dataModel';
 import type { ResolvedBill, ResolvedContact } from '@/lib/filters';
 
@@ -30,6 +31,9 @@ interface BillShareSheetProps {
   onSendWhatsApp: (contact: ResolvedContact) => void;
   onShareInfographic: (contact: ResolvedContact, contactIndex: number) => void;
   capturingIndex: number | null;
+  previewUri: string | null;
+  onConfirmShare: () => void;
+  onClosePreview: () => void;
   onClose: () => void;
 }
 
@@ -47,6 +51,9 @@ function BillShareSheet({
   onSendWhatsApp,
   onShareInfographic,
   capturingIndex,
+  previewUri,
+  onConfirmShare,
+  onClosePreview,
   onClose,
 }: BillShareSheetProps) {
   const t = useT();
@@ -263,6 +270,12 @@ function BillShareSheet({
           })}
         </ScrollView>
       </View>
+      <InfographicPreview
+        uri={previewUri}
+        visible={previewUri !== null}
+        onShare={onConfirmShare}
+        onClose={onClosePreview}
+      />
     </Modal>
   );
 }

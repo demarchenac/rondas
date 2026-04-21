@@ -37,7 +37,6 @@ import BulkToolbar from '@/components/bills/BulkToolbar';
 import ContactPickerSheet, { SUGGESTED_PREFIX } from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import BillShareSheet from '@/components/bills/BillShareSheet';
-import InfographicPreview from '@/components/bills/InfographicPreview';
 
 const CONTACTS_CACHE_TTL = 5 * 60_000; // 5 minutes
 
@@ -862,14 +861,10 @@ export default function BillDetailScreen() {
         onSendWhatsApp={handleSendWhatsApp}
         onShareInfographic={handleShareInfographic}
         capturingIndex={capturingIndex}
+        previewUri={previewUri}
+        onConfirmShare={handleConfirmShare}
+        onClosePreview={handleClosePreview}
         onClose={() => setActiveDialog(null)}
-      />
-
-      <InfographicPreview
-        uri={previewUri}
-        visible={previewUri !== null}
-        onShare={handleConfirmShare}
-        onClose={handleClosePreview}
       />
 
       <ContactPickerSheet
