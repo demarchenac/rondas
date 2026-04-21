@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -29,10 +29,6 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
   const imageWidth = screenWidth - 64;
   const translateY = useSharedValue(0);
 
-  useEffect(() => {
-    if (visible) translateY.value = 0;
-  }, [visible, translateY]);
-
   const dismiss = useCallback(() => { onClose(); }, [onClose]);
 
   const panGesture = Gesture.Pan()
@@ -45,6 +41,7 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
         const speed = Math.max(e.velocityY, 800);
         const duration = Math.min(Math.max((remaining / speed) * 1000, 150), 400);
         translateY.value = withTiming(1000, { duration }, () => {
+          translateY.value = 0;
           runOnJS(dismiss)();
         });
       } else {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { ActivityIndicator, Modal, View, Pressable, ScrollView } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -71,10 +71,6 @@ function BillShareSheet({
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const translateY = useSharedValue(0);
 
-  useEffect(() => {
-    if (visible) translateY.value = 0;
-  }, [visible, translateY]);
-
   const dismiss = useCallback(() => { onClose(); }, [onClose]);
 
   const panGesture = Gesture.Pan()
@@ -88,6 +84,7 @@ function BillShareSheet({
         const speed = Math.max(e.velocityY, 800);
         const duration = Math.min(Math.max((remaining / speed) * 1000, 150), 400);
         translateY.value = withTiming(1000, { duration }, () => {
+          translateY.value = 0;
           runOnJS(dismiss)();
         });
       } else {
