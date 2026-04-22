@@ -22,7 +22,7 @@ function CountryDialog({ visible, billCountry, onSelectCountry, onClose }: Count
       onRequestClose={onClose}
     >
       <TouchableWithoutFeedback onPress={onClose}>
-        <View className="flex-1 items-center justify-center bg-black/50">
+        <View className="flex-1 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <TouchableWithoutFeedback>
             <View className="mx-8 w-80 rounded-2xl border border-border bg-card p-6">
               <Text className="mb-4 text-center text-lg font-bold text-foreground">{t.countryDialog_title}</Text>

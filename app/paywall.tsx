@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, View , Platform } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
@@ -15,12 +15,12 @@ import { useT } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { useCustomAlert } from '@/components/ui/custom-alert';
 import {
   getOffering,
   purchasePackage,
   restorePurchases,
   presentCodeRedemptionSheet,
-  presentRemotePaywall,
 } from '@/lib/revenueCat';
 
 type SelectedPlan = 'monthly' | 'yearly';
@@ -33,6 +33,7 @@ export default function PaywallScreen() {
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { user } = useAuth();
   const redeemCode = useMutation(api.promoCodes.redeemCode);
+  const { alert } = useCustomAlert();
 
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
   const [loadingOffering, setLoadingOffering] = useState(true);
@@ -72,28 +73,28 @@ export default function PaywallScreen() {
       }
     } catch (err) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t.error, t.error_mutationFailed);
+      alert(t.error, t.error_mutationFailed);
       if (__DEV__) console.warn('[Paywall] purchase failed:', err);
     } finally {
       setPurchasing(false);
     }
-  }, [selectedPlan, monthlyPkg, yearlyPkg, router, t]);
+  }, [selectedPlan, monthlyPkg, yearlyPkg, router, t, alert]);
 
   const handleRestore = useCallback(async () => {
     try {
       const success = await restorePurchases();
       if (success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(t.paywall_restoreSuccess);
+        alert(t.paywall_restoreSuccess);
         router.back();
       } else {
-        Alert.alert(t.paywall_restoreFailed);
+        alert(t.paywall_restoreFailed);
       }
     } catch (err) {
-      Alert.alert(t.error, t.error_mutationFailed);
+      alert(t.error, t.error_mutationFailed);
       if (__DEV__) console.warn('[Paywall] restore failed:', err);
     }
-  }, [router, t]);
+  }, [router, t, alert]);
 
   const handleRedeem = useCallback(async () => {
     if (!user || !promoCode.trim()) return;
@@ -101,7 +102,7 @@ export default function PaywallScreen() {
     try {
       await redeemCode({ workosId: user.id, code: promoCode.trim() });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(t.promo_success);
+      alert(t.promo_success);
       router.back();
     } catch (err: unknown) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -110,11 +111,11 @@ export default function PaywallScreen() {
       if (msg.includes('expired')) label = t.promo_expired;
       else if (msg.includes('max_uses')) label = t.promo_maxUses;
       else if (msg.includes('already_pro')) label = t.promo_alreadyPro;
-      Alert.alert(label);
+      alert(label);
     } finally {
       setRedeeming(false);
     }
-  }, [user, promoCode, redeemCode, router, t]);
+  }, [user, promoCode, redeemCode, router, t, alert]);
 
   const handleStoreRedeem = useCallback(async () => {
     if (Platform.OS !== 'ios') return;

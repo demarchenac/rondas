@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Image } from '@/lib/expo-image';
 import type { ResolvedBill } from '@/lib/filters';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import Avatar from '@/components/ui/avatar';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
@@ -95,22 +95,15 @@ function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
             {/* Contact avatars */}
             <View className="flex-row items-center">
               {bill.contacts.slice(0, 3).map((c, i) => (
-                c.imageUri ? (
-                  <Image
-                    key={i}
-                    source={{ uri: c.imageUri }}
-                    className={cn('h-[26px] w-[26px] rounded-full border-2 border-card', i > 0 && '-ml-2')}
-                  />
-                ) : (
-                  <View
-                    key={i}
-                    className={cn('h-[26px] w-[26px] rounded-full items-center justify-center border-2 border-card', stateStyle.bgClass, i > 0 && '-ml-2')}
-                  >
-                    <Text className={cn('text-[10px] font-bold', stateStyle.textClass)}>
-                      {c.name[0]?.toUpperCase() ?? '?'}
-                    </Text>
-                  </View>
-                )
+                <Avatar
+                  key={i}
+                  name={c.name}
+                  imageUri={c.imageUri}
+                  size="xs"
+                  className={cn('border-2 border-card', i > 0 && '-ml-2')}
+                  bgClassName={stateStyle.bgClass}
+                  textClassName={stateStyle.textClass}
+                />
               ))}
               {contactCount > 3 && (
                 <View className="-ml-2 h-[26px] w-[26px] rounded-full items-center justify-center border-2 border-card bg-muted-foreground/15">

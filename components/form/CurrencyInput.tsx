@@ -1,6 +1,6 @@
 import React from 'react';
 import RNCurrencyInput from 'react-native-currency-input';
-import type { TextInputProps } from 'react-native';
+import { Platform, type TextInputProps } from 'react-native';
 import { cn } from '@/lib/cn';
 
 interface CurrencyInputProps extends Omit<TextInputProps, 'value' | 'onChangeText'> {
@@ -29,6 +29,9 @@ function CurrencyInput({ value, onChangeValue, country, className, ...rest }: Cu
       minValue={0}
       keyboardType="number-pad"
       className={cn('text-foreground', className)}
+      {...(Platform.OS === 'android' && {
+        style: [{ includeFontPadding: false, textAlignVertical: 'center' }, rest.style],
+      })}
       {...rest}
     />
   );

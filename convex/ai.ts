@@ -7,7 +7,9 @@ const GEMINI_STREAM_URL = `https://generativelanguage.googleapis.com/v1beta/mode
 
 const EXTRACTION_PROMPT = `You are an OCR assistant specialized in bills and receipts.
 
-Analyze this bill/receipt image and extract EVERY line item exactly as printed on the receipt, preserving the original order.
+FIRST: Determine if this image is a bill, receipt, or invoice with visible line items. If it is NOT (e.g., a photo of food, a person, a landscape, a menu without prices, or any non-receipt image), return ONLY: {"error": "not_a_receipt"}
+
+If it IS a valid bill/receipt, analyze it and extract EVERY line item exactly as printed, preserving the original order.
 
 Return ONLY valid JSON (no markdown, no code fences):
 {
@@ -275,21 +277,33 @@ export const extractBillItems = action({
     const cleaned = jsonText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '').trim();
 
     try {
-      const parsed: ExtractedBill = JSON.parse(cleaned);
+      const parsed = JSON.parse(cleaned);
+
+      if (parsed.error === 'not_a_receipt') {
+        await ctx.runMutation(api.scans.updateScan, {
+          id: args.scanId,
+          userId: args.userId,
+          status: 'error',
+          error: 'not_a_receipt',
+        });
+        throw new Error('not_a_receipt');
+      }
+
+      const bill = parsed as ExtractedBill;
 
       const validCategories: readonly string[] = ['dining', 'retail', 'service'];
-      const category = validCategories.includes(parsed.category)
-        ? parsed.category
+      const category = validCategories.includes(bill.category)
+        ? bill.category
         : 'dining';
 
-      const items = sanitizeItems(parsed.items || []);
+      const items = sanitizeItems(bill.items || []);
 
       const result: ExtractedBill = {
         category,
         items,
-        tax: Math.round(parsed.tax || 0),
-        tip: Math.round(parsed.tip || 0),
-        total: Math.round(parsed.total || 0),
+        tax: Math.round(bill.tax || 0),
+        tip: Math.round(bill.tip || 0),
+        total: Math.round(bill.total || 0),
       };
 
       await ctx.runMutation(api.scans.updateScan, {

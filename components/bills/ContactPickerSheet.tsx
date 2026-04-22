@@ -19,6 +19,7 @@ interface ContactPickerSheetProps {
   phoneContacts: PhoneContact[];
   suggestedContacts?: { frequent: Doc<'contacts'>[]; recent: Doc<'contacts'>[] };
   selectedContactIds: Set<string>;
+  excludePhones?: Set<string>;
   bottomInset: number;
   onToggleContact: (contactId: string) => void;
   onConfirm: () => void;
@@ -30,6 +31,7 @@ function ContactPickerSheet({
   phoneContacts,
   suggestedContacts,
   selectedContactIds,
+  excludePhones,
   bottomInset,
   onToggleContact,
   onConfirm,
@@ -45,19 +47,37 @@ function ContactPickerSheet({
     if (visible) setSearch('');
   }, [visible]);
 
-  const filteredContacts = useMemo(() => {
-    if (!search) return phoneContacts;
-    const q = search.toLowerCase();
+  const baseContacts = useMemo(() => {
+    if (!excludePhones || excludePhones.size === 0) return phoneContacts;
     return phoneContacts.filter((c) => {
+      const phone = c.phoneNumbers?.[0]?.number;
+      return !phone || !excludePhones.has(phone);
+    });
+  }, [phoneContacts, excludePhones]);
+
+  const filteredContacts = useMemo(() => {
+    if (!search) return baseContacts;
+    const q = search.toLowerCase();
+    return baseContacts.filter((c) => {
       const name = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase();
       return name.includes(q);
     });
-  }, [phoneContacts, search]);
+  }, [baseContacts, search]);
+
+  const filteredSuggested = useMemo(() => {
+    if (!suggestedContacts) return undefined;
+    if (!excludePhones || excludePhones.size === 0) return suggestedContacts;
+    const filterFn = (c: Doc<'contacts'>) => !c.phone || !excludePhones.has(c.phone);
+    return {
+      frequent: suggestedContacts.frequent.filter(filterFn),
+      recent: suggestedContacts.recent.filter(filterFn),
+    };
+  }, [suggestedContacts, excludePhones]);
 
   const hasSuggested =
     !search &&
-    suggestedContacts &&
-    (suggestedContacts.frequent.length > 0 || suggestedContacts.recent.length > 0);
+    filteredSuggested &&
+    (filteredSuggested.frequent.length > 0 || filteredSuggested.recent.length > 0);
 
   const renderSuggestedContact = useCallback((c: Doc<'contacts'>) => {
     const key = `${SUGGESTED_PREFIX}${c._id}`;
@@ -129,20 +149,20 @@ function ContactPickerSheet({
     if (!hasSuggested) return null;
     return (
       <View className="px-7">
-        {suggestedContacts!.frequent.length > 0 && (
+        {filteredSuggested!.frequent.length > 0 && (
           <View className="mb-2">
             <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t.contactPicker_frequent}
             </Text>
-            {suggestedContacts!.frequent.map(renderSuggestedContact)}
+            {filteredSuggested!.frequent.map(renderSuggestedContact)}
           </View>
         )}
-        {suggestedContacts!.recent.length > 0 && (
+        {filteredSuggested!.recent.length > 0 && (
           <View className="mb-2">
             <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t.contactPicker_recent}
             </Text>
-            {suggestedContacts!.recent.map(renderSuggestedContact)}
+            {filteredSuggested!.recent.map(renderSuggestedContact)}
           </View>
         )}
         <Text className="mb-1 mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -150,7 +170,7 @@ function ContactPickerSheet({
         </Text>
       </View>
     );
-  }, [hasSuggested, suggestedContacts, renderSuggestedContact, t]);
+  }, [hasSuggested, filteredSuggested, renderSuggestedContact, t]);
 
   const listEmpty = useMemo(() => {
     if (phoneContacts.length === 0) {

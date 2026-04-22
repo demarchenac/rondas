@@ -1,11 +1,12 @@
 import React from 'react';
-import { Modal, View, Pressable, ScrollView, Alert } from 'react-native';
+import { Modal, View, Pressable, ScrollView } from 'react-native';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
 import { ICON_COLORS } from '@/constants/colors';
 import { useColorScheme } from 'nativewind';
+import { useCustomAlert } from '@/components/ui/custom-alert';
 import type { Id } from '@/convex/_generated/dataModel';
 
 interface UnassignPickerSheetProps {
@@ -32,6 +33,7 @@ function UnassignPickerSheet({
   const t = useT();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
+  const { alert } = useCustomAlert();
 
   const contactsOnSelected = contacts.filter((c) =>
     c.items.some((itemId) => selectedItemIds.has(itemId))
@@ -94,7 +96,7 @@ function UnassignPickerSheet({
           <View className="border-t border-border/30 px-7 pb-2 pt-3">
             <Pressable
               onPress={() => {
-                Alert.alert(
+                alert(
                   t.bill_confirmRemoval,
                   t.bill_removeMultipleConfirm(selectedContactIds.size),
                   [

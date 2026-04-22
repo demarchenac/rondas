@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image as RNImage, Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image as RNImage, Linking, Pressable, ScrollView, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import * as Contacts from 'expo-contacts';
 import * as Haptics from 'expo-haptics';
+import { randomUUID } from 'expo-crypto';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useQuery, useMutation } from 'convex/react';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -24,6 +25,7 @@ import { computeBase, computeTax, getTaxConfig } from '@/constants/taxes';
 import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel } from '@/lib/billHelpers';
 import { buildWhatsAppMessage } from '@/lib/whatsapp';
 
+import { useCustomAlert } from '@/components/ui/custom-alert';
 import BillHeader from '@/components/bills/detail/BillHeader';
 import BillMetadata from '@/components/bills/detail/BillMetadata';
 import SortBar from '@/components/bills/detail/SortBar';
@@ -51,6 +53,7 @@ export default function BillDetailScreen() {
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const t = useT();
   const { user } = useAuth();
+  const { alert } = useCustomAlert();
   const userId = user?.id;
 
   const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
@@ -96,6 +99,15 @@ export default function BillDetailScreen() {
   const shouldAnimate = useRef(true);
   const contactsCacheRef = useRef<{ data: (Contacts.Contact & { id: string })[]; fetchedAt: number } | null>(null);
   const contactsPermissionRef = useRef(false);
+
+  const excludePhones = useMemo(() => {
+    if (!singleAssignItemId || !bill) return undefined;
+    const phones = new Set<string>();
+    for (const c of bill.contacts) {
+      if (c.items.includes(singleAssignItemId) && c.phone) phones.add(c.phone);
+    }
+    return phones.size > 0 ? phones : undefined;
+  }, [singleAssignItemId, bill]);
 
   // --- Callbacks ---
 
@@ -146,12 +158,12 @@ export default function BillDetailScreen() {
     if (contactsPermissionRef.current) return true;
     const { status } = await Contacts.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(t.bill_permissionNeeded, t.bill_permissionContacts);
+      alert(t.bill_permissionNeeded, t.bill_permissionContacts);
       return false;
     }
     contactsPermissionRef.current = true;
     return true;
-  }, [t]);
+  }, [t, alert]);
 
   const loadContacts = useCallback(() => {
     // Use cache if fresh
@@ -244,13 +256,13 @@ export default function BillDetailScreen() {
     } catch (err) {
       console.error('[Bill] assignContactToItems failed:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t.error, t.error_mutationFailed);
+      alert(t.error, t.error_mutationFailed);
     }
-  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, suggestedContacts, bill, id, assignContactToItems, t, userId]);
+  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, suggestedContacts, bill, id, assignContactToItems, t, userId, alert]);
 
   const handleBulkDelete = useCallback(() => {
     if (selectedItemIds.size === 0 || !bill || !userId) return;
-    Alert.alert(
+    alert(
       t.bill_deleteItems,
       t.bill_deleteItemsConfirm(selectedItemIds.size),
       [
@@ -267,19 +279,35 @@ export default function BillDetailScreen() {
         },
       ]
     );
-  }, [selectedItemIds, bill, id, updateBill, t, userId]);
+  }, [selectedItemIds, bill, id, updateBill, t, userId, alert]);
+
+  const handleAddItem = useCallback(async () => {
+    if (!bill || !userId) return;
+    if (multiSelectMode) {
+      setMultiSelectMode(false);
+      setSelectedItemIds(new Set());
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newItem = { id: randomUUID(), name: '', quantity: 1, unitPrice: 0, subtotal: 0 };
+    try {
+      await updateBill({ id: id as Id<'bills'>, userId, items: [...bill.items, newItem] });
+      setEditingItemId(newItem.id);
+    } catch {
+      alert(t.error, t.error_mutationFailed);
+    }
+  }, [bill, userId, id, updateBill, multiSelectMode, t, alert]);
 
   const handleBulkRemoveContact = useCallback(() => {
     if (selectedItemIds.size === 0 || !bill || !userId) return;
     const selectedIds = Array.from(selectedItemIds);
     const contactsOnSelected = bill.contacts.filter((c) => c.items.some((itemId) => selectedIds.includes(itemId)));
     if (contactsOnSelected.length === 0) {
-      Alert.alert(t.bill_noContacts, t.bill_noContactsOnItems);
+      alert(t.bill_noContacts, t.bill_noContactsOnItems);
       return;
     }
     if (contactsOnSelected.length === 1) {
       const c = contactsOnSelected[0];
-      Alert.alert(t.bill_removeContact, t.bill_removeFromSelected(c.name), [
+      alert(t.bill_removeContact, t.bill_removeFromSelected(c.name), [
         { text: t.cancel, style: 'cancel' },
         {
           text: t.remove,
@@ -297,7 +325,7 @@ export default function BillDetailScreen() {
             } catch (err) {
               console.error('[Bill] removeContactsBatch failed:', err);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert(t.error, t.error_mutationFailed);
+              alert(t.error, t.error_mutationFailed);
             }
           },
         },
@@ -306,7 +334,7 @@ export default function BillDetailScreen() {
       setSelectedContactIds(new Set());
       setActiveDialog('unassignPicker');
     }
-  }, [selectedItemIds, bill, id, removeContactsBatch, t, userId]);
+  }, [selectedItemIds, bill, id, removeContactsBatch, t, userId, alert]);
 
   const handleConfirmUnassign = useCallback(async () => {
     if (selectedContactIds.size === 0 || !bill || !userId) return;
@@ -323,9 +351,9 @@ export default function BillDetailScreen() {
     } catch (err) {
       console.error('[Bill] removeContactsBatch failed:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t.error, t.error_mutationFailed);
+      alert(t.error, t.error_mutationFailed);
     }
-  }, [selectedContactIds, selectedItemIds, bill, id, removeContactsBatch, t, userId]);
+  }, [selectedContactIds, selectedItemIds, bill, id, removeContactsBatch, t, userId, alert]);
 
   const handleAssignContact = useCallback(async (itemId: string) => {
     const granted = await ensureContactPermission();
@@ -353,7 +381,7 @@ export default function BillDetailScreen() {
 
   const handleRemoveContact = useCallback((itemId: string, contactId: Id<'contacts'>) => {
     if (!userId) return;
-    Alert.alert(t.bill_removeContact, t.bill_removeContactConfirm, [
+    alert(t.bill_removeContact, t.bill_removeContactConfirm, [
       { text: t.cancel, style: 'cancel' },
       {
         text: t.remove,
@@ -365,12 +393,12 @@ export default function BillDetailScreen() {
             } catch (err) {
               console.error('[Bill] removeContact failed:', err);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert(t.error, t.error_mutationFailed);
+              alert(t.error, t.error_mutationFailed);
             }
           },
       },
     ]);
-  }, [id, removeContact, t, userId]);
+  }, [id, removeContact, t, userId, alert]);
 
   const handleTogglePaid = useCallback(async (contactId: Id<'contacts'>) => {
     if (!userId) return;
@@ -380,14 +408,14 @@ export default function BillDetailScreen() {
     } catch (err) {
       console.error('[Bill] togglePaid failed:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t.error, t.error_mutationFailed);
+      alert(t.error, t.error_mutationFailed);
     }
-  }, [id, togglePaid, t, userId]);
+  }, [id, togglePaid, t, userId, alert]);
 
   const handleSplitEqually = useCallback(() => {
     if (!bill || !userId) return;
     if (bill.contacts.length > 0) {
-      Alert.alert(t.bill_equalSwitchTitle, t.bill_equalSwitchWarning, [
+      alert(t.bill_equalSwitchTitle, t.bill_equalSwitchWarning, [
         { text: t.cancel, style: 'cancel' },
         {
           text: t.confirm,
@@ -396,8 +424,8 @@ export default function BillDetailScreen() {
               await clearSplit({ id: id as Id<'bills'>, userId });
               setEqualSplitMode(true);
               setNumPeople(2);
-            } catch (_err) {
-              Alert.alert(t.error, t.error_mutationFailed);
+            } catch {
+              alert(t.error, t.error_mutationFailed);
             }
           },
         },
@@ -406,12 +434,12 @@ export default function BillDetailScreen() {
       setEqualSplitMode(true);
       setNumPeople(bill.numPeople ?? 2);
     }
-  }, [bill, id, userId, clearSplit, t]);
+  }, [bill, id, userId, clearSplit, t, alert]);
 
   const handleSplitByItem = useCallback(() => {
     if (!bill || !userId) return;
     if (bill.contacts.length > 0) {
-      Alert.alert(t.bill_equalSwitchTitle, t.bill_equalSwitchWarning, [
+      alert(t.bill_equalSwitchTitle, t.bill_equalSwitchWarning, [
         { text: t.cancel, style: 'cancel' },
         {
           text: t.confirm,
@@ -419,8 +447,8 @@ export default function BillDetailScreen() {
             try {
               await clearSplit({ id: id as Id<'bills'>, userId });
               setEqualSplitMode(false);
-            } catch (_err) {
-              Alert.alert(t.error, t.error_mutationFailed);
+            } catch {
+              alert(t.error, t.error_mutationFailed);
             }
           },
         },
@@ -428,7 +456,7 @@ export default function BillDetailScreen() {
     } else {
       setEqualSplitMode(false);
     }
-  }, [bill, id, userId, clearSplit, t]);
+  }, [bill, id, userId, clearSplit, t, alert]);
 
   const handleEqualAssignContacts = useCallback(async () => {
     const granted = await ensureContactPermission();
@@ -458,9 +486,9 @@ export default function BillDetailScreen() {
     } catch (err) {
       console.error('[Bill] assignEqualSplit failed:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t.error, t.error_mutationFailed);
+      alert(t.error, t.error_mutationFailed);
     }
-  }, [bill, id, userId, numPeople, assignEqualSplit, t]);
+  }, [bill, id, userId, numPeople, assignEqualSplit, t, alert]);
 
   // Equal split: handle contact picker confirm (different from by-item flow)
   const handleConfirmEqualContactPicker = useCallback(async () => {
@@ -508,24 +536,24 @@ export default function BillDetailScreen() {
     } catch (err) {
       console.error('[Bill] assignEqualSplit failed:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t.error, t.error_mutationFailed);
+      alert(t.error, t.error_mutationFailed);
     }
-  }, [selectedContactIds, bill, userId, suggestedContacts, phoneContacts, id, numPeople, assignEqualSplit, t]);
+  }, [selectedContactIds, bill, userId, suggestedContacts, phoneContacts, id, numPeople, assignEqualSplit, t, alert]);
 
   const handleSendWhatsApp = useCallback(async (contact: { name: string; phone?: string; items: string[]; amount: number }) => {
     if (!bill || !contact.phone) {
-      Alert.alert(t.bill_noPhone, t.bill_noPhoneMessage);
+      alert(t.bill_noPhone, t.bill_noPhoneMessage);
       return;
     }
     const message = buildWhatsAppMessage({ bill, contact, t });
     const url = `https://wa.me/${toE164(contact.phone)}?text=${encodeURIComponent(message)}`;
     const canOpen = await Linking.canOpenURL(url);
     if (!canOpen) {
-      Alert.alert(t.error, t.error_whatsappNotAvailable);
+      alert(t.error, t.error_whatsappNotAvailable);
       return;
     }
     Linking.openURL(url);
-  }, [bill, t]);
+  }, [bill, t, alert]);
 
   const handleShareInfographic = useCallback(async (contact: { name: string; imageUri?: string; items: string[]; amount: number }, contactIndex: number) => {
     if (!bill) return;
@@ -543,11 +571,11 @@ export default function BillDetailScreen() {
     } catch (err) {
       console.error('[Share] Error:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t.error, t.error_shareFailed);
+      alert(t.error, t.error_shareFailed);
     } finally {
       setCapturingIndex(null);
     }
-  }, [bill, t]);
+  }, [bill, t, alert]);
 
   const handleConfirmShare = useCallback(async () => {
     if (!previewUri) return;
@@ -556,9 +584,9 @@ export default function BillDetailScreen() {
     } catch (err) {
       console.error('[Share] Error:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t.error, t.error_shareFailed);
+      alert(t.error, t.error_shareFailed);
     }
-  }, [previewUri, previewContactName, t]);
+  }, [previewUri, previewContactName, t, alert]);
 
   const handleClosePreview = useCallback(() => {
     setPreviewUri(null);
@@ -631,11 +659,23 @@ export default function BillDetailScreen() {
 
   // Progress bar computation
   const totalItems = bill.items.length;
-  const assignedItemIds = new Set(bill.contacts.flatMap((c) => c.items));
-  const assignedPercent = totalItems > 0 ? (assignedItemIds.size / totalItems) * 100 : 0;
-  const paidContacts = bill.contacts.filter((c) => c.paid).length;
   const totalContacts = bill.contacts.length;
-  const paidOfAssigned = totalContacts > 0 ? (paidContacts / totalContacts) * assignedPercent : 0;
+  const isEqualSplit = bill.splitStrategy === 'equal';
+
+  let assignedPercent: number;
+  let paidOfAssigned: number;
+
+  if (isEqualSplit) {
+    assignedPercent = totalContacts > 0 ? 100 : 0;
+    const paidAmount = bill.contacts.filter((c) => c.paid).reduce((sum, c) => sum + c.amount, 0);
+    paidOfAssigned = bill.total > 0 ? (paidAmount / bill.total) * 100 : 0;
+  } else {
+    const assignedItemIds = new Set(bill.contacts.flatMap((c) => c.items));
+    assignedPercent = totalItems > 0 ? (assignedItemIds.size / totalItems) * 100 : 0;
+    const paidContacts = bill.contacts.filter((c) => c.paid).length;
+    paidOfAssigned = totalContacts > 0 ? (paidContacts / totalContacts) * assignedPercent : 0;
+  }
+
   const unpaidOfAssigned = assignedPercent - paidOfAssigned;
 
   const animate = shouldAnimate.current;
@@ -657,12 +697,23 @@ export default function BillDetailScreen() {
           stateTextClass={stateStyle.textClass}
           hasContacts={totalContacts > 0}
           splitStrategy={equalSplitMode ? 'equal' : bill.splitStrategy}
+          multiSelectMode={multiSelectMode}
           iconColors={iconColors}
           t={t}
           onBack={() => router.back()}
           onUpdateName={(name) => updateBill({ id: id as Id<'bills'>, userId, name })}
           onSplitEqually={handleSplitEqually}
           onSplitByItem={handleSplitByItem}
+          onEdit={() => {
+            setMultiSelectMode(true);
+            setSelectedItemIds(new Set());
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }}
+          onDoneEdit={() => {
+            setMultiSelectMode(false);
+            setSelectedItemIds(new Set());
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }}
           onDelete={async () => {
             try {
               await removeBill({ id: id as Id<'bills'>, userId: userId! });
@@ -671,7 +722,7 @@ export default function BillDetailScreen() {
             } catch (err) {
               console.error('[Bill] removeBill failed:', err);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert(t.error, t.error_mutationFailed);
+              alert(t.error, t.error_mutationFailed);
             }
           }}
         />
@@ -827,7 +878,7 @@ export default function BillDetailScreen() {
               } catch (err) {
                 console.error('[Bill] confirm draft failed:', err);
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                Alert.alert(t.error, t.error_mutationFailed);
+                alert(t.error, t.error_mutationFailed);
               }
             }}
             className="items-center rounded-xl bg-primary py-4 active:opacity-80"
@@ -836,6 +887,19 @@ export default function BillDetailScreen() {
               <IconSymbol name="checkmark" size={18} color={iconColors.primaryForeground} />
               <Text className="text-base font-semibold text-primary-foreground">{t.bill_confirmItems}</Text>
             </View>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Add Item button */}
+      {!equalSplitMode && (
+        <View className="border-t border-border/30 px-7 py-2">
+          <Pressable
+            onPress={handleAddItem}
+            className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3 active:opacity-80"
+          >
+            <IconSymbol name="plus" size={14} color={iconColors.primary} />
+            <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
           </Pressable>
         </View>
       )}
@@ -878,6 +942,7 @@ export default function BillDetailScreen() {
         phoneContacts={phoneContacts}
         suggestedContacts={suggestedContacts ?? undefined}
         selectedContactIds={selectedContactIds}
+        excludePhones={excludePhones}
         bottomInset={insets.bottom}
         onToggleContact={handleToggleContactSelection}
         onConfirm={equalSplitMode ? handleConfirmEqualContactPicker : handleConfirmContactPicker}

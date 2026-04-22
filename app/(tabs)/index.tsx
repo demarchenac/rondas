@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +23,7 @@ import { defaultFilters } from '@/lib/filters';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Image } from '@/lib/expo-image';
 import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
@@ -36,6 +37,7 @@ import FilterChip from '@/components/bills/FilterChip';
 import FilterSheet from '@/components/bills/FilterSheet';
 import { useBillFilters } from '@/hooks/useBillFilters';
 import { useContactSync } from '@/hooks/useContactSync';
+import { useCustomAlert } from '@/components/ui/custom-alert';
 
 type Bill = ResolvedBill;
 
@@ -47,6 +49,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const t = useT();
   useContactSync(user?.id);
+  const { alert, actionSheet } = useCustomAlert();
 
   const {
     activeFilters,
@@ -97,9 +100,9 @@ export default function HomeScreen() {
         return;
       }
       if (__DEV__) console.warn('[Home] createBlankBill error:', msg);
-      Alert.alert(t.error, msg || t.error_mutationFailed);
+      alert(t.error, msg || t.error_mutationFailed);
     }
-  }, [user, createBill, isPro, router, showPaywall, t]);
+  }, [user, createBill, isPro, router, showPaywall, t, alert]);
 
   const gateScanOrRun = useCallback(
     (fn: () => void) => {
@@ -116,7 +119,7 @@ export default function HomeScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(t.home_permissionNeeded, t.home_permissionCamera);
+      alert(t.home_permissionNeeded, t.home_permissionCamera);
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -132,13 +135,13 @@ export default function HomeScreen() {
       if (useLocationSetting) params.resolveLocation = 'device';
       router.push({ pathname: '/bills/new', params } as Href);
     }
-  }, [router, extractPhotoTime, useLocationSetting, t]);
+  }, [router, extractPhotoTime, useLocationSetting, t, alert]);
 
   const pickFromLibrary = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(t.home_permissionNeeded, t.home_permissionLibrary);
+      alert(t.home_permissionNeeded, t.home_permissionLibrary);
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -162,37 +165,26 @@ export default function HomeScreen() {
       }
       router.push({ pathname: '/bills/new', params } as Href);
     }
-  }, [router, extractPhotoTime, t]);
+  }, [router, extractPhotoTime, t, alert]);
 
   const handleAddPress = useCallback(() => {
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: [t.cancel, t.home_takePhoto, t.home_chooseLibrary, t.gate_manualEntry],
-          cancelButtonIndex: 0,
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) gateScanOrRun(pickFromCamera);
-          if (buttonIndex === 2) gateScanOrRun(pickFromLibrary);
-          if (buttonIndex === 3) createBlankBill();
-        },
-      );
-    } else {
-      Alert.alert(t.home_addBill, t.home_addBillHow, [
-        { text: t.cancel, style: 'cancel' },
-        { text: t.home_takePhoto, onPress: () => gateScanOrRun(pickFromCamera) },
-        { text: t.home_chooseLibrary, onPress: () => gateScanOrRun(pickFromLibrary) },
-        { text: t.gate_manualEntry, onPress: createBlankBill },
-      ]);
-    }
-  }, [pickFromCamera, pickFromLibrary, createBlankBill, gateScanOrRun, t]);
+    actionSheet({
+      options: [t.cancel, t.home_takePhoto, t.home_chooseLibrary, t.gate_manualEntry],
+      cancelButtonIndex: 0,
+      onSelect: (buttonIndex) => {
+        if (buttonIndex === 1) gateScanOrRun(pickFromCamera);
+        if (buttonIndex === 2) gateScanOrRun(pickFromLibrary);
+        if (buttonIndex === 3) createBlankBill();
+      },
+    });
+  }, [pickFromCamera, pickFromLibrary, createBlankBill, gateScanOrRun, t, actionSheet]);
 
   // Track animated IDs to prevent re-animation on FlashList recycle
   const animatedIds = useRef(new Set<string>());
 
   const handleDeleteBill = useCallback((billId: Id<'bills'>) => {
     if (!user) return;
-    Alert.alert(t.home_deleteBill, t.home_deleteConfirm, [
+    alert(t.home_deleteBill, t.home_deleteConfirm, [
       { text: t.cancel, style: 'cancel' },
       {
         text: t.delete,
@@ -204,12 +196,12 @@ export default function HomeScreen() {
           } catch (err) {
             console.error('[Home] removeBill failed:', err);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert(t.error, t.error_mutationFailed);
+            alert(t.error, t.error_mutationFailed);
           }
         },
       },
     ]);
-  }, [removeBill, t, user]);
+  }, [removeBill, t, user, alert]);
 
   const firstName = user?.firstName ?? user?.email?.split('@')[0] ?? 'there';
   const hasNonDefaultFilters = nonDefaultFilterCount > 0;
@@ -310,11 +302,15 @@ export default function HomeScreen() {
                 onPress={() => router.push('/(tabs)/settings' as Href)}
                 className="relative"
               >
-                <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <Text className="text-base font-bold text-primary">
-                    {(user.firstName?.[0] ?? user.email?.[0] ?? '?').toUpperCase()}
-                  </Text>
-                </View>
+                {user.profilePictureUrl ? (
+                  <Image source={{ uri: user.profilePictureUrl }} className="h-10 w-10 rounded-full" />
+                ) : (
+                  <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <Text className="text-base font-bold text-primary">
+                      {(user.firstName?.[0] ?? user.email?.[0] ?? '?').toUpperCase()}
+                    </Text>
+                  </View>
+                )}
                 {isPro && (
                   <View className="absolute bottom-0 right-0 h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-pro">
                     <IconSymbol name="crown.fill" size={10} color="#fff" />
@@ -413,9 +409,15 @@ export default function HomeScreen() {
           <Text className="mt-1.5 text-center text-sm text-muted-foreground">
             {t.home_noBillsHint}
           </Text>
-          <Text className="mt-3 text-center text-xs text-muted-foreground">
-            {t.home_addFirstBill}
-          </Text>
+          <Pressable
+            onPress={handleAddPress}
+            className="mt-5 flex-row items-center gap-2 rounded-full bg-primary px-5 py-2.5 active:opacity-80"
+          >
+            <IconSymbol name="plus" size={16} color={iconColors.primaryForeground} />
+            <Text className="text-sm font-semibold text-primary-foreground">
+              {t.home_addFirstBill}
+            </Text>
+          </Pressable>
         </View>
       ) : (
         <FlashList<Bill>

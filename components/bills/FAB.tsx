@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -19,6 +19,7 @@ import { IMAGE_QUALITY } from '@/constants/media';
 import { useProGate } from '@/hooks/useProGate';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
+import { useCustomAlert } from '@/components/ui/custom-alert';
 
 interface FABProps {
   bottom: number;
@@ -33,6 +34,7 @@ function FAB({ bottom }: FABProps) {
   const { unlocked, isPro, showPaywall } = useProGate();
   const { user } = useAuth();
   const createBill = useMutation(api.bills.create);
+  const { alert, actionSheet } = useCustomAlert();
 
   const createBlankBill = useCallback(async () => {
     if (!user) return;
@@ -52,9 +54,9 @@ function FAB({ bottom }: FABProps) {
         return;
       }
       if (__DEV__) console.warn('[FAB] createBlankBill error:', msg);
-      Alert.alert(t.error, msg || t.error_mutationFailed);
+      alert(t.error, msg || t.error_mutationFailed);
     }
-  }, [user, createBill, isPro, router, showPaywall, t]);
+  }, [user, createBill, isPro, router, showPaywall, t, alert]);
 
   const gateScanOrRun = useCallback(
     (fn: () => void) => {
@@ -71,7 +73,7 @@ function FAB({ bottom }: FABProps) {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(t.home_permissionNeeded, t.home_permissionCamera);
+      alert(t.home_permissionNeeded, t.home_permissionCamera);
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -87,13 +89,13 @@ function FAB({ bottom }: FABProps) {
       if (useLocationSetting) params.resolveLocation = 'device';
       router.push({ pathname: '/bills/new', params } as Href);
     }
-  }, [router, extractPhotoTime, useLocationSetting, t]);
+  }, [router, extractPhotoTime, useLocationSetting, t, alert]);
 
   const pickFromLibrary = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(t.home_permissionNeeded, t.home_permissionLibrary);
+      alert(t.home_permissionNeeded, t.home_permissionLibrary);
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -117,30 +119,19 @@ function FAB({ bottom }: FABProps) {
       }
       router.push({ pathname: '/bills/new', params } as Href);
     }
-  }, [router, extractPhotoTime, t]);
+  }, [router, extractPhotoTime, t, alert]);
 
   const handlePress = useCallback(() => {
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: [t.cancel, t.home_takePhoto, t.home_chooseLibrary, t.gate_manualEntry],
-          cancelButtonIndex: 0,
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) gateScanOrRun(pickFromCamera);
-          if (buttonIndex === 2) gateScanOrRun(pickFromLibrary);
-          if (buttonIndex === 3) createBlankBill();
-        },
-      );
-    } else {
-      Alert.alert(t.home_addBill, t.home_addBillHow, [
-        { text: t.cancel, style: 'cancel' },
-        { text: t.home_takePhoto, onPress: () => gateScanOrRun(pickFromCamera) },
-        { text: t.home_chooseLibrary, onPress: () => gateScanOrRun(pickFromLibrary) },
-        { text: t.gate_manualEntry, onPress: createBlankBill },
-      ]);
-    }
-  }, [pickFromCamera, pickFromLibrary, createBlankBill, gateScanOrRun, t]);
+    actionSheet({
+      options: [t.cancel, t.home_takePhoto, t.home_chooseLibrary, t.gate_manualEntry],
+      cancelButtonIndex: 0,
+      onSelect: (buttonIndex) => {
+        if (buttonIndex === 1) gateScanOrRun(pickFromCamera);
+        if (buttonIndex === 2) gateScanOrRun(pickFromLibrary);
+        if (buttonIndex === 3) createBlankBill();
+      },
+    });
+  }, [pickFromCamera, pickFromLibrary, createBlankBill, gateScanOrRun, actionSheet, t]);
 
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({

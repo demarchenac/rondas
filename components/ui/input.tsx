@@ -1,5 +1,5 @@
 import { cn } from '@/lib/cn';
-import { TextInput, type TextInputProps } from 'react-native';
+import { Platform, TextInput, type TextInputProps } from 'react-native';
 
 function Input({
   className,
@@ -14,6 +14,9 @@ function Input({
         className
       )}
       placeholderClassName={cn('text-muted-foreground', placeholderClassName)}
+      {...(Platform.OS === 'android' && {
+        style: [{ includeFontPadding: false, textAlignVertical: 'center' }, props.style],
+      })}
       {...props}
     />
   );

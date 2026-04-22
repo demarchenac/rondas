@@ -17,6 +17,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { CustomAlertProvider } from '@/components/ui/custom-alert';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { useSubscriptionSync } from '@/hooks/useSubscriptionSync';
 import * as Sentry from '@sentry/react-native';
@@ -74,7 +75,9 @@ export default Sentry.wrap(function RootLayout() {
         <OfflineBanner />
         <KeyboardProvider>
           <AuthProvider>
-            <RootLayoutNav />
+            <CustomAlertProvider>
+              <RootLayoutNav />
+            </CustomAlertProvider>
           </AuthProvider>
         </KeyboardProvider>
       </ErrorBoundary>

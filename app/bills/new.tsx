@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   View,
 } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated from 'react-native-reanimated';
 import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-router';
@@ -38,6 +38,7 @@ import SwipeableItem from '@/components/bills/SwipeableItem';
 import KeyboardDoneButton from '@/components/bills/KeyboardDoneButton';
 import ScanningOverlay from '@/components/bills/ScanningOverlay';
 import { useProGate } from '@/hooks/useProGate';
+import { useCustomAlert } from '@/components/ui/custom-alert';
 
 interface BillItem {
   id: string;
@@ -91,6 +92,7 @@ export default function NewBillScreen() {
   const deleteScan = useMutation(api.scans.deleteScan);
   const createBill = useMutation(api.bills.create);
   const { isPro } = useProGate();
+  const { alert } = useCustomAlert();
   const [scanId, setScanId] = useState<Id<'scans'> | null>(null);
   const scanProgress = useQuery(
     api.scans.getScan,
@@ -155,7 +157,7 @@ export default function NewBillScreen() {
     } : {}),
   };
 
-  type ScanErrorType = 'timeout' | 'api' | 'generic';
+  type ScanErrorType = 'timeout' | 'api' | 'not_a_receipt' | 'generic';
   interface ScanError { type: ScanErrorType; message: string; hint: string; }
 
   type ScanPhase = 'uploading' | 'analyzing' | 'thinking' | 'extracting' | 'complete';
@@ -174,7 +176,7 @@ export default function NewBillScreen() {
     if (!bill) return;
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
       e.preventDefault();
-      Alert.alert(
+      alert(
         t.scan_discardTitle,
         t.scan_discardMessage,
         [
@@ -188,7 +190,7 @@ export default function NewBillScreen() {
       );
     });
     return unsubscribe;
-  }, [navigation, bill, t]);
+  }, [navigation, bill, t, alert]);
 
   const handleItemPress = useCallback((index: number) => {
     // Don't open edit mode if a swipe just happened
@@ -282,13 +284,25 @@ export default function NewBillScreen() {
       console.error('[Scan] Error:', err);
       const msg = String(err).toLowerCase();
       let classified: ScanError;
-      if (msg.includes('timeout') || msg.includes('timed out')) {
+      if (msg.includes('not_a_receipt')) {
+        classified = { type: 'not_a_receipt', message: t.error_notReceipt, hint: t.error_hintNotReceipt };
+      } else if (msg.includes('timeout') || msg.includes('timed out')) {
         classified = { type: 'timeout', message: t.error_timeout, hint: t.error_hintTimeout };
-      } else if (msg.includes('429') || msg.includes('500') || msg.includes('503') || msg.includes('rate limit')) {
+      } else if (msg.includes('429') || msg.includes('rate limit')) {
+        classified = { type: 'api', message: t.error_rateLimited, hint: t.error_hintRateLimited };
+      } else if (msg.includes('403')) {
+        classified = { type: 'api', message: t.error_serviceUnavailable, hint: t.error_hintServiceUnavailable };
+      } else if (msg.includes('500') || msg.includes('503')) {
         classified = { type: 'api', message: t.error_api, hint: t.error_hintApi };
+      } else if (msg.includes('failed to parse')) {
+        classified = { type: 'generic', message: t.error_parseError, hint: t.error_hintParseError };
       } else {
         classified = { type: 'generic', message: t.error_scanGeneric, hint: t.error_hintScan };
       }
+      Sentry.captureException(err, {
+        tags: { feature: 'bill_scan', errorType: classified.type },
+        extra: { scanId, attempts: scanAttempts.current + 1 },
+      });
       scanAttempts.current += 1;
       setError(classified);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -359,7 +373,7 @@ export default function NewBillScreen() {
       router.replace('/(tabs)' as Href);
     } catch (err) {
       console.error('[Save] Error:', err);
-      Alert.alert(t.error, t.scan_saveError);
+      alert(t.error, t.scan_saveError);
     } finally {
       setSaving(false);
     }
@@ -409,7 +423,7 @@ export default function NewBillScreen() {
             {error && (
               <View className="mb-4 overflow-hidden rounded-[14px]">
                 <BlurView intensity={80} tint="dark" className="px-4 py-3" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-                  <Pressable onPress={handleScan}>
+                  <Pressable onPress={error.type === 'not_a_receipt' ? () => router.back() : handleScan}>
                     <View className="flex-row items-center justify-center gap-2">
                       <IconSymbol
                         name={error.type === 'timeout' ? 'wifi.slash' : 'exclamationmark.triangle'}
@@ -424,7 +438,7 @@ export default function NewBillScreen() {
                       {error.hint}
                     </Text>
                     <Text className="mt-1.5 text-center text-xs font-semibold text-primary">
-                      {t.scan_tapRetry}
+                      {error.type === 'not_a_receipt' ? t.scan_tapGoBack : t.scan_tapRetry}
                     </Text>
                   </Pressable>
                   {scanAttempts.current >= 2 && (

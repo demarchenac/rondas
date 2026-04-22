@@ -1,11 +1,11 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Image } from '@/lib/expo-image';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import Avatar from '@/components/ui/avatar';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -119,15 +119,7 @@ function EqualSplitView({
           <View className="gap-2">
             {contacts.map((contact, i) => (
               <View key={String(contact.contactId)} className="flex-row items-center gap-3">
-                {contact.imageUri ? (
-                  <Image source={{ uri: contact.imageUri }} className="h-8 w-8 rounded-full" />
-                ) : (
-                  <View className="h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                    <Text className="text-sm font-bold" style={{ color: iconColors.primary }}>
-                      {contact.name[0]?.toUpperCase() ?? '?'}
-                    </Text>
-                  </View>
-                )}
+                <Avatar name={contact.name} imageUri={contact.imageUri} size="md" />
                 <Text className="flex-1 text-sm font-medium text-foreground" numberOfLines={1}>
                   {contact.name}
                 </Text>
@@ -156,16 +148,18 @@ function EqualSplitView({
 
       {/* Actions */}
       <Animated.View entering={FadeInDown.delay(300).duration(400)} className="gap-2">
-        <Button variant="outline" onPress={onAssignContacts}>
-          <View className="flex-row items-center gap-2">
-            <IconSymbol name="person.badge.plus" size={16} color={iconColors.primary} />
-            <Text className="text-sm font-semibold text-primary">
-              {contacts.length > 0
-                ? t.contactPicker_assign(numPeople - contacts.length)
-                : t.contactPicker_title}
-            </Text>
-          </View>
-        </Button>
+        {contacts.length < numPeople && (
+          <Button variant="outline" onPress={onAssignContacts}>
+            <View className="flex-row items-center gap-2">
+              <IconSymbol name="person.badge.plus" size={16} color={iconColors.primary} />
+              <Text className="text-sm font-semibold text-primary">
+                {contacts.length > 0
+                  ? t.contactPicker_assign(numPeople - contacts.length)
+                  : t.contactPicker_title}
+              </Text>
+            </View>
+          </Button>
+        )}
         {contacts.length > 0 && (
           <Button onPress={onConfirm}>
             <Text className="text-sm font-bold text-primary-foreground">{t.bill_equalConfirm}</Text>

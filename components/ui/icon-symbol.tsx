@@ -56,6 +56,18 @@ const MAPPING = {
   'wifi.slash': 'wifi-off',
   'exclamationmark.triangle': 'warning',
   'trash': 'delete',
+  'checkmark': 'check',
+  'doc.text.viewfinder': 'document-scanner',
+  'arrow.counterclockwise': 'refresh',
+  'person.2.fill': 'group',
+  'ellipsis': 'more-horiz',
+  'arrow.up.arrow.down': 'swap-vert',
+  'pencil.line': 'edit',
+  'minus.circle.fill': 'remove-circle',
+  'plus.circle.fill': 'add-circle',
+  'person.badge.plus': 'person-add',
+  'mappin': 'place',
+  'clock': 'schedule',
 } as IconMapping;
 
 /**

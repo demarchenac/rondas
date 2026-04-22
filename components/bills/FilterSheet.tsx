@@ -172,17 +172,20 @@ function FilterSheet({
             </View>
             <View className="flex-row gap-2">
               <FilterChip
-                label="🇨🇴 Colombia"
+                label="Colombia"
+                icon={<Text className="text-sm">🇨🇴</Text>}
                 isActive={draft.country === 'CO'}
                 onPress={() => setDraft((f) => ({ ...f, country: 'CO' }))}
               />
               <FilterChip
-                label="🇺🇸 USA"
+                label="USA"
+                icon={<Text className="text-sm">🇺🇸</Text>}
                 isActive={draft.country === 'US'}
                 onPress={() => setDraft((f) => ({ ...f, country: 'US' }))}
               />
               <FilterChip
-                label={`🌐 ${t.filter_international}`}
+                label={t.filter_international}
+                icon={<Text className="text-sm">🌐</Text>}
                 isActive={draft.country === 'all'}
                 onPress={() => setDraft((f) => ({ ...f, country: 'all' }))}
               />

@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { Image } from '@/lib/expo-image';
 import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import Avatar from '@/components/ui/avatar';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import { computeContactTotal } from '@/lib/billSplit';
@@ -113,15 +113,7 @@ function PeopleSummary({
           >
             {/* Row 1: Avatar + Name + Paid icon */}
             <View className="flex-row items-center gap-2">
-              {c.imageUri ? (
-                <Image source={{ uri: c.imageUri }} className="h-6 w-6 rounded-full" />
-              ) : (
-                <View className="h-6 w-6 items-center justify-center rounded-full bg-primary/10">
-                  <Text className="text-[10px] font-bold text-primary">
-                    {(c.name[0] ?? '?').toUpperCase()}
-                  </Text>
-                </View>
-              )}
+              <Avatar name={c.name} imageUri={c.imageUri} size="sm" />
               <Text className="flex-1 text-xs font-semibold text-foreground" numberOfLines={1}>
                 {c.name}
               </Text>

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, View, Platform } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Switch, View, Platform } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -8,6 +8,7 @@ import { useRouter, type Href } from 'expo-router';
 
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Image } from '@/lib/expo-image';
 import { SegmentedControl, SettingsRow, SettingsSection } from '@/components/settings';
 import { TipSelector } from '@/components/TipSelector';
 import USStatePicker from '@/components/settings/USStatePicker';
@@ -23,6 +24,7 @@ import * as Updates from 'expo-updates';
 import { cn } from '@/lib/cn';
 import { useProGate } from '@/hooks/useProGate';
 import { presentCodeRedemptionSheet, presentCustomerCenter } from '@/lib/revenueCat';
+import { useCustomAlert } from '@/components/ui/custom-alert';
 
 function formatOtaDate(d: Date): string {
   const y = d.getFullYear();
@@ -53,6 +55,7 @@ export default function SettingsScreen() {
   const [promoCode, setPromoCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
   const [showPromoInput, setShowPromoInput] = useState(false);
+  const { alert } = useCustomAlert();
 
   const handleRedeemCode = useCallback(async () => {
     if (!user || !promoCode.trim()) return;
@@ -60,7 +63,7 @@ export default function SettingsScreen() {
     try {
       await redeemCode({ workosId: user.id, code: promoCode.trim() });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(t.promo_success);
+      alert(t.promo_success);
       setPromoCode('');
       setShowPromoInput(false);
     } catch (err: unknown) {
@@ -70,11 +73,11 @@ export default function SettingsScreen() {
       if (msg.includes('expired')) label = t.promo_expired;
       else if (msg.includes('max_uses')) label = t.promo_maxUses;
       else if (msg.includes('already_pro')) label = t.promo_alreadyPro;
-      Alert.alert(label);
+      alert(label);
     } finally {
       setRedeeming(false);
     }
-  }, [user, promoCode, redeemCode, t]);
+  }, [user, promoCode, redeemCode, t, alert]);
 
   const handleStoreRedeem = useCallback(async () => {
     if (Platform.OS !== 'ios') return;
@@ -104,7 +107,7 @@ export default function SettingsScreen() {
   }, [user, updateConfigMutation]);
 
   const handleSignOut = useCallback(() => {
-    Alert.alert(t.settings_signOut, t.settings_signOutConfirm, [
+    alert(t.settings_signOut, t.settings_signOutConfirm, [
       { text: t.cancel, style: 'cancel' },
       {
         text: t.settings_signOut,
@@ -115,7 +118,7 @@ export default function SettingsScreen() {
         },
       },
     ]);
-  }, [t, signOut]);
+  }, [t, signOut, alert]);
 
   const handleThemeChange = useCallback((newMode: ThemeMode) => {
     setMode(newMode);
@@ -150,12 +153,16 @@ export default function SettingsScreen() {
         {/* Profile Card */}
         <View className="items-center gap-3 rounded-2xl border border-border bg-card px-6 py-6">
           <View className="relative">
-            <View className="h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-              <Text className="text-3xl font-bold text-primary">
-                {user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?'}
-                {user?.lastName?.[0] ?? ''}
-              </Text>
-            </View>
+            {user?.profilePictureUrl ? (
+              <Image source={{ uri: user.profilePictureUrl }} className="h-20 w-20 rounded-full" />
+            ) : (
+              <View className="h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                <Text className="text-3xl font-bold text-primary">
+                  {user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?'}
+                  {user?.lastName?.[0] ?? ''}
+                </Text>
+              </View>
+            )}
             {isPro && (
               <View className="absolute bottom-0 right-0 h-6 w-6 items-center justify-center rounded-full border-2 border-card bg-pro">
                 <IconSymbol name="crown.fill" size={12} color="#fff" />

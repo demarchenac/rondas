@@ -18,6 +18,7 @@ interface BillHeaderProps {
   stateTextClass: string;
   hasContacts: boolean;
   splitStrategy?: string;
+  multiSelectMode: boolean;
   iconColors: Record<string, string>;
   t: Translations;
   onBack: () => void;
@@ -25,6 +26,8 @@ interface BillHeaderProps {
   onDelete: () => Promise<void>;
   onSplitEqually?: () => void;
   onSplitByItem?: () => void;
+  onEdit: () => void;
+  onDoneEdit: () => void;
 }
 
 function BillHeader({
@@ -37,6 +40,7 @@ function BillHeader({
   stateTextClass,
   hasContacts,
   splitStrategy,
+  multiSelectMode,
   iconColors,
   t,
   onBack,
@@ -44,12 +48,15 @@ function BillHeader({
   onDelete,
   onSplitEqually,
   onSplitByItem,
+  onEdit,
+  onDoneEdit,
 }: BillHeaderProps) {
   const nameInput = useBufferedInput(billName, onUpdateName);
 
   const handleOverflowPress = () => {
-    // Build dynamic options based on current state
     const options: { label: string; action: () => void; destructive?: boolean }[] = [];
+
+    options.push({ label: t.bill_edit, action: onEdit });
 
     if (state !== 'draft' && splitStrategy !== 'equal' && onSplitEqually) {
       options.push({ label: t.bill_splitEqual, action: onSplitEqually });
@@ -73,7 +80,6 @@ function BillHeader({
         },
       );
     } else {
-      // Android: use Alert with buttons (max 3 buttons)
       Alert.alert(
         '',
         undefined,
@@ -109,7 +115,7 @@ function BillHeader({
 
   return (
     <View className="px-7 pb-3 pt-3">
-      {/* Single row: Back + title + overflow + badge */}
+      {/* Single row: Back + title + overflow/done + badge */}
       <View className="flex-row items-center">
         <Pressable onPress={onBack} className="pr-2 active:opacity-80">
           <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
@@ -123,22 +129,31 @@ function BillHeader({
           style={{ padding: 0, margin: 0, lineHeight: 18, height: 22 }}
         />
         <View className="flex-row items-center gap-2 ml-2">
-          {hasContacts && (
+          {hasContacts && !multiSelectMode && (
             <Text className={`text-xs font-semibold ${stateTextClass}`}>
               {Math.round(completionPercent)}%
             </Text>
           )}
-          <AnimatedBadge variant={state} label={stateLabel} />
-          <Pressable
-            onPress={handleOverflowPress}
-            className="h-8 w-8 items-center justify-center rounded-full bg-muted/50 active:opacity-80"
-          >
-            <IconSymbol name="ellipsis" size={16} color={iconColors.muted} />
-          </Pressable>
+          {!multiSelectMode && <AnimatedBadge variant={state} label={stateLabel} />}
+          {multiSelectMode ? (
+            <Pressable
+              onPress={onDoneEdit}
+              className="rounded-full bg-primary px-3.5 py-1.5 active:opacity-80"
+            >
+              <Text className="text-xs font-semibold text-primary-foreground">{t.done}</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={handleOverflowPress}
+              className="h-8 w-8 items-center justify-center rounded-full bg-muted/50 active:opacity-80"
+            >
+              <IconSymbol name="ellipsis" size={16} color={iconColors.muted} />
+            </Pressable>
+          )}
         </View>
       </View>
       {/* Progress bar */}
-      {hasContacts && (
+      {hasContacts && !multiSelectMode && (
         <View className="mt-2 h-1 overflow-hidden rounded-full bg-muted flex-row">
           {paidPercent > 0 && (
             <View className="h-full rounded-full bg-emerald-500" style={{ width: `${paidPercent}%` }} />
