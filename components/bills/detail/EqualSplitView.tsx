@@ -12,14 +12,6 @@ import { formatCurrency } from '@/lib/format';
 import type { Id } from '@/convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
 
-interface BillItem {
-  id?: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
-
 interface ResolvedContact {
   contactId: Id<'contacts'>;
   name: string;
@@ -31,7 +23,6 @@ interface ResolvedContact {
 }
 
 interface EqualSplitViewProps {
-  items: BillItem[];
   contacts: ResolvedContact[];
   total: number;
   numPeople: number;
@@ -46,7 +37,6 @@ interface EqualSplitViewProps {
 }
 
 function EqualSplitView({
-  items,
   contacts,
   total,
   numPeople,
@@ -199,20 +189,6 @@ function EqualSplitView({
         )}
       </Animated.View>
 
-      {/* Read-only items list */}
-      <Animated.View entering={FadeInDown.delay(400).duration(400)} className="rounded-2xl border border-border bg-card p-4">
-        <Text className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {t.scan_itemCount(items.length)}
-        </Text>
-        {items.map((item, i) => (
-          <View key={item.id ?? i} className={cn('flex-row items-center justify-between py-2', i < items.length - 1 && 'border-b border-border/40')}>
-            <Text className="flex-1 text-sm text-foreground" numberOfLines={1}>{item.name}</Text>
-            <Text className="ml-2 text-sm tabular-nums text-muted-foreground">
-              {formatCurrency(item.subtotal, billCountry)}
-            </Text>
-          </View>
-        ))}
-      </Animated.View>
     </View>
   );
 }

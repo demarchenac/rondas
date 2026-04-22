@@ -798,9 +798,9 @@ export default function BillDetailScreen() {
 
         {/* Equal Split View OR Sort bar + Items */}
         {equalSplitMode ? (
+          <>
           <Animated.View entering={animate ? FadeInDown.delay(120).duration(300) : undefined} className="px-5">
             <EqualSplitView
-              items={bill.items}
               contacts={bill.contacts}
               total={total}
               numPeople={numPeople}
@@ -814,6 +814,40 @@ export default function BillDetailScreen() {
               onRemoveContact={handleRemoveEqualContact}
             />
           </Animated.View>
+
+          {/* Items — editable in equal split */}
+          {bill.items.map((item, index) => {
+            const itemId = item.id!;
+            return (
+              <Animated.View
+                key={item.id ?? `legacy-${index}`}
+                entering={animate ? FadeInDown.delay(Math.min(index, 8) * 60 + 180).duration(350) : undefined}
+              >
+                <BillItemCard
+                  item={item}
+                  index={index}
+                  billCountry={billCountry}
+                  stateStyle={stateStyle}
+                  assignedContacts={[]}
+                  isEditing={editingItemId === itemId}
+                  isDeleting={deletingId === item.id}
+                  multiSelectMode={false}
+                  isSelected={false}
+                  iconColors={iconColors}
+                  t={t}
+                  swipeOpenRef={swipeOpenRef}
+                  onPress={handleItemPress}
+                  onRemoveItem={handleRemoveItem}
+                  onSubmitEdit={handleSubmitEdit}
+                  onDismissEdit={() => setEditingItemId(null)}
+                  onAssignContact={() => {}}
+                  onRemoveContact={() => {}}
+                  onToggleSelection={() => {}}
+                />
+              </Animated.View>
+            );
+          })}
+          </>
         ) : (
           <>
             {/* Sort bar + bulk edit */}
