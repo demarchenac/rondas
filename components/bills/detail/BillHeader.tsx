@@ -1,9 +1,10 @@
 import React from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useBufferedInput } from '@/hooks/useBufferedInput';
+import { useCustomAlert } from '@/components/ui/custom-alert';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
 import type { BillState } from '@/lib/billHelpers';
 import type { Translations } from '@/lib/i18n';
@@ -52,6 +53,7 @@ function BillHeader({
   onDoneEdit,
 }: BillHeaderProps) {
   const nameInput = useBufferedInput(billName, onUpdateName);
+  const { alert, actionSheet } = useCustomAlert();
 
   const handleOverflowPress = () => {
     const options: { label: string; action: () => void; destructive?: boolean }[] = [];
@@ -66,37 +68,20 @@ function BillHeader({
     }
     options.push({ label: t.bill_deleteBill, action: () => confirmDelete(), destructive: true });
 
-    if (Platform.OS === 'ios') {
-      const labels = [...options.map((o) => o.label), t.cancel];
-      const destructiveIndex = options.findIndex((o) => o.destructive);
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: labels,
-          destructiveButtonIndex: destructiveIndex >= 0 ? destructiveIndex : undefined,
-          cancelButtonIndex: labels.length - 1,
-        },
-        (index) => {
-          if (index < options.length) options[index].action();
-        },
-      );
-    } else {
-      Alert.alert(
-        '',
-        undefined,
-        [
-          ...options.map((o) => ({
-            text: o.label,
-            style: (o.destructive ? 'destructive' : 'default') as 'destructive' | 'default',
-            onPress: o.action,
-          })),
-          { text: t.cancel, style: 'cancel' },
-        ],
-      );
-    }
+    const labels = [...options.map((o) => o.label), t.cancel];
+    const destructiveIndex = options.findIndex((o) => o.destructive);
+    actionSheet({
+      options: labels,
+      destructiveButtonIndex: destructiveIndex >= 0 ? destructiveIndex : undefined,
+      cancelButtonIndex: labels.length - 1,
+      onSelect: (index) => {
+        if (index < options.length) options[index].action();
+      },
+    });
   };
 
   const confirmDelete = () => {
-    Alert.alert(
+    alert(
       t.bill_deleteBill,
       t.bill_deleteConfirm,
       [

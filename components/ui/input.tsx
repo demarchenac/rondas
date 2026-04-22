@@ -14,10 +14,10 @@ function Input({
         className
       )}
       placeholderClassName={cn('text-muted-foreground', placeholderClassName)}
-      {...(Platform.OS === 'android' && {
-        style: [{ includeFontPadding: false, textAlignVertical: 'center' }, props.style],
-      })}
       {...props}
+      {...(Platform.OS === 'android' && {
+        style: [props.style, { includeFontPadding: false, textAlignVertical: 'center' as const }],
+      })}
     />
   );
 }

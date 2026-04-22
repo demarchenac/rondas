@@ -41,6 +41,7 @@ interface EqualSplitViewProps {
   onAssignContacts: () => void;
   onConfirm: () => void;
   onTogglePaid: (contactId: Id<'contacts'>) => void;
+  onAddItem: () => void;
 }
 
 function EqualSplitView({
@@ -55,6 +56,7 @@ function EqualSplitView({
   onAssignContacts,
   onConfirm,
   onTogglePaid,
+  onAddItem,
 }: EqualSplitViewProps) {
   const perPerson = Math.floor(total / numPeople);
   const remainder = total - perPerson * numPeople;
@@ -181,6 +183,15 @@ function EqualSplitView({
           </View>
         ))}
       </Animated.View>
+
+      {/* Add Item */}
+      <Pressable
+        onPress={onAddItem}
+        className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3 active:opacity-80"
+      >
+        <IconSymbol name="plus" size={14} color={iconColors.primary} />
+        <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
+      </Pressable>
     </View>
   );
 }

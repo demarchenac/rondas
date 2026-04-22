@@ -1,11 +1,9 @@
 import React, { useCallback } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import FilterChip from '@/components/bills/FilterChip';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Text } from '@/components/ui/text';
 import { ICON_COLORS } from '@/constants/colors';
-import { cn } from '@/lib/cn';
 import type { Translations } from '@/lib/i18n';
 
 type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
@@ -13,18 +11,12 @@ type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alp
 interface SortBarProps {
   sortStrategy: SortStrategy;
   onSortChange: (strategy: SortStrategy) => void;
-  multiSelectMode: boolean;
-  selectedCount: number;
-  onToggleMultiSelect: () => void;
   t: Translations;
 }
 
 function SortBar({
   sortStrategy,
   onSortChange,
-  multiSelectMode,
-  selectedCount,
-  onToggleMultiSelect,
   t,
 }: SortBarProps) {
   const { colorScheme } = useColorScheme();
@@ -47,10 +39,6 @@ function SortBar({
   const isPrice = sortStrategy === 'price-asc' || sortStrategy === 'price-desc';
   const isAlpha = sortStrategy === 'alpha-asc' || sortStrategy === 'alpha-desc';
   const isOriginal = sortStrategy === 'original';
-
-  const bulkLabel = multiSelectMode
-    ? (selectedCount > 0 ? t.bill_selected(selectedCount) : t.cancel)
-    : t.bill_bulkEdit;
 
   return (
     <View className="flex-row items-center pb-2">
@@ -84,26 +72,6 @@ function SortBar({
           onPress={handleAlphaPress}
         />
       </ScrollView>
-
-      {/* Bulk edit — pinned right */}
-      <Pressable
-        onPress={onToggleMultiSelect}
-        className={cn(
-          'ml-2 mr-7 rounded-full border px-2.5 py-1.5',
-          multiSelectMode
-            ? 'border-primary/30 bg-primary'
-            : 'border-border bg-card',
-        )}
-      >
-        <Text
-          className={cn(
-            'text-xs font-semibold',
-            multiSelectMode ? 'text-primary-foreground' : 'text-muted-foreground',
-          )}
-        >
-          {bulkLabel}
-        </Text>
-      </Pressable>
     </View>
   );
 }

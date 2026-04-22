@@ -20,6 +20,7 @@ interface ContactPickerSheetProps {
   suggestedContacts?: { frequent: Doc<'contacts'>[]; recent: Doc<'contacts'>[] };
   selectedContactIds: Set<string>;
   excludePhones?: Set<string>;
+  maxSelectable?: number;
   bottomInset: number;
   onToggleContact: (contactId: string) => void;
   onConfirm: () => void;
@@ -32,6 +33,7 @@ function ContactPickerSheet({
   suggestedContacts,
   selectedContactIds,
   excludePhones,
+  maxSelectable,
   bottomInset,
   onToggleContact,
   onConfirm,
@@ -79,14 +81,17 @@ function ContactPickerSheet({
     filteredSuggested &&
     (filteredSuggested.frequent.length > 0 || filteredSuggested.recent.length > 0);
 
+  const atCapacity = maxSelectable !== undefined && selectedContactIds.size >= maxSelectable;
+
   const renderSuggestedContact = useCallback((c: Doc<'contacts'>) => {
     const key = `${SUGGESTED_PREFIX}${c._id}`;
     const isSelected = selectedContactIds.has(key);
+    const disabled = !isSelected && atCapacity;
     return (
       <Pressable
         key={key}
-        onPress={() => onToggleContact(key)}
-        className="flex-row items-center py-2.5 gap-3"
+        onPress={() => !disabled && onToggleContact(key)}
+        className={`flex-row items-center py-2.5 gap-3 ${disabled ? 'opacity-40' : ''}`}
       >
         <IconSymbol
           name={isSelected ? 'checkmark.circle.fill' : 'circle'}
@@ -110,14 +115,15 @@ function ContactPickerSheet({
         </View>
       </Pressable>
     );
-  }, [selectedContactIds, onToggleContact, iconColors]);
+  }, [selectedContactIds, onToggleContact, iconColors, atCapacity]);
 
   const renderContactRow = useCallback(({ item: c }: { item: PhoneContact }) => {
     const isSelected = selectedContactIds.has(c.id);
+    const disabled = !isSelected && atCapacity;
     return (
       <Pressable
-        onPress={() => onToggleContact(c.id)}
-        className="flex-row items-center py-2.5 gap-3 px-7"
+        onPress={() => !disabled && onToggleContact(c.id)}
+        className={`flex-row items-center py-2.5 gap-3 px-7 ${disabled ? 'opacity-40' : ''}`}
       >
         <IconSymbol
           name={isSelected ? 'checkmark.circle.fill' : 'circle'}
@@ -143,7 +149,7 @@ function ContactPickerSheet({
         </View>
       </Pressable>
     );
-  }, [selectedContactIds, onToggleContact, iconColors]);
+  }, [selectedContactIds, onToggleContact, iconColors, atCapacity]);
 
   const listHeader = useMemo(() => {
     if (!hasSuggested) return null;

@@ -99,15 +99,18 @@ export default function BillDetailScreen() {
   const shouldAnimate = useRef(true);
   const contactsCacheRef = useRef<{ data: (Contacts.Contact & { id: string })[]; fetchedAt: number } | null>(null);
   const contactsPermissionRef = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const excludePhones = useMemo(() => {
-    if (!singleAssignItemId || !bill) return undefined;
+    if (!bill) return undefined;
+    const targetItemId = singleAssignItemId ?? (selectedItemIds.size === 1 ? Array.from(selectedItemIds)[0] : null);
+    if (!targetItemId) return undefined;
     const phones = new Set<string>();
     for (const c of bill.contacts) {
-      if (c.items.includes(singleAssignItemId) && c.phone) phones.add(c.phone);
+      if (c.items.includes(targetItemId) && c.phone) phones.add(c.phone);
     }
     return phones.size > 0 ? phones : undefined;
-  }, [singleAssignItemId, bill]);
+  }, [singleAssignItemId, selectedItemIds, bill]);
 
   // --- Callbacks ---
 
@@ -292,6 +295,7 @@ export default function BillDetailScreen() {
     try {
       await updateBill({ id: id as Id<'bills'>, userId, items: [...bill.items, newItem] });
       setEditingItemId(newItem.id);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300);
     } catch {
       alert(t.error, t.error_mutationFailed);
     }
@@ -666,9 +670,10 @@ export default function BillDetailScreen() {
   let paidOfAssigned: number;
 
   if (isEqualSplit) {
-    assignedPercent = totalContacts > 0 ? 100 : 0;
+    const target = bill.numPeople ?? numPeople;
+    assignedPercent = target > 0 ? Math.min((totalContacts / target) * 100, 100) : 0;
     const paidAmount = bill.contacts.filter((c) => c.paid).reduce((sum, c) => sum + c.amount, 0);
-    paidOfAssigned = bill.total > 0 ? (paidAmount / bill.total) * 100 : 0;
+    paidOfAssigned = bill.total > 0 ? (paidAmount / bill.total) * assignedPercent : 0;
   } else {
     const assignedItemIds = new Set(bill.contacts.flatMap((c) => c.items));
     assignedPercent = totalItems > 0 ? (assignedItemIds.size / totalItems) * 100 : 0;
@@ -728,7 +733,7 @@ export default function BillDetailScreen() {
         />
       </Animated.View>
 
-      <ScrollView className="flex-1" contentContainerClassName="pb-8" showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} className="flex-1" contentContainerClassName="pb-8" showsVerticalScrollIndicator={false}>
         {/* Metadata */}
         <Animated.View entering={animate ? FadeInDown.delay(60).duration(300) : undefined}>
           <BillMetadata
@@ -758,6 +763,7 @@ export default function BillDetailScreen() {
               onAssignContacts={handleEqualAssignContacts}
               onConfirm={handleConfirmEqualSplit}
               onTogglePaid={handleTogglePaid}
+              onAddItem={handleAddItem}
             />
           </Animated.View>
         ) : (
@@ -767,13 +773,6 @@ export default function BillDetailScreen() {
               <SortBar
                 sortStrategy={sortStrategy}
                 onSortChange={setSortStrategy}
-                multiSelectMode={multiSelectMode}
-                selectedCount={selectedItemIds.size}
-                onToggleMultiSelect={() => {
-                  setMultiSelectMode(!multiSelectMode);
-                  setSelectedItemIds(new Set());
-                  setEditingItemId(null);
-                }}
                 t={t}
               />
             </Animated.View>
@@ -943,6 +942,7 @@ export default function BillDetailScreen() {
         suggestedContacts={suggestedContacts ?? undefined}
         selectedContactIds={selectedContactIds}
         excludePhones={excludePhones}
+        maxSelectable={equalSplitMode ? numPeople - bill.contacts.length : undefined}
         bottomInset={insets.bottom}
         onToggleContact={handleToggleContactSelection}
         onConfirm={equalSplitMode ? handleConfirmEqualContactPicker : handleConfirmContactPicker}

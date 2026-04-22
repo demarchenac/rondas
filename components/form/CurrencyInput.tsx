@@ -29,10 +29,10 @@ function CurrencyInput({ value, onChangeValue, country, className, ...rest }: Cu
       minValue={0}
       keyboardType="number-pad"
       className={cn('text-foreground', className)}
-      {...(Platform.OS === 'android' && {
-        style: [{ includeFontPadding: false, textAlignVertical: 'center' }, rest.style],
-      })}
       {...rest}
+      {...(Platform.OS === 'android' && {
+        style: [rest.style, { includeFontPadding: false, textAlignVertical: 'center' as const }],
+      })}
     />
   );
 }
