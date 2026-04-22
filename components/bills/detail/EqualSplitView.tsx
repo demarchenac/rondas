@@ -1,16 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import Avatar from '@/components/ui/avatar';
 import SwipeableRow from '@/components/bills/SwipeableRow';
+import CurrencyInput from '@/components/form/CurrencyInput';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import type { Id } from '@/convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
+
+interface BillItem {
+  id?: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
 
 interface ResolvedContact {
   contactId: Id<'contacts'>;
@@ -23,31 +33,116 @@ interface ResolvedContact {
 }
 
 interface EqualSplitViewProps {
+  items: BillItem[];
   contacts: ResolvedContact[];
   total: number;
   numPeople: number;
   billCountry: string;
   iconColors: Record<string, string>;
   t: Translations;
+  editingItemId: string | null;
   onNumPeopleChange: (n: number) => void;
   onAssignContacts: () => void;
   onConfirm: () => void;
   onTogglePaid: (contactId: Id<'contacts'>) => void;
   onRemoveContact: (contactId: Id<'contacts'>) => void;
+  onItemPress: (itemId: string) => void;
+  onSubmitEdit: (itemId: string, values: { name: string; quantity: number; unitPrice: number }) => void;
+  onDismissEdit: () => void;
+  onRemoveItem: (itemId: string) => void;
+}
+
+function EqualSplitItemEdit({
+  item,
+  billCountry,
+  t,
+  onSubmit,
+  onCancel,
+}: {
+  item: BillItem;
+  billCountry: string;
+  t: Translations;
+  onSubmit: (values: { name: string; quantity: number; unitPrice: number }) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(item.name);
+  const [quantity, setQuantity] = useState(String(item.quantity));
+  const [unitPrice, setUnitPrice] = useState(item.unitPrice);
+
+  const qty = parseInt(quantity, 10) || 0;
+  const subtotal = qty * unitPrice;
+
+  return (
+    <View className="rounded-xl border-l-[3px] border-l-primary bg-primary/5 px-4 py-3.5">
+      <View className="mb-3 flex-row items-center justify-between">
+        <Input
+          value={name}
+          onChangeText={setName}
+          className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-[15px] font-semibold shadow-none"
+          placeholder={t.scan_itemName}
+          autoFocus
+        />
+        <Pressable onPress={onCancel} className="ml-3 rounded-full bg-destructive/15 px-3 py-1">
+          <Text className="text-xs font-semibold text-destructive">{t.cancel}</Text>
+        </Pressable>
+      </View>
+      <View className="flex-row items-center gap-3">
+        <View className="flex-row items-center gap-1">
+          <Text className="text-xs uppercase text-muted-foreground">{t.scan_qty}</Text>
+          <Input
+            value={quantity}
+            onChangeText={setQuantity}
+            keyboardType="number-pad"
+            className="h-8 w-12 border-border/50 bg-card px-2 text-center text-sm"
+          />
+        </View>
+        <View className="flex-1">
+          <Text className="text-xs uppercase text-muted-foreground">{t.scan_unitPrice}</Text>
+          <CurrencyInput
+            value={unitPrice}
+            onChangeValue={setUnitPrice}
+            country={billCountry}
+            className="h-8 border-border/50 bg-card px-2 text-sm"
+          />
+        </View>
+        <View className="items-end">
+          <Text className="text-xs uppercase text-muted-foreground">{t.scan_subtotal}</Text>
+          <Text className="text-sm font-semibold text-foreground">
+            {formatCurrency(subtotal, billCountry)}
+          </Text>
+        </View>
+      </View>
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onSubmit({ name, quantity: parseInt(quantity, 10) || 1, unitPrice });
+        }}
+        className="mt-3 items-center rounded-lg bg-primary/10 py-2"
+      >
+        <Text className="text-sm font-semibold text-primary">{t.done}</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 function EqualSplitView({
+  items,
   contacts,
   total,
   numPeople,
   billCountry,
   iconColors,
   t,
+  editingItemId,
   onNumPeopleChange,
   onAssignContacts,
   onConfirm,
   onTogglePaid,
   onRemoveContact,
+  onItemPress,
+  onSubmitEdit,
+  onDismissEdit,
+  onRemoveItem,
 }: EqualSplitViewProps) {
   const perPerson = Math.floor(total / numPeople);
   const remainder = total - perPerson * numPeople;
@@ -189,6 +284,47 @@ function EqualSplitView({
         )}
       </Animated.View>
 
+      {/* Items — compact with tap-to-edit */}
+      <Animated.View entering={FadeInDown.delay(400).duration(400)} className="rounded-2xl border border-border bg-card p-4">
+        <Text className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {t.scan_itemCount(items.length)}
+        </Text>
+        {items.map((item, i) => {
+          const itemId = item.id!;
+          return editingItemId === itemId ? (
+            <EqualSplitItemEdit
+              key={itemId}
+              item={item}
+              billCountry={billCountry}
+              t={t}
+              onSubmit={(values) => onSubmitEdit(itemId, values)}
+              onCancel={onDismissEdit}
+            />
+          ) : (
+            <SwipeableRow key={itemId} onDelete={() => onRemoveItem(itemId)} bgClassName="bg-card">
+              <Pressable
+                onPress={() => onItemPress(itemId)}
+                className={cn('flex-row items-center justify-between py-2 active:opacity-80', i < items.length - 1 && 'border-b border-border/40')}
+              >
+                <View className="flex-1 mr-2">
+                  <Text className="text-sm text-foreground" numberOfLines={1}>{item.name || t.scan_itemName}</Text>
+                  {item.quantity > 1 && (
+                    <Text className="text-xs text-muted-foreground">
+                      {item.quantity} × {formatCurrency(item.unitPrice, billCountry)}
+                    </Text>
+                  )}
+                </View>
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-sm tabular-nums text-muted-foreground">
+                    {formatCurrency(item.subtotal, billCountry)}
+                  </Text>
+                  <IconSymbol name="pencil.line" size={11} color={iconColors.muted} />
+                </View>
+              </Pressable>
+            </SwipeableRow>
+          );
+        })}
+      </Animated.View>
     </View>
   );
 }
