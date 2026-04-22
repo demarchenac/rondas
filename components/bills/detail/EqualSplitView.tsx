@@ -6,6 +6,7 @@ import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import Avatar from '@/components/ui/avatar';
+import SwipeableRow from '@/components/bills/SwipeableRow';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -41,6 +42,7 @@ interface EqualSplitViewProps {
   onAssignContacts: () => void;
   onConfirm: () => void;
   onTogglePaid: (contactId: Id<'contacts'>) => void;
+  onRemoveContact: (contactId: Id<'contacts'>) => void;
   onAddItem: () => void;
 }
 
@@ -56,6 +58,7 @@ function EqualSplitView({
   onAssignContacts,
   onConfirm,
   onTogglePaid,
+  onRemoveContact,
   onAddItem,
 }: EqualSplitViewProps) {
   const perPerson = Math.floor(total / numPeople);
@@ -72,6 +75,17 @@ function EqualSplitView({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onNumPeopleChange(numPeople + 1);
   };
+
+  const handleRemoveSlot = (index: number) => {
+    if (numPeople <= 2) return;
+    const contact = contacts[index];
+    if (contact) {
+      onRemoveContact(contact.contactId);
+    }
+    onNumPeopleChange(numPeople - 1);
+  };
+
+  const slots = Array.from({ length: numPeople }, (_, i) => contacts[i] ?? null);
 
   return (
     <View className="gap-4">
@@ -112,41 +126,57 @@ function EqualSplitView({
         </View>
       </Animated.View>
 
-      {/* Assigned contacts */}
-      {contacts.length > 0 && (
-        <Animated.View entering={FadeInDown.delay(200).duration(400)} className="rounded-2xl border border-border bg-card p-4">
-          <Text className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {contacts.length}/{numPeople} {t.bill_equalPeople.toLowerCase()}
-          </Text>
-          <View className="gap-2">
-            {contacts.map((contact, i) => (
-              <View key={String(contact.contactId)} className="flex-row items-center gap-3">
-                <Avatar name={contact.name} imageUri={contact.imageUri} size="md" />
-                <Text className="flex-1 text-sm font-medium text-foreground" numberOfLines={1}>
-                  {contact.name}
-                </Text>
-                <Text className="text-sm font-semibold tabular-nums text-foreground">
-                  {formatCurrency(i === 0 ? perPerson + remainder : perPerson, billCountry)}
-                </Text>
-                <Pressable
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    onTogglePaid(contact.contactId);
-                  }}
-                  className={cn(
-                    'rounded-full px-2.5 py-1',
-                    contact.paid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
-                  )}
-                >
-                  <Text className={cn('text-xs font-semibold', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
-                    {contact.paid ? t.share_paid : t.share_unpaid}
-                  </Text>
-                </Pressable>
+      {/* People slots — contacts + placeholders */}
+      <Animated.View entering={FadeInDown.delay(200).duration(400)} className="rounded-2xl border border-border bg-card p-4">
+        <Text className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {contacts.length}/{numPeople} {t.bill_equalPeople.toLowerCase()}
+        </Text>
+        <View className="gap-1">
+          {slots.map((contact, i) => (
+            <SwipeableRow key={contact ? String(contact.contactId) : `placeholder-${i}`} onDelete={() => handleRemoveSlot(i)}>
+              <View className="flex-row items-center gap-3 py-1.5">
+                {contact ? (
+                  <>
+                    <Avatar name={contact.name} imageUri={contact.imageUri} size="md" />
+                    <Text className="flex-1 text-sm font-medium text-foreground" numberOfLines={1}>
+                      {contact.name}
+                    </Text>
+                    <Text className="text-sm font-semibold tabular-nums text-foreground">
+                      {formatCurrency(i === 0 ? perPerson + remainder : perPerson, billCountry)}
+                    </Text>
+                    <Pressable
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        onTogglePaid(contact.contactId);
+                      }}
+                      className={cn(
+                        'rounded-full px-2.5 py-1',
+                        contact.paid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
+                      )}
+                    >
+                      <Text className={cn('text-xs font-semibold', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
+                        {contact.paid ? t.share_paid : t.share_unpaid}
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <View className="h-9 w-9 items-center justify-center rounded-full border border-dashed border-muted-foreground/30">
+                      <IconSymbol name="person.crop.circle" size={16} color={iconColors.muted} />
+                    </View>
+                    <Text className="flex-1 text-sm text-muted-foreground">
+                      {t.bill_persona(i + 1)}
+                    </Text>
+                    <Text className="text-sm tabular-nums text-muted-foreground">
+                      {formatCurrency(i === 0 ? perPerson + remainder : perPerson, billCountry)}
+                    </Text>
+                  </>
+                )}
               </View>
-            ))}
-          </View>
-        </Animated.View>
-      )}
+            </SwipeableRow>
+          ))}
+        </View>
+      </Animated.View>
 
       {/* Actions */}
       <Animated.View entering={FadeInDown.delay(300).duration(400)} className="gap-2">
@@ -183,15 +213,6 @@ function EqualSplitView({
           </View>
         ))}
       </Animated.View>
-
-      {/* Add Item */}
-      <Pressable
-        onPress={onAddItem}
-        className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3 active:opacity-80"
-      >
-        <IconSymbol name="plus" size={14} color={iconColors.primary} />
-        <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
-      </Pressable>
     </View>
   );
 }

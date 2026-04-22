@@ -209,6 +209,8 @@ export const en = {
   bill_equalSwitchWarning: 'Switching will remove current assignments. Continue?',
   bill_equalSwitchTitle: 'Change split method',
   bill_equalRemainder: (amount: string) => `+${amount} to first person`,
+  bill_persona: (n: number) => `Person ${n}`,
+  bill_removePersonConfirm: (name: string) => `This will remove ${name} from the split. Continue?`,
 
   // People summary
   people_title: 'People',

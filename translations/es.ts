@@ -211,6 +211,8 @@ export const es: typeof en = {
   bill_equalSwitchWarning: 'Cambiar eliminará las asignaciones actuales. ¿Continuar?',
   bill_equalSwitchTitle: 'Cambiar método de división',
   bill_equalRemainder: (amount: string) => `+${amount} a la primera persona`,
+  bill_persona: (n: number) => `Persona ${n}`,
+  bill_removePersonConfirm: (name: string) => `Esto removerá a ${name} del split. ¿Continuar?`,
 
   // People summary
   people_title: 'Personas',

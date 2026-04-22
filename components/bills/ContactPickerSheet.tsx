@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, View, Pressable, TextInput } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from '@/lib/expo-image';
+import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
@@ -90,7 +91,7 @@ function ContactPickerSheet({
     return (
       <Pressable
         key={key}
-        onPress={() => !disabled && onToggleContact(key)}
+        onPress={() => { if (disabled) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onToggleContact(key); }}
         className={`flex-row items-center py-2.5 gap-3 ${disabled ? 'opacity-40' : ''}`}
       >
         <IconSymbol
@@ -122,7 +123,7 @@ function ContactPickerSheet({
     const disabled = !isSelected && atCapacity;
     return (
       <Pressable
-        onPress={() => !disabled && onToggleContact(c.id)}
+        onPress={() => { if (disabled) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onToggleContact(c.id); }}
         className={`flex-row items-center py-2.5 gap-3 px-7 ${disabled ? 'opacity-40' : ''}`}
       >
         <IconSymbol
@@ -232,7 +233,7 @@ function ContactPickerSheet({
         {selectedContactIds.size > 0 && (
           <View className="border-t border-border/30 px-7 pb-2 pt-3">
             <Pressable
-              onPress={onConfirm}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }}
               className="items-center rounded-xl bg-primary py-4 active:opacity-80"
             >
               <Text className="text-base font-semibold text-primary-foreground">

@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Text } from './text';
 import { cn } from '@/lib/cn';
 
@@ -57,6 +58,7 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
     }
     callbacksRef.current = btns;
     setAlertConfig({ title, message, buttons: btns });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
   const actionSheet = useCallback((config: ActionSheetConfig) => {
@@ -73,6 +75,7 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
     }
     sheetCallbackRef.current = config.onSelect;
     setSheetConfig(config);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
   const dismissAlert = useCallback(() => {
@@ -86,11 +89,14 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const handleAlertButton = useCallback((btn: AlertButton) => {
+    const style = btn.style === 'destructive' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light;
+    Haptics.impactAsync(style);
     dismissAlert();
     btn.onPress?.();
   }, [dismissAlert]);
 
   const handleSheetOption = useCallback((index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const cb = sheetCallbackRef.current;
     dismissSheet();
     cb?.(index);

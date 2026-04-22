@@ -103,14 +103,22 @@ export default function BillDetailScreen() {
 
   const excludePhones = useMemo(() => {
     if (!bill) return undefined;
-    const targetItemId = singleAssignItemId ?? (selectedItemIds.size === 1 ? Array.from(selectedItemIds)[0] : null);
-    if (!targetItemId) return undefined;
     const phones = new Set<string>();
-    for (const c of bill.contacts) {
-      if (c.items.includes(targetItemId) && c.phone) phones.add(c.phone);
+
+    if (equalSplitMode) {
+      for (const c of bill.contacts) {
+        if (c.phone) phones.add(c.phone);
+      }
+    } else {
+      const targetItemId = singleAssignItemId ?? (selectedItemIds.size === 1 ? Array.from(selectedItemIds)[0] : null);
+      if (!targetItemId) return undefined;
+      for (const c of bill.contacts) {
+        if (c.items.includes(targetItemId) && c.phone) phones.add(c.phone);
+      }
     }
+
     return phones.size > 0 ? phones : undefined;
-  }, [singleAssignItemId, selectedItemIds, bill]);
+  }, [singleAssignItemId, selectedItemIds, bill, equalSplitMode]);
 
   // --- Callbacks ---
 
@@ -471,6 +479,46 @@ export default function BillDetailScreen() {
     loadContacts();
   }, [ensureContactPermission, loadContacts]);
 
+  const handleRemoveEqualContact = useCallback(async (contactId: Id<'contacts'>) => {
+    if (!bill || !userId) return;
+    try {
+      const remaining = bill.contacts.filter((c) => c.contactId !== contactId);
+      await assignEqualSplit({
+        id: id as Id<'bills'>,
+        userId,
+        numPeople: Math.max(2, numPeople),
+        contacts: remaining.map((c) => ({ name: c.name, phone: c.phone ?? '', imageUri: c.imageUri })),
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {
+      alert(t.error, t.error_mutationFailed);
+    }
+  }, [bill, userId, id, numPeople, assignEqualSplit, t, alert]);
+
+  const handleNumPeopleChange = useCallback((n: number) => {
+    if (!bill) return;
+    if (n < numPeople && bill.contacts.length > n) {
+      const contactToRemove = bill.contacts[bill.contacts.length - 1];
+      alert(
+        t.bill_equalSwitchTitle,
+        t.bill_removePersonConfirm(contactToRemove.name),
+        [
+          { text: t.cancel, style: 'cancel' },
+          {
+            text: t.remove,
+            style: 'destructive',
+            onPress: () => {
+              setNumPeople(n);
+              handleRemoveEqualContact(contactToRemove.contactId);
+            },
+          },
+        ],
+      );
+      return;
+    }
+    setNumPeople(n);
+  }, [bill, numPeople, t, alert, handleRemoveEqualContact]);
+
   const handleConfirmEqualSplit = useCallback(async () => {
     if (!bill || !userId) return;
     // Build contact args from bill's current contacts
@@ -759,10 +807,11 @@ export default function BillDetailScreen() {
               billCountry={billCountry}
               iconColors={iconColors}
               t={t}
-              onNumPeopleChange={setNumPeople}
+              onNumPeopleChange={handleNumPeopleChange}
               onAssignContacts={handleEqualAssignContacts}
               onConfirm={handleConfirmEqualSplit}
               onTogglePaid={handleTogglePaid}
+              onRemoveContact={handleRemoveEqualContact}
               onAddItem={handleAddItem}
             />
           </Animated.View>
@@ -850,69 +899,72 @@ export default function BillDetailScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* Share button — filled primary when contacts exist */}
-      {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
-        <View className="border-t border-border/30 px-7 pb-2 pt-3">
-          <Pressable
-            onPress={() => setActiveDialog('share')}
-            className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 active:opacity-80"
-          >
-            <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
-            <Text className="text-[15px] font-semibold text-primary-foreground">
-              {t.share_button(bill.contacts.length)}
-            </Text>
-          </Pressable>
-        </View>
-      )}
+      {/* Bottom fixed area */}
+      <View className="border-t border-border/30">
+        {/* Share button — filled primary when contacts exist */}
+        {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
+          <View className="px-7 pb-2 pt-3">
+            <Pressable
+              onPress={() => setActiveDialog('share')}
+              className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 active:opacity-80"
+            >
+              <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
+              <Text className="text-[15px] font-semibold text-primary-foreground">
+                {t.share_button(bill.contacts.length)}
+              </Text>
+            </Pressable>
+          </View>
+        )}
 
-      {/* Confirm button for draft bills */}
-      {!multiSelectMode && bill.state === 'draft' && (
-        <View className="border-t border-border/30 px-7 pb-2 pt-3">
-          <Pressable
-            onPress={async () => {
-              try {
-                await updateBill({ id: id as Id<'bills'>, userId, state: 'unsplit' });
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                router.back();
-              } catch (err) {
-                console.error('[Bill] confirm draft failed:', err);
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                alert(t.error, t.error_mutationFailed);
-              }
-            }}
-            className="items-center rounded-xl bg-primary py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-2">
-              <IconSymbol name="checkmark" size={18} color={iconColors.primaryForeground} />
-              <Text className="text-base font-semibold text-primary-foreground">{t.bill_confirmItems}</Text>
-            </View>
-          </Pressable>
-        </View>
-      )}
+        {/* Confirm button for draft bills */}
+        {!multiSelectMode && bill.state === 'draft' && (
+          <View className="px-7 pb-2 pt-3">
+            <Pressable
+              onPress={async () => {
+                try {
+                  await updateBill({ id: id as Id<'bills'>, userId, state: 'unsplit' });
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  router.back();
+                } catch (err) {
+                  console.error('[Bill] confirm draft failed:', err);
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                  alert(t.error, t.error_mutationFailed);
+                }
+              }}
+              className="items-center rounded-xl bg-primary py-4 active:opacity-80"
+            >
+              <View className="flex-row items-center gap-2">
+                <IconSymbol name="checkmark" size={18} color={iconColors.primaryForeground} />
+                <Text className="text-base font-semibold text-primary-foreground">{t.bill_confirmItems}</Text>
+              </View>
+            </Pressable>
+          </View>
+        )}
 
-      {/* Add Item button */}
-      {!equalSplitMode && (
-        <View className="border-t border-border/30 px-7 py-2">
-          <Pressable
-            onPress={handleAddItem}
-            className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3 active:opacity-80"
-          >
-            <IconSymbol name="plus" size={14} color={iconColors.primary} />
-            <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
-          </Pressable>
-        </View>
-      )}
+        {/* Bulk toolbar — above add item */}
+        {multiSelectMode && selectedItemIds.size > 0 && (
+          <BulkToolbar
+            selectedItemIds={selectedItemIds}
+            hasContactsOnSelection={bill.contacts.some((c) => c.items.some((itemId) => selectedItemIds.has(itemId)))}
+            onAssign={handleMultiAssign}
+            onUnassign={handleBulkRemoveContact}
+            onDelete={handleBulkDelete}
+          />
+        )}
 
-      {/* Bulk toolbar */}
-      {multiSelectMode && selectedItemIds.size > 0 && (
-        <BulkToolbar
-          selectedItemIds={selectedItemIds}
-          hasContactsOnSelection={bill.contacts.some((c) => c.items.some((itemId) => selectedItemIds.has(itemId)))}
-          onAssign={handleMultiAssign}
-          onUnassign={handleBulkRemoveContact}
-          onDelete={handleBulkDelete}
-        />
-      )}
+        {/* Add Item button — always last */}
+        {!equalSplitMode && (
+          <View className="px-7 py-2">
+            <Pressable
+              onPress={handleAddItem}
+              className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3 active:opacity-80"
+            >
+              <IconSymbol name="plus" size={14} color={iconColors.primary} />
+              <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
 
       {/* Dialogs & Sheets */}
       <BillShareSheet
