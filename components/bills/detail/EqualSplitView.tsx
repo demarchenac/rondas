@@ -73,7 +73,7 @@ function EqualSplitItemEdit({
   const subtotal = qty * unitPrice;
 
   return (
-    <View className="my-1 rounded-xl border border-primary/20 bg-primary/[0.04] p-4">
+    <View className="my-1 border-l-[3px] border-l-primary py-3 pl-3 pr-1">
       {/* Name input */}
       <Input
         value={name}
