@@ -63,6 +63,13 @@ export const es: typeof en = {
   filter_minAmount: (amount: string) => `Mín ${amount}`,
   filter_maxAmount: (amount: string) => `Máx ${amount}`,
   filter_amountRange: (min: string, max: string) => `${min}–${max}`,
+  filter_sort: 'Ordenar',
+  filter_sort_newest: 'Más recientes',
+  filter_sort_oldest: 'Más antiguos',
+  filter_sort_highest: 'Mayor monto',
+  filter_sort_lowest: 'Menor monto',
+  filter_sort_updated: 'Última modificación',
+  filter_sort_name_asc: 'Nombre A-Z',
 
   // Filter sheet
   filterSheet_title: 'Filtros',

@@ -12,7 +12,7 @@ import CurrencyInput from '@/components/form/CurrencyInput';
 import FilterChip from '@/components/bills/FilterChip';
 import type { Id, Doc } from '@/convex/_generated/dataModel';
 import type { BillState } from '@/lib/billHelpers';
-import type { FilterState, DatePreset } from '@/lib/filters';
+import type { FilterState, DatePreset, SortOption } from '@/lib/filters';
 
 interface FilterSheetProps {
   visible: boolean;
@@ -99,8 +99,19 @@ function FilterSheet({
     custom: t.filterSheet_presetCustom,
   };
 
+  const SORT_OPTIONS: SortOption[] = ['newest', 'oldest', 'highest', 'lowest', 'updated', 'name_asc'];
+  const sortLabels: Record<SortOption, string> = {
+    newest: t.filter_sort_newest,
+    oldest: t.filter_sort_oldest,
+    highest: t.filter_sort_highest,
+    lowest: t.filter_sort_lowest,
+    updated: t.filter_sort_updated,
+    name_asc: t.filter_sort_name_asc,
+  };
+
   // Count active non-default filters for Apply button
   const activeCount = [
+    draft.sort !== 'newest',
     draft.contactIds.length > 0,
     draft.minAmount != null || draft.maxAmount != null,
     draft.state !== 'all',
@@ -129,6 +140,28 @@ function FilterSheet({
         </View>
 
         <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+          {/* Sort */}
+          <View className="mb-2 rounded-xl bg-muted/10 p-4">
+            <View className="mb-2.5 flex-row items-center gap-2">
+              <IconSymbol name="arrow.up.arrow.down" size={14} color={iconColors.muted} />
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t.filter_sort}
+              </Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-2">
+                {SORT_OPTIONS.map((opt) => (
+                  <FilterChip
+                    key={opt}
+                    label={sortLabels[opt]}
+                    isActive={draft.sort === opt}
+                    onPress={() => setDraft((f) => ({ ...f, sort: opt }))}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
           {/* Country */}
           <View className="mb-2 rounded-xl bg-muted/10 p-4">
             <View className="mb-2.5 flex-row items-center gap-2">

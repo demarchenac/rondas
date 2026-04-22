@@ -61,6 +61,13 @@ export const en = {
   filter_minAmount: (amount: string) => `Min ${amount}`,
   filter_maxAmount: (amount: string) => `Max ${amount}`,
   filter_amountRange: (min: string, max: string) => `${min}–${max}`,
+  filter_sort: 'Sort',
+  filter_sort_newest: 'Newest',
+  filter_sort_oldest: 'Oldest',
+  filter_sort_highest: 'Highest amount',
+  filter_sort_lowest: 'Lowest amount',
+  filter_sort_updated: 'Last modified',
+  filter_sort_name_asc: 'Name A-Z',
 
   // Filter sheet
   filterSheet_title: 'Filters',

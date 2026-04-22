@@ -5,9 +5,10 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import {
   defaultFilters,
   computeFromDate,
+  sortBills,
   type FilterState,
+  type ResolvedBill,
 } from '@/lib/filters';
-import type { ResolvedBill } from '@/lib/filters';
 
 export function useBillFilters(userId: string | undefined) {
   const { country: userCountry } = useSettingsStore();
@@ -63,16 +64,19 @@ export function useBillFilters(userId: string | undefined) {
   // adding name/phone/imageUri fields not present in generated Convex types.
   const bills: ResolvedBill[] = useMemo(() => {
     const all = (rawBills ?? []) as ResolvedBill[];
-    if (activeFilters.contactIds.length === 0) return all;
-    const ids = new Set(activeFilters.contactIds.map(String));
-    return all.filter((b) =>
-      b.contacts.some((c) => ids.has(String(c.contactId))),
-    );
-  }, [rawBills, activeFilters.contactIds]);
+    const filtered = activeFilters.contactIds.length === 0
+      ? all
+      : all.filter((b) => {
+          const ids = new Set(activeFilters.contactIds.map(String));
+          return b.contacts.some((c) => ids.has(String(c.contactId)));
+        });
+    return sortBills(filtered, activeFilters.sort);
+  }, [rawBills, activeFilters.contactIds, activeFilters.sort]);
 
   // Count filters that differ from defaults (powers badge + trash visibility)
   const defaults = defaultFilters(userCountry);
   const nonDefaultFilterCount = [
+    activeFilters.sort !== defaults.sort,
     activeFilters.country !== defaults.country,
     activeFilters.state !== defaults.state,
     activeFilters.contactIds.length > 0,

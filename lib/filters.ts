@@ -22,6 +22,7 @@ export type ResolvedBill = Omit<Doc<'bills'>, 'contacts'> & {
 // --- Filter types ---
 
 export type DatePreset = '1h' | '1d' | '7d' | '30d' | 'custom';
+export type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest' | 'updated' | 'name_asc';
 
 export interface FilterState {
   country: string;
@@ -32,6 +33,7 @@ export interface FilterState {
   datePreset: DatePreset;
   fromDate: number | null;
   toDate: number | null;
+  sort: SortOption;
 }
 
 const DATE_PRESET_OFFSETS: Record<Exclude<DatePreset, 'custom'>, number> = {
@@ -51,7 +53,21 @@ export function defaultFilters(userCountry: string): FilterState {
     datePreset: '7d',
     fromDate: Date.now() - DATE_PRESET_OFFSETS['7d'],
     toDate: null,
+    sort: 'newest',
   };
+}
+
+export function sortBills(bills: ResolvedBill[], sort: SortOption): ResolvedBill[] {
+  return [...bills].sort((a, b) => {
+    switch (sort) {
+      case 'newest': return b._creationTime - a._creationTime;
+      case 'oldest': return a._creationTime - b._creationTime;
+      case 'highest': return b.total - a.total;
+      case 'lowest': return a.total - b.total;
+      case 'updated': return (b.updatedAt ?? b._creationTime) - (a.updatedAt ?? a._creationTime);
+      case 'name_asc': return a.name.localeCompare(b.name);
+    }
+  });
 }
 
 export function computeFromDate(preset: DatePreset, customFrom: number | null): number | null {

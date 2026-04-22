@@ -17,7 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { IMAGE_QUALITY } from '@/constants/media';
 import type { Id } from '@/convex/_generated/dataModel';
-import type { ResolvedBill } from '@/lib/filters';
+import type { ResolvedBill, SortOption } from '@/lib/filters';
 import { defaultFilters } from '@/lib/filters';
 
 import { Text } from '@/components/ui/text';
@@ -219,6 +219,19 @@ export default function HomeScreen() {
   const appliedFilterChips = useMemo(() => {
     const chips: { key: string; label: string; isDefault: boolean }[] = [];
 
+    // Sort — only when non-default
+    if (activeFilters.sort !== defaults.sort) {
+      const sortLabels: Record<SortOption, string> = {
+        newest: t.filter_sort_newest,
+        oldest: t.filter_sort_oldest,
+        highest: t.filter_sort_highest,
+        lowest: t.filter_sort_lowest,
+        updated: t.filter_sort_updated,
+        name_asc: t.filter_sort_name_asc,
+      };
+      chips.push({ key: 'sort', label: `↕ ${sortLabels[activeFilters.sort]}`, isDefault: false });
+    }
+
     // Country — always
     const countryLabels: Record<string, string> = { CO: '🇨🇴 CO', US: '🇺🇸 US', all: '🌐 Int' };
     chips.push({ key: 'country', label: countryLabels[activeFilters.country] ?? activeFilters.country, isDefault: activeFilters.country === defaults.country });
@@ -264,6 +277,7 @@ export default function HomeScreen() {
   const dismissFilter = useCallback((key: string) => {
     setActiveFilters((f) => {
       switch (key) {
+        case 'sort': return { ...f, sort: defaults.sort };
         case 'country': return { ...f, country: defaults.country };
         case 'state': return { ...f, state: defaults.state };
         case 'contacts': return { ...f, contactIds: [] };
