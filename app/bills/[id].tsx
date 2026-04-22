@@ -812,7 +812,6 @@ export default function BillDetailScreen() {
               onConfirm={handleConfirmEqualSplit}
               onTogglePaid={handleTogglePaid}
               onRemoveContact={handleRemoveEqualContact}
-              onAddItem={handleAddItem}
             />
           </Animated.View>
         ) : (
@@ -953,7 +952,7 @@ export default function BillDetailScreen() {
         )}
 
         {/* Add Item button — always last */}
-        {!equalSplitMode && (
+        {(
           <View className="px-7 py-2">
             <Pressable
               onPress={handleAddItem}

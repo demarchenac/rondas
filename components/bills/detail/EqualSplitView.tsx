@@ -43,7 +43,6 @@ interface EqualSplitViewProps {
   onConfirm: () => void;
   onTogglePaid: (contactId: Id<'contacts'>) => void;
   onRemoveContact: (contactId: Id<'contacts'>) => void;
-  onAddItem: () => void;
 }
 
 function EqualSplitView({
@@ -59,7 +58,6 @@ function EqualSplitView({
   onConfirm,
   onTogglePaid,
   onRemoveContact,
-  onAddItem,
 }: EqualSplitViewProps) {
   const perPerson = Math.floor(total / numPeople);
   const remainder = total - perPerson * numPeople;

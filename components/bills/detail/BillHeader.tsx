@@ -58,7 +58,9 @@ function BillHeader({
   const handleOverflowPress = () => {
     const options: { label: string; action: () => void; destructive?: boolean }[] = [];
 
-    options.push({ label: t.bill_edit, action: onEdit });
+    if (splitStrategy !== 'equal') {
+      options.push({ label: t.bill_edit, action: onEdit });
+    }
 
     if (state !== 'draft' && splitStrategy !== 'equal' && onSplitEqually) {
       options.push({ label: t.bill_splitEqual, action: onSplitEqually });
