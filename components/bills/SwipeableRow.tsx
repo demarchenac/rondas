@@ -25,10 +25,11 @@ type SwipeState = 'idle' | 'reveal' | 'commit';
 interface SwipeableRowProps {
   onDelete: () => void;
   onSwipeStart?: () => void;
+  bgClassName?: string;
   children: React.ReactNode;
 }
 
-function SwipeableRow({ onDelete, onSwipeStart, children }: SwipeableRowProps) {
+function SwipeableRow({ onDelete, onSwipeStart, bgClassName, children }: SwipeableRowProps) {
   const t = useT();
   const translateX = useSharedValue(0);
   const startX = useSharedValue(0);
@@ -123,7 +124,7 @@ function SwipeableRow({ onDelete, onSwipeStart, children }: SwipeableRowProps) {
       </Animated.View>
 
       <GestureDetector gesture={pan}>
-        <Animated.View style={rowStyle} className="bg-background">
+        <Animated.View style={rowStyle} className={bgClassName ?? 'bg-background'}>
           {children}
         </Animated.View>
       </GestureDetector>

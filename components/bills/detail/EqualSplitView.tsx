@@ -77,12 +77,14 @@ function EqualSplitView({
   };
 
   const handleRemoveSlot = (index: number) => {
-    if (numPeople <= 2) return;
     const contact = contacts[index];
     if (contact) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onRemoveContact(contact.contactId);
+    } else if (numPeople > 2) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onNumPeopleChange(numPeople - 1);
     }
-    onNumPeopleChange(numPeople - 1);
   };
 
   const slots = Array.from({ length: numPeople }, (_, i) => contacts[i] ?? null);
@@ -133,7 +135,7 @@ function EqualSplitView({
         </Text>
         <View className="gap-1">
           {slots.map((contact, i) => (
-            <SwipeableRow key={contact ? String(contact.contactId) : `placeholder-${i}`} onDelete={() => handleRemoveSlot(i)}>
+            <SwipeableRow key={contact ? String(contact.contactId) : `placeholder-${i}`} onDelete={() => handleRemoveSlot(i)} bgClassName="bg-card">
               <View className="flex-row items-center gap-3 py-1.5">
                 {contact ? (
                   <>
