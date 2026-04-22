@@ -141,6 +141,7 @@ export async function handleCallback(code: string): Promise<User> {
   const data = await res.json();
   await SecureStore.deleteItemAsync(KEYS.PKCE);
 
+
   const session: StoredSession = {
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
