@@ -35,6 +35,7 @@ export const createUser = mutation({
     email: v.string(),
     name: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
+    authProvider: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -44,7 +45,10 @@ export const createUser = mutation({
 
     if (existing) return existing._id;
 
-    return await ctx.db.insert('users', args);
+    return await ctx.db.insert('users', {
+      ...args,
+      authProvider: args.authProvider ?? 'email_otp',
+    });
   },
 });
 
@@ -54,6 +58,7 @@ export const updateProfile = mutation({
     email: v.string(),
     name: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
+    authProvider: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -63,11 +68,19 @@ export const updateProfile = mutation({
 
     if (!existing) return;
 
-    await ctx.db.patch(existing._id, {
+    const patches: Record<string, unknown> = {
       email: args.email,
       name: args.name,
-      avatarUrl: args.avatarUrl,
-    });
+    };
+
+    if (args.authProvider && args.authProvider !== existing.authProvider) {
+      patches.authProvider = args.authProvider;
+      if (args.avatarUrl) patches.avatarUrl = args.avatarUrl;
+    } else {
+      patches.avatarUrl = args.avatarUrl;
+    }
+
+    await ctx.db.patch(existing._id, patches);
   },
 });
 

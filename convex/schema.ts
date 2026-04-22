@@ -17,6 +17,7 @@ export default defineSchema({
     email: v.string(),
     name: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
+    authProvider: v.optional(v.string()),
     config: v.optional(v.object({
       country: v.string(),
       usState: v.optional(v.string()),

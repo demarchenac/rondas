@@ -44,7 +44,17 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 async function syncAfterLogin(user: User): Promise<void> {
   const existing = await convex.query(api.users.getByWorkosId, { workosId: user.id });
 
+  const profileData = {
+    workosId: user.id,
+    email: user.email,
+    name: [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined,
+    avatarUrl: user.profilePictureUrl ?? undefined,
+    authProvider: user.authProvider,
+  };
+
   if (existing?.config) {
+    // Update profile (handles provider change + avatar overwrite)
+    await convex.mutation(api.users.updateProfile, profileData);
     // Load remote config into local stores
     const c = existing.config;
     const settings = useSettingsStore.getState();
@@ -58,12 +68,7 @@ async function syncAfterLogin(user: User): Promise<void> {
     settings.setHasCompletedSetup(true);
   } else {
     // Create user if doesn't exist (idempotent)
-    await convex.mutation(api.users.createUser, {
-      workosId: user.id,
-      email: user.email,
-      name: [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined,
-      avatarUrl: user.profilePictureUrl ?? undefined,
-    });
+    await convex.mutation(api.users.createUser, profileData);
     // hasCompletedSetup stays false → setup dialog will show
     useSettingsStore.getState().setHasCompletedSetup(false);
   }

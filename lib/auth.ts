@@ -21,6 +21,7 @@ export interface User {
   firstName: string | null;
   lastName: string | null;
   profilePictureUrl: string | null;
+  authProvider: string;
 }
 
 interface StoredSession {
@@ -91,13 +92,21 @@ export async function getSignInUrl(provider: string = 'authkit'): Promise<string
 
 // --- Token exchange ---
 
-function toUser(raw: Record<string, unknown>): User {
+function mapAuthProvider(method: string | undefined): string {
+  if (!method) return 'email_otp';
+  if (method.toLowerCase().includes('google')) return 'google';
+  if (method.toLowerCase().includes('apple')) return 'apple';
+  return 'email_otp';
+}
+
+function toUser(raw: Record<string, unknown>, authMethod?: string): User {
   return {
     id: raw.id as string,
     email: raw.email as string,
     firstName: (raw.first_name as string) ?? null,
     lastName: (raw.last_name as string) ?? null,
     profilePictureUrl: (raw.profile_picture_url as string) ?? null,
+    authProvider: mapAuthProvider(authMethod),
   };
 }
 
@@ -135,7 +144,7 @@ export async function handleCallback(code: string): Promise<User> {
   const session: StoredSession = {
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
-    user: toUser(data.user),
+    user: toUser(data.user, data.authentication_method),
   };
   await SecureStore.setItemAsync(KEYS.SESSION, JSON.stringify(session));
 
@@ -162,7 +171,7 @@ async function refreshSession(session: StoredSession): Promise<StoredSession | n
     const newSession: StoredSession = {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
-      user: toUser(data.user),
+      user: toUser(data.user, data.authentication_method ?? session.user.authProvider),
     };
     await SecureStore.setItemAsync(KEYS.SESSION, JSON.stringify(newSession));
     return newSession;

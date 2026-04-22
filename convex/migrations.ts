@@ -38,3 +38,20 @@ export const deduplicateAddresses = internalMutation({
     return { total: bills.length, updated };
   },
 });
+
+export const backfillAuthProvider = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').collect();
+    let updated = 0;
+
+    for (const user of users) {
+      if (!user.authProvider) {
+        await ctx.db.patch(user._id, { authProvider: 'email_otp' });
+        updated++;
+      }
+    }
+
+    return { total: users.length, updated };
+  },
+});
