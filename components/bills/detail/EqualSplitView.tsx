@@ -73,54 +73,70 @@ function EqualSplitItemEdit({
   const subtotal = qty * unitPrice;
 
   return (
-    <View className="rounded-xl border-l-[3px] border-l-primary bg-primary/5 px-4 py-3.5">
-      <View className="mb-3 flex-row items-center justify-between">
-        <Input
-          value={name}
-          onChangeText={setName}
-          className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-[15px] font-semibold shadow-none"
-          placeholder={t.scan_itemName}
-          autoFocus
-        />
-        <Pressable onPress={onCancel} className="ml-3 rounded-full bg-destructive/15 px-3 py-1">
-          <Text className="text-xs font-semibold text-destructive">{t.cancel}</Text>
-        </Pressable>
-      </View>
-      <View className="flex-row items-center gap-3">
-        <View className="flex-row items-center gap-1">
-          <Text className="text-xs uppercase text-muted-foreground">{t.scan_qty}</Text>
+    <View className="my-1 rounded-xl border border-primary/20 bg-primary/[0.04] p-4">
+      {/* Name input */}
+      <Input
+        value={name}
+        onChangeText={setName}
+        className="mb-3 h-10 rounded-lg border-border/40 bg-card text-[15px] font-semibold"
+        placeholder={t.scan_itemName}
+        autoFocus
+      />
+
+      {/* Quantity + Unit Price row */}
+      <View className="mb-3 flex-row gap-3">
+        <View className="w-20">
+          <Text className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {t.scan_qty}
+          </Text>
           <Input
             value={quantity}
             onChangeText={setQuantity}
             keyboardType="number-pad"
-            className="h-8 w-12 border-border/50 bg-card px-2 text-center text-sm"
+            className="h-10 rounded-lg border-border/40 bg-card text-center text-sm"
           />
         </View>
         <View className="flex-1">
-          <Text className="text-xs uppercase text-muted-foreground">{t.scan_unitPrice}</Text>
+          <Text className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {t.scan_unitPrice}
+          </Text>
           <CurrencyInput
             value={unitPrice}
             onChangeValue={setUnitPrice}
             country={billCountry}
-            className="h-8 border-border/50 bg-card px-2 text-sm"
+            className="h-10 rounded-lg border-border/40 bg-card px-3 text-sm"
           />
         </View>
-        <View className="items-end">
-          <Text className="text-xs uppercase text-muted-foreground">{t.scan_subtotal}</Text>
-          <Text className="text-sm font-semibold text-foreground">
+      </View>
+
+      {/* Subtotal + Actions */}
+      <View className="flex-row items-center justify-between">
+        <View>
+          <Text className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {t.scan_subtotal}
+          </Text>
+          <Text className="text-base font-bold tabular-nums text-foreground">
             {formatCurrency(subtotal, billCountry)}
           </Text>
         </View>
+        <View className="flex-row gap-2">
+          <Pressable
+            onPress={onCancel}
+            className="rounded-lg bg-muted px-4 py-2 active:opacity-80"
+          >
+            <Text className="text-sm font-semibold text-muted-foreground">{t.cancel}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onSubmit({ name, quantity: parseInt(quantity, 10) || 1, unitPrice });
+            }}
+            className="rounded-lg bg-primary px-4 py-2 active:opacity-80"
+          >
+            <Text className="text-sm font-semibold text-primary-foreground">{t.done}</Text>
+          </Pressable>
+        </View>
       </View>
-      <Pressable
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          onSubmit({ name, quantity: parseInt(quantity, 10) || 1, unitPrice });
-        }}
-        className="mt-3 items-center rounded-lg bg-primary/10 py-2"
-      >
-        <Text className="text-sm font-semibold text-primary">{t.done}</Text>
-      </Pressable>
     </View>
   );
 }
