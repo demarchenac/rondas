@@ -6,16 +6,18 @@ function Input({
   placeholderClassName,
   ...props
 }: TextInputProps & React.RefAttributes<TextInput> & { placeholderClassName?: string }) {
+  const isAndroid = Platform.OS === 'android';
   return (
     <TextInput
       className={cn(
-        'h-10 w-full rounded-md border border-input bg-background px-3 py-1 text-base text-foreground',
+        'w-full rounded-md border border-input bg-background px-3 text-base text-foreground',
+        isAndroid ? 'py-2.5' : 'h-10 py-1',
         props.editable === false && 'opacity-50',
         className
       )}
       placeholderClassName={cn('text-muted-foreground', placeholderClassName)}
       {...props}
-      {...(Platform.OS === 'android' && {
+      {...(isAndroid && {
         style: [props.style, { includeFontPadding: false, textAlignVertical: 'center' as const }],
       })}
     />

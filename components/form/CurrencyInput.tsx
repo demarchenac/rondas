@@ -16,6 +16,7 @@ interface CurrencyInputProps extends Omit<TextInputProps, 'value' | 'onChangeTex
  */
 function CurrencyInput({ value, onChangeValue, country, className, ...rest }: CurrencyInputProps) {
   const isCO = country === 'CO';
+  const isAndroid = Platform.OS === 'android';
 
   return (
     <RNCurrencyInput
@@ -30,8 +31,8 @@ function CurrencyInput({ value, onChangeValue, country, className, ...rest }: Cu
       keyboardType="number-pad"
       className={cn('text-foreground', className)}
       {...rest}
-      {...(Platform.OS === 'android' && {
-        style: [rest.style, { includeFontPadding: false, textAlignVertical: 'center' as const }],
+      {...(isAndroid && {
+        style: [rest.style, { includeFontPadding: false, textAlignVertical: 'center' as const, paddingVertical: 10 }],
       })}
     />
   );
