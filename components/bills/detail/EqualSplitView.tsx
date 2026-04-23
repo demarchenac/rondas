@@ -78,7 +78,7 @@ function EqualSplitItemEdit({
       <Input
         value={name}
         onChangeText={setName}
-        className="mb-3 h-10 rounded-lg border-border/40 bg-card text-[15px] font-semibold"
+        className="mb-3 h-10 rounded-lg border-border bg-card text-[15px] font-semibold"
         placeholder={t.scan_itemName}
         autoFocus
       />
@@ -93,7 +93,7 @@ function EqualSplitItemEdit({
             value={quantity}
             onChangeText={setQuantity}
             keyboardType="number-pad"
-            className="h-10 rounded-lg border-border/40 bg-card text-center text-sm"
+            className="h-10 rounded-lg border-border bg-card text-center text-sm"
           />
         </View>
         <View className="flex-1">
@@ -104,7 +104,7 @@ function EqualSplitItemEdit({
             value={unitPrice}
             onChangeValue={setUnitPrice}
             country={billCountry}
-            className="h-10 rounded-lg border-border/40 bg-card px-3 text-sm"
+            className="h-10 rounded-lg border-border bg-card px-3 text-sm"
           />
         </View>
       </View>
@@ -320,7 +320,7 @@ function EqualSplitView({
             <SwipeableRow key={itemId} onDelete={() => onRemoveItem(itemId)} bgClassName="bg-card">
               <Pressable
                 onPress={() => onItemPress(itemId)}
-                className={cn('flex-row items-center justify-between py-2 active:opacity-80', i < items.length - 1 && 'border-b border-border/40')}
+                className={cn('flex-row items-center justify-between py-2 active:opacity-80', i < items.length - 1 && 'border-b border-border')}
               >
                 <View className="flex-1 mr-2">
                   <Text className="text-sm text-foreground" numberOfLines={1}>{item.name || t.scan_itemName}</Text>
