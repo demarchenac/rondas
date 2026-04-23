@@ -93,7 +93,7 @@ function EqualSplitItemEdit({
             value={quantity}
             onChangeText={setQuantity}
             keyboardType="number-pad"
-            className="h-10 rounded-lg border-border bg-card text-center text-sm"
+            className="rounded-lg border-border bg-card text-center text-sm"
           />
         </View>
         <View className="flex-1">

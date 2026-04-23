@@ -113,7 +113,7 @@ function BillItemEditForm({
                 value={field.state.value}
                 onChangeText={field.handleChange}
                 onBlur={field.handleBlur}
-                className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
+                className="rounded-lg border-0 bg-muted px-3 text-sm font-medium shadow-none"
                 keyboardType="number-pad"
               />
             )}
@@ -128,7 +128,7 @@ function BillItemEditForm({
                 onChangeValue={(n) => field.handleChange(formatCurrency(n, billCountry))}
                 onBlur={field.handleBlur}
                 country={billCountry}
-                className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
+                className="rounded-lg border-0 bg-muted px-3 text-sm font-medium shadow-none"
               />
             )}
           </form.Field>
