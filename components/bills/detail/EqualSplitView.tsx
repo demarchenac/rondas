@@ -100,7 +100,7 @@ function EqualSplitItemEdit({
           <Text className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {t.scan_unitPrice}
           </Text>
-          <View className="justify-center rounded-lg border border-border bg-card px-3 py-2.5">
+          <View className="justify-center rounded-lg border border-border bg-card px-3">
             <CurrencyInput
               value={unitPrice}
               onChangeValue={setUnitPrice}
