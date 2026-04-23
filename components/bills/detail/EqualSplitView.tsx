@@ -100,14 +100,12 @@ function EqualSplitItemEdit({
           <Text className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {t.scan_unitPrice}
           </Text>
-          <View className={`justify-center rounded-lg border border-border bg-card px-3 ${Platform.OS === 'ios' ? 'h-10' : ''}`}>
-            <CurrencyInput
-              value={unitPrice}
-              onChangeValue={setUnitPrice}
-              country={billCountry}
-              className="text-sm"
-            />
-          </View>
+          <CurrencyInput
+            value={unitPrice}
+            onChangeValue={setUnitPrice}
+            country={billCountry}
+            className={`rounded-lg border border-border bg-card px-3 text-sm ${Platform.OS === 'ios' ? 'h-10' : ''}`}
+          />
         </View>
       </View>
 
