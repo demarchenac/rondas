@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { Image } from '@/lib/expo-image';
 import SwipeableRow from '@/components/bills/SwipeableRow';
 import { useForm } from '@tanstack/react-form';
@@ -113,7 +113,7 @@ function BillItemEditForm({
                 value={field.state.value}
                 onChangeText={field.handleChange}
                 onBlur={field.handleBlur}
-                className="rounded-lg border-0 bg-muted px-3 text-sm font-medium shadow-none"
+                className={`rounded-lg border-0 bg-muted px-3 text-sm font-medium shadow-none ${Platform.OS === 'ios' ? 'h-9' : ''}`}
                 keyboardType="number-pad"
               />
             )}
@@ -128,7 +128,7 @@ function BillItemEditForm({
                 onChangeValue={(n) => field.handleChange(formatCurrency(n, billCountry))}
                 onBlur={field.handleBlur}
                 country={billCountry}
-                className="rounded-lg border-0 bg-muted px-3 text-sm font-medium shadow-none"
+                className={`rounded-lg border-0 bg-muted px-3 text-sm font-medium shadow-none ${Platform.OS === 'ios' ? 'h-9' : ''}`}
               />
             )}
           </form.Field>

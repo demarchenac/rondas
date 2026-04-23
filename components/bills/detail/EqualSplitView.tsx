@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Text } from '@/components/ui/text';
@@ -78,7 +78,7 @@ function EqualSplitItemEdit({
       <Input
         value={name}
         onChangeText={setName}
-        className="mb-3 rounded-lg border-border bg-card text-[15px] font-semibold"
+        className={`mb-3 rounded-lg border-border bg-card text-[15px] font-semibold ${Platform.OS === 'ios' ? 'h-10' : ''}`}
         placeholder={t.scan_itemName}
         autoFocus
       />
@@ -93,14 +93,14 @@ function EqualSplitItemEdit({
             value={quantity}
             onChangeText={setQuantity}
             keyboardType="number-pad"
-            className="rounded-lg border-border bg-card text-center text-sm"
+            className={`rounded-lg border-border bg-card text-center text-sm ${Platform.OS === 'ios' ? 'h-10' : ''}`}
           />
         </View>
         <View className="flex-1">
           <Text className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {t.scan_unitPrice}
           </Text>
-          <View className="justify-center rounded-lg border border-border bg-card px-3">
+          <View className={`justify-center rounded-lg border border-border bg-card px-3 ${Platform.OS === 'ios' ? 'h-10' : ''}`}>
             <CurrencyInput
               value={unitPrice}
               onChangeValue={setUnitPrice}
