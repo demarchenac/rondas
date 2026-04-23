@@ -68,6 +68,7 @@ const MAPPING = {
   'person.badge.plus': 'person-add',
   'mappin': 'place',
   'clock': 'schedule',
+  'person.crop.circle.badge.checkmark': 'how-to-reg',
 } as IconMapping;
 
 /**
