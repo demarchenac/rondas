@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from './text';
 import { cn } from '@/lib/cn';
 
@@ -45,6 +46,7 @@ export function useCustomAlert(): CustomAlertContextValue {
 }
 
 export function CustomAlertProvider({ children }: { children: React.ReactNode }) {
+  const insets = useSafeAreaInsets();
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
   const [sheetConfig, setSheetConfig] = useState<ActionSheetConfig | null>(null);
   const callbacksRef = useRef<AlertButton[]>([]);
@@ -206,6 +208,7 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
                   <Pressable
                     onPress={() => handleSheetOption(sheetConfig.cancelButtonIndex!)}
                     className="mx-4 mb-4 items-center rounded-2xl border border-border bg-card py-4 active:bg-muted/50"
+                    style={{ marginBottom: insets.bottom + 16 }}
                   >
                     <Text className="text-base font-semibold text-muted-foreground">
                       {sheetConfig.options[sheetConfig.cancelButtonIndex]}

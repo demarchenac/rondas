@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, View, Pressable, ScrollView } from 'react-native';
+import { Modal, Platform, View, Pressable, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -34,6 +35,7 @@ function UnassignPickerSheet({
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { alert } = useCustomAlert();
+  const insets = useSafeAreaInsets();
 
   const contactsOnSelected = contacts.filter((c) =>
     c.items.some((itemId) => selectedItemIds.has(itemId))
@@ -46,7 +48,7 @@ function UnassignPickerSheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-background pt-3" style={{ paddingBottom: bottomInset }}>
+      <View className="flex-1 bg-background pt-3" style={{ paddingBottom: bottomInset, ...(Platform.OS === 'android' && { paddingTop: insets.top }) }}>
         <View className="items-center pb-2">
           <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
         </View>

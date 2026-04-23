@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, View, Pressable, TextInput } from 'react-native';
+import { ActivityIndicator, Modal, Platform, View, Pressable, TextInput } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from '@/lib/expo-image';
 import * as Haptics from 'expo-haptics';
@@ -43,6 +44,7 @@ function ContactPickerSheet({
   const t = useT();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
 
   // Local search state — avoids re-rendering 660-line parent on every keystroke
   const [search, setSearch] = useState('');
@@ -197,7 +199,7 @@ function ContactPickerSheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-background pt-3" style={{ paddingBottom: bottomInset }}>
+      <View className="flex-1 bg-background pt-3" style={{ paddingBottom: bottomInset, ...(Platform.OS === 'android' && { paddingTop: insets.top }) }}>
         <View className="items-center pb-2">
           <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
         </View>

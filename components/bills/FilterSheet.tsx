@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Modal, View, Pressable, ScrollView, TextInput } from 'react-native';
+import { Modal, Platform, View, Pressable, ScrollView, TextInput } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -46,6 +47,8 @@ function FilterSheet({
   const t = useT();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
+  const isAndroid = Platform.OS === 'android';
 
   const [draft, setDraft] = useState<FilterState>(filters);
   const [contactSearch, setContactSearch] = useState('');
@@ -125,7 +128,7 @@ function FilterSheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-background pt-3">
+      <View className="flex-1 bg-background pt-3" style={isAndroid ? { paddingTop: insets.top } : undefined}>
         {/* Handle */}
         <View className="items-center pb-2">
           <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
@@ -371,7 +374,7 @@ function FilterSheet({
         </ScrollView>
 
         {/* Footer */}
-        <View className="flex-row gap-3 border-t border-border/20 px-7 pb-8 pt-3">
+        <View className="flex-row gap-3 border-t border-border/20 px-7 pb-8 pt-3" style={isAndroid ? { paddingBottom: insets.bottom + 32 } : undefined}>
           <Pressable
             onPress={() => {
               onClear();
