@@ -36,7 +36,7 @@ import EqualSplitView from '@/components/bills/detail/EqualSplitView';
 import TipDialog from '@/components/bills/TipDialog';
 import CountryDialog from '@/components/bills/CountryDialog';
 import BulkToolbar from '@/components/bills/BulkToolbar';
-import ContactPickerSheet, { SUGGESTED_PREFIX } from '@/components/bills/ContactPickerSheet';
+import ContactPickerSheet, { SUGGESTED_PREFIX, SELF_PREFIX } from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import BillShareSheet from '@/components/bills/BillShareSheet';
 
@@ -58,6 +58,7 @@ export default function BillDetailScreen() {
 
   const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
   const suggestedContacts = useQuery(api.contacts.suggested, userId ? { userId } : 'skip');
+  const selfContact = useQuery(api.contacts.getSelf, userId ? { userId } : 'skip');
   const updateBill = useMutation(api.bills.update);
   const removeContact = useMutation(api.bills.removeContactFromItem);
   const togglePaid = useMutation(api.bills.togglePaymentStatus);
@@ -119,6 +120,16 @@ export default function BillDetailScreen() {
 
     return phones.size > 0 ? phones : undefined;
   }, [singleAssignItemId, selectedItemIds, bill, equalSplitMode]);
+
+  const excludeSelf = useMemo(() => {
+    if (!bill) return false;
+    if (equalSplitMode) {
+      return bill.contacts.some((c) => c.isSelf);
+    }
+    const targetItemId = singleAssignItemId ?? (selectedItemIds.size === 1 ? Array.from(selectedItemIds)[0] : null);
+    if (!targetItemId) return false;
+    return bill.contacts.some((c) => c.isSelf && c.items.includes(targetItemId));
+  }, [bill, equalSplitMode, singleAssignItemId, selectedItemIds]);
 
   // --- Callbacks ---
 
@@ -233,10 +244,16 @@ export default function BillDetailScreen() {
     try {
       for (const selectedId of selectedContactIds) {
         let name: string;
-        let phone: string;
+        let phone: string | undefined;
         let imageUri: string | undefined;
+        let isSelf: boolean | undefined;
 
-        if (selectedId.startsWith(SUGGESTED_PREFIX)) {
+        if (selectedId.startsWith(SELF_PREFIX)) {
+          if (!selfContact) continue;
+          name = selfContact.name;
+          imageUri = selfContact.imageUri;
+          isSelf = true;
+        } else if (selectedId.startsWith(SUGGESTED_PREFIX)) {
           const convexId = selectedId.slice(SUGGESTED_PREFIX.length);
           const sc = allSuggested.find((c) => c._id === convexId);
           if (!sc) continue;
@@ -255,7 +272,7 @@ export default function BillDetailScreen() {
           id: id as Id<'bills'>,
           userId,
           itemIds,
-          contact: { name, phone, imageUri },
+          contact: { name, phone, isSelf, imageUri },
         });
       }
 
@@ -269,7 +286,7 @@ export default function BillDetailScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       alert(t.error, t.error_mutationFailed);
     }
-  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, suggestedContacts, bill, id, assignContactToItems, t, userId, alert]);
+  }, [selectedContactIds, selectedItemIds, singleAssignItemId, phoneContacts, suggestedContacts, selfContact, bill, id, assignContactToItems, t, userId, alert]);
 
   const handleBulkDelete = useCallback(() => {
     if (selectedItemIds.size === 0 || !bill || !userId) return;
@@ -479,15 +496,15 @@ export default function BillDetailScreen() {
     loadContacts();
   }, [ensureContactPermission, loadContacts]);
 
-  const handleRemoveEqualContact = useCallback(async (contactId: Id<'contacts'>) => {
+  const handleRemoveEqualContact = useCallback(async (contactId: Id<'contacts'>, overrideNumPeople?: number) => {
     if (!bill || !userId) return;
     try {
       const remaining = bill.contacts.filter((c) => c.contactId !== contactId);
       await assignEqualSplit({
         id: id as Id<'bills'>,
         userId,
-        numPeople: Math.max(2, numPeople),
-        contacts: remaining.map((c) => ({ name: c.name, phone: c.phone ?? '', imageUri: c.imageUri })),
+        numPeople: Math.max(2, overrideNumPeople ?? numPeople),
+        contacts: remaining.map((c) => ({ name: c.name, phone: c.phone, isSelf: c.isSelf || undefined, imageUri: c.imageUri })),
       });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch {
@@ -495,8 +512,10 @@ export default function BillDetailScreen() {
     }
   }, [bill, userId, id, numPeople, assignEqualSplit, t, alert]);
 
+  const numPeopleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleNumPeopleChange = useCallback((n: number) => {
-    if (!bill) return;
+    if (!bill || !userId) return;
     if (n < numPeople && bill.contacts.length > n) {
       const contactToRemove = bill.contacts[bill.contacts.length - 1];
       alert(
@@ -509,7 +528,7 @@ export default function BillDetailScreen() {
             style: 'destructive',
             onPress: () => {
               setNumPeople(n);
-              handleRemoveEqualContact(contactToRemove.contactId);
+              handleRemoveEqualContact(contactToRemove.contactId, n);
             },
           },
         ],
@@ -517,14 +536,28 @@ export default function BillDetailScreen() {
       return;
     }
     setNumPeople(n);
-  }, [bill, numPeople, t, alert, handleRemoveEqualContact]);
+    if (numPeopleDebounceRef.current) clearTimeout(numPeopleDebounceRef.current);
+    numPeopleDebounceRef.current = setTimeout(() => {
+      if (bill.contacts.length > 0) {
+        const contactArgs = bill.contacts.map((c) => ({
+          name: c.name,
+          phone: c.phone,
+          isSelf: c.isSelf || undefined,
+          imageUri: c.imageUri,
+        }));
+        assignEqualSplit({ id: id as Id<'bills'>, userId, numPeople: n, contacts: contactArgs });
+      } else {
+        updateBill({ id: id as Id<'bills'>, userId, numPeople: n });
+      }
+    }, 500);
+  }, [bill, numPeople, t, alert, handleRemoveEqualContact, id, userId, updateBill, assignEqualSplit]);
 
   const handleConfirmEqualSplit = useCallback(async () => {
     if (!bill || !userId) return;
-    // Build contact args from bill's current contacts
     const contactArgs = bill.contacts.map((c) => ({
       name: c.name,
-      phone: c.phone ?? '',
+      phone: c.phone,
+      isSelf: c.isSelf || undefined,
       imageUri: c.imageUri,
     }));
     try {
@@ -550,20 +583,20 @@ export default function BillDetailScreen() {
       ...(suggestedContacts?.recent ?? []),
     ];
 
-    const contactArgs: { name: string; phone: string; imageUri?: string }[] = [];
+    const contactArgs: { name: string; phone?: string; isSelf?: boolean; imageUri?: string }[] = [];
 
-    // Include existing contacts from bill
     for (const c of bill.contacts) {
-      contactArgs.push({ name: c.name, phone: c.phone ?? '', imageUri: c.imageUri });
+      contactArgs.push({ name: c.name, phone: c.phone, isSelf: c.isSelf || undefined, imageUri: c.imageUri });
     }
 
-    // Add newly selected contacts
     for (const selectedId of selectedContactIds) {
-      if (selectedId.startsWith(SUGGESTED_PREFIX)) {
+      if (selectedId.startsWith(SELF_PREFIX)) {
+        if (!selfContact || contactArgs.some((ca) => ca.isSelf)) continue;
+        contactArgs.push({ name: selfContact.name, isSelf: true, imageUri: selfContact.imageUri });
+      } else if (selectedId.startsWith(SUGGESTED_PREFIX)) {
         const convexId = selectedId.slice(SUGGESTED_PREFIX.length);
         const sc = allSuggested.find((c) => c._id === convexId);
         if (!sc) continue;
-        // Skip if already in bill contacts
         if (contactArgs.some((ca) => ca.phone === sc.phone)) continue;
         contactArgs.push({ name: sc.name, phone: sc.phone, imageUri: sc.imageUri });
       } else {
@@ -590,7 +623,7 @@ export default function BillDetailScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       alert(t.error, t.error_mutationFailed);
     }
-  }, [selectedContactIds, bill, userId, suggestedContacts, phoneContacts, id, numPeople, assignEqualSplit, t, alert]);
+  }, [selectedContactIds, bill, userId, suggestedContacts, selfContact, phoneContacts, id, numPeople, assignEqualSplit, t, alert]);
 
   const handleSendWhatsApp = useCallback(async (contact: { name: string; phone?: string; items: string[]; amount: number }) => {
     if (!bill || !contact.phone) {
@@ -713,23 +746,22 @@ export default function BillDetailScreen() {
   const totalItems = bill.items.length;
   const totalContacts = bill.contacts.length;
   const isEqualSplit = bill.splitStrategy === 'equal';
+  const paidContactCount = bill.contacts.filter((c) => c.paid).length;
 
-  let assignedPercent: number;
-  let paidOfAssigned: number;
+  let paidPercent: number;
+  let unpaidPercent: number;
 
-  if (isEqualSplit) {
-    const target = bill.numPeople ?? numPeople;
-    assignedPercent = target > 0 ? Math.min((totalContacts / target) * 100, 100) : 0;
-    const paidAmount = bill.contacts.filter((c) => c.paid).reduce((sum, c) => sum + c.amount, 0);
-    paidOfAssigned = bill.total > 0 ? (paidAmount / bill.total) * assignedPercent : 0;
+  if (isEqualSplit || equalSplitMode) {
+    const target = equalSplitMode ? numPeople : (bill.numPeople ?? numPeople);
+    paidPercent = target > 0 ? (paidContactCount / target) * 100 : 0;
+    unpaidPercent = target > 0 ? ((totalContacts - paidContactCount) / target) * 100 : 0;
   } else {
     const assignedItemIds = new Set(bill.contacts.flatMap((c) => c.items));
-    assignedPercent = totalItems > 0 ? (assignedItemIds.size / totalItems) * 100 : 0;
-    const paidContacts = bill.contacts.filter((c) => c.paid).length;
-    paidOfAssigned = totalContacts > 0 ? (paidContacts / totalContacts) * assignedPercent : 0;
+    const assignedPercent = totalItems > 0 ? (assignedItemIds.size / totalItems) * 100 : 0;
+    const paidProportion = totalContacts > 0 ? paidContactCount / totalContacts : 0;
+    paidPercent = assignedPercent * paidProportion;
+    unpaidPercent = assignedPercent - paidPercent;
   }
-
-  const unpaidOfAssigned = assignedPercent - paidOfAssigned;
 
   const animate = shouldAnimate.current;
   if (shouldAnimate.current) shouldAnimate.current = false;
@@ -744,9 +776,9 @@ export default function BillDetailScreen() {
           billName={bill.name}
           state={bill.state}
           stateLabel={stateLabel}
-          completionPercent={assignedPercent}
-          paidPercent={paidOfAssigned}
-          unpaidPercent={unpaidOfAssigned}
+          completionPercent={paidPercent}
+          paidPercent={paidPercent}
+          unpaidPercent={unpaidPercent}
           stateTextClass={stateStyle.textClass}
           hasContacts={totalContacts > 0}
           splitStrategy={equalSplitMode ? 'equal' : bill.splitStrategy}
@@ -873,6 +905,7 @@ export default function BillDetailScreen() {
               contacts={bill.contacts}
               billItems={bill.items}
               billCountry={billCountry}
+              splitStrategy={bill.splitStrategy}
               taxConfig={taxConfig}
               tipPercent={tipPercent}
               iconColors={iconColors}
@@ -996,8 +1029,10 @@ export default function BillDetailScreen() {
         visible={activeDialog === 'contactPicker'}
         phoneContacts={phoneContacts}
         suggestedContacts={suggestedContacts ?? undefined}
+        selfContact={selfContact}
         selectedContactIds={selectedContactIds}
         excludePhones={excludePhones}
+        excludeSelf={excludeSelf}
         maxSelectable={equalSplitMode ? numPeople - bill.contacts.length : undefined}
         bottomInset={insets.bottom}
         onToggleContact={handleToggleContactSelection}

@@ -23,6 +23,7 @@ interface BillItem {
 
 interface AssignedContact {
   contactId: Id<'contacts'>;
+  isSelf?: boolean;
   name: string;
   phone?: string;
   imageUri?: string;
@@ -268,7 +269,7 @@ function BillItemCard({
                       'text-[11px] font-medium',
                       c.paid ? 'text-emerald-500' : 'text-primary',
                     )}>
-                      {c.name}
+                      {c.isSelf ? t.self_label(c.name) : c.name}
                     </Text>
                   </Pressable>
                 ))}

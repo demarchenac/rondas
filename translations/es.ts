@@ -253,6 +253,8 @@ export const es: typeof en = {
   share_button: (n: number) => `${n} ${n === 1 ? 'persona' : 'personas'} · Compartir y pagar`,
   share_paid: 'Pagado',
   share_unpaid: 'Pendiente',
+  people_owes: (amount: string) => `Debe ${amount}`,
+  people_isOwed: (amount: string) => `Le deben ${amount}`,
   share_whatsapp: 'WhatsApp',
   share_share: 'Compartir',
   share_itemCount: (n: number) => n === 1 ? '1 ítem' : `${n} ítems`,
@@ -266,6 +268,8 @@ export const es: typeof en = {
   contactPicker_frequent: 'Frecuentes',
   contactPicker_recent: 'Recientes',
   contactPicker_allContacts: 'Todos los contactos',
+  contactPicker_you: 'Tú',
+  self_label: (name: string) => `${name} (Yo)`,
 
   // Unassign picker
   unassignPicker_title: 'Quitar contactos',

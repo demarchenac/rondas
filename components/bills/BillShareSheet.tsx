@@ -174,7 +174,7 @@ function BillShareSheet({
                         </View>
                       )}
                       <View>
-                        <Text className="text-base font-semibold text-foreground">{contact.name}</Text>
+                        <Text className="text-base font-semibold text-foreground">{contact.isSelf ? t.self_label(contact.name) : contact.name}</Text>
                         <Text className="text-xs text-muted-foreground">
                           {isEqualSplit
                             ? t.share_equalPerPerson(formatCurrency(contactTotal, billCountry), bill.contacts.length)
@@ -245,7 +245,7 @@ function BillShareSheet({
                       </Text>
                     </Pressable>
 
-                    {contact.phone && (
+                    {contact.phone && !contact.isSelf && (
                       <Pressable
                         onPress={() => onSendWhatsApp(contact)}
                         className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border bg-green-500/15 border-green-500/30"

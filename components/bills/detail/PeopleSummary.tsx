@@ -14,6 +14,7 @@ import { useProGate } from '@/hooks/useProGate';
 
 interface ResolvedContact {
   contactId: Id<'contacts'>;
+  isSelf?: boolean;
   name: string;
   phone?: string;
   imageUri?: string;
@@ -34,6 +35,7 @@ interface PeopleSummaryProps {
   contacts: ResolvedContact[];
   billItems: BillItem[];
   billCountry: string;
+  splitStrategy?: string;
   taxConfig: TaxConfig;
   tipPercent: number;
   iconColors: Record<string, string>;
@@ -45,6 +47,7 @@ function PeopleSummary({
   contacts,
   billItems,
   billCountry,
+  splitStrategy,
   taxConfig,
   tipPercent,
   iconColors,
@@ -55,12 +58,19 @@ function PeopleSummary({
   const paidCount = contacts.filter((c) => c.paid).length;
   const allPaid = paidCount === contacts.length;
 
+  const isEqualSplit = splitStrategy === 'equal';
+
   const contactTotals = useMemo(() => {
-    return contacts.map((c) => ({
+    const withTotals = contacts.map((c) => ({
       ...c,
-      total: computeContactTotal(c, billItems, contacts, taxConfig, tipPercent),
+      total: isEqualSplit ? c.amount : computeContactTotal(c, billItems, contacts, taxConfig, tipPercent),
     }));
-  }, [contacts, billItems, taxConfig, tipPercent]);
+    return withTotals.sort((a, b) => {
+      if (a.isSelf) return -1;
+      if (b.isSelf) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [contacts, billItems, taxConfig, tipPercent, isEqualSplit]);
 
   const handleToggle = (contactId: Id<'contacts'>) => {
     if (!unlocked) {
@@ -115,7 +125,7 @@ function PeopleSummary({
             <View className="flex-row items-center gap-2">
               <Avatar name={c.name} imageUri={c.imageUri} size="sm" />
               <Text className="flex-1 text-xs font-semibold text-foreground" numberOfLines={1}>
-                {c.name}
+                {c.isSelf ? t.self_label(c.name) : c.name}
               </Text>
               <IconSymbol
                 name={c.paid ? 'checkmark.circle.fill' : 'circle'}
@@ -123,14 +133,16 @@ function PeopleSummary({
                 color={c.paid ? '#10b981' : iconColors.mutedLight}
               />
             </View>
-            {/* Row 2: Amount · Item count */}
+            {/* Row 2: Amount · debt context */}
             <View className="mt-1 flex-row items-center gap-1">
               <Text className="text-xs font-bold tabular-nums text-foreground">
                 {formatCurrency(c.total, billCountry)}
               </Text>
               <Text className="text-[11px] text-muted-foreground">·</Text>
-              <Text className="text-[11px] text-muted-foreground">
-                {t.people_items(c.items.length)}
+              <Text className={cn('text-[11px]', c.paid ? 'text-emerald-500' : 'text-amber-500')}>
+                {c.paid
+                  ? (paidCount < contacts.length ? t.people_isOwed(formatCurrency(c.total, billCountry)) : t.share_paid)
+                  : t.people_owes(formatCurrency(c.total, billCountry))}
               </Text>
             </View>
           </Pressable>

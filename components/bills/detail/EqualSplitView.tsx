@@ -24,6 +24,7 @@ interface BillItem {
 
 interface ResolvedContact {
   contactId: Id<'contacts'>;
+  isSelf?: boolean;
   name: string;
   phone?: string;
   imageUri?: string;
@@ -240,7 +241,7 @@ function EqualSplitView({
                   <>
                     <Avatar name={contact.name} imageUri={contact.imageUri} size="md" />
                     <Text className="flex-1 text-sm font-medium text-foreground" numberOfLines={1}>
-                      {contact.name}
+                      {contact.isSelf ? t.self_label(contact.name) : contact.name}
                     </Text>
                     <Text className="text-sm font-semibold tabular-nums text-foreground">
                       {formatCurrency(i === 0 ? perPerson + remainder : perPerson, billCountry)}
@@ -261,7 +262,7 @@ function EqualSplitView({
                     </Pressable>
                   </>
                 ) : (
-                  <>
+                  <Pressable onPress={onAssignContacts} className="flex-1 flex-row items-center gap-3 active:opacity-80">
                     <View className="h-9 w-9 items-center justify-center rounded-full border border-dashed border-muted-foreground/30">
                       <IconSymbol name="person.crop.circle" size={16} color={iconColors.muted} />
                     </View>
@@ -271,7 +272,7 @@ function EqualSplitView({
                     <Text className="text-sm tabular-nums text-muted-foreground">
                       {formatCurrency(i === 0 ? perPerson + remainder : perPerson, billCountry)}
                     </Text>
-                  </>
+                  </Pressable>
                 )}
               </View>
             </SwipeableRow>
@@ -291,11 +292,6 @@ function EqualSplitView({
                   : t.contactPicker_title}
               </Text>
             </View>
-          </Button>
-        )}
-        {contacts.length > 0 && (
-          <Button onPress={onConfirm}>
-            <Text className="text-sm font-bold text-primary-foreground">{t.bill_equalConfirm}</Text>
           </Button>
         )}
       </Animated.View>

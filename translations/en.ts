@@ -251,6 +251,8 @@ export const en = {
   share_button: (n: number) => `${n} ${n === 1 ? 'person' : 'people'} · Share & Pay`,
   share_paid: 'Paid',
   share_unpaid: 'Unpaid',
+  people_owes: (amount: string) => `Owes ${amount}`,
+  people_isOwed: (amount: string) => `Owed ${amount}`,
   share_whatsapp: 'WhatsApp',
   share_share: 'Share',
   share_itemCount: (n: number) => n === 1 ? '1 item' : `${n} items`,
@@ -264,6 +266,8 @@ export const en = {
   contactPicker_frequent: 'Frequent',
   contactPicker_recent: 'Recent',
   contactPicker_allContacts: 'All Contacts',
+  contactPicker_you: 'You',
+  self_label: (name: string) => `${name} (Me)`,
 
   // Unassign picker
   unassignPicker_title: 'Remove Contacts',

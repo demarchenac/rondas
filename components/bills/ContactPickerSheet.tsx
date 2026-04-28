@@ -13,6 +13,7 @@ import type * as Contacts from 'expo-contacts';
 import type { Doc } from '@/convex/_generated/dataModel';
 
 export const SUGGESTED_PREFIX = 'suggested:';
+export const SELF_PREFIX = 'self:';
 
 type PhoneContact = Contacts.Contact & { id: string };
 
@@ -20,8 +21,10 @@ interface ContactPickerSheetProps {
   visible: boolean;
   phoneContacts: PhoneContact[];
   suggestedContacts?: { frequent: Doc<'contacts'>[]; recent: Doc<'contacts'>[] };
+  selfContact?: Doc<'contacts'> | null;
   selectedContactIds: Set<string>;
   excludePhones?: Set<string>;
+  excludeSelf?: boolean;
   maxSelectable?: number;
   bottomInset: number;
   onToggleContact: (contactId: string) => void;
@@ -33,8 +36,10 @@ function ContactPickerSheet({
   visible,
   phoneContacts,
   suggestedContacts,
+  selfContact,
   selectedContactIds,
   excludePhones,
+  excludeSelf,
   maxSelectable,
   bottomInset,
   onToggleContact,
@@ -154,11 +159,54 @@ function ContactPickerSheet({
     );
   }, [selectedContactIds, onToggleContact, iconColors, atCapacity]);
 
+  const showSelf = !search && selfContact && !excludeSelf;
+
+  const renderSelfContact = useCallback(() => {
+    if (!selfContact) return null;
+    const key = `${SELF_PREFIX}${selfContact._id}`;
+    const isSelected = selectedContactIds.has(key);
+    const disabled = !isSelected && atCapacity;
+    return (
+      <Pressable
+        key={key}
+        onPress={() => { if (disabled) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onToggleContact(key); }}
+        className={`flex-row items-center py-2.5 gap-3 ${disabled ? 'opacity-40' : ''}`}
+      >
+        <IconSymbol
+          name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+          size={22}
+          color={isSelected ? iconColors.primary : iconColors.muted}
+        />
+        {selfContact.imageUri ? (
+          <Image source={{ uri: selfContact.imageUri }} className="w-9 h-9 rounded-full" />
+        ) : (
+          <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
+            <Text className="text-sm font-bold text-primary">
+              {(selfContact.name[0] ?? '?').toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View className="flex-1">
+          <Text className="text-sm font-medium text-foreground">{t.self_label(selfContact.name)}</Text>
+        </View>
+      </Pressable>
+    );
+  }, [selfContact, selectedContactIds, onToggleContact, iconColors, atCapacity, t]);
+
   const listHeader = useMemo(() => {
-    if (!hasSuggested) return null;
+    const hasContent = showSelf || hasSuggested;
+    if (!hasContent) return null;
     return (
       <View className="px-7">
-        {filteredSuggested!.frequent.length > 0 && (
+        {showSelf && (
+          <View className="mb-2">
+            <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t.contactPicker_you}
+            </Text>
+            {renderSelfContact()}
+          </View>
+        )}
+        {hasSuggested && filteredSuggested!.frequent.length > 0 && (
           <View className="mb-2">
             <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t.contactPicker_frequent}
@@ -166,7 +214,7 @@ function ContactPickerSheet({
             {filteredSuggested!.frequent.map(renderSuggestedContact)}
           </View>
         )}
-        {filteredSuggested!.recent.length > 0 && (
+        {hasSuggested && filteredSuggested!.recent.length > 0 && (
           <View className="mb-2">
             <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t.contactPicker_recent}
@@ -179,7 +227,7 @@ function ContactPickerSheet({
         </Text>
       </View>
     );
-  }, [hasSuggested, filteredSuggested, renderSuggestedContact, t]);
+  }, [showSelf, hasSuggested, filteredSuggested, renderSelfContact, renderSuggestedContact, t]);
 
   const listEmpty = useMemo(() => {
     if (phoneContacts.length === 0) {
