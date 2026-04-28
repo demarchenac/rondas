@@ -4,6 +4,7 @@ import type { BillState } from '@/lib/billHelpers';
 /** Contact reference as stored in bills (schema) + resolved fields from contacts table (query join) */
 export interface ResolvedContact {
   contactId: Id<'contacts'>;
+  isSelf?: boolean;
   items: string[];
   amount: number;
   paid: boolean;

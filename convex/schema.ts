@@ -69,9 +69,10 @@ export default defineSchema({
   contacts: defineTable({
     userId: v.string(),
     name: v.string(),
-    phone: v.string(),
+    phone: v.optional(v.string()),
     email: v.optional(v.string()),
     imageUri: v.optional(v.string()),
+    isSelf: v.optional(v.boolean()),
     referenceCount: v.number(),
     lastReferencedAt: v.number(),
   })

@@ -20,6 +20,7 @@ function assertMaxLength(value: string, max: number, field: string) {
 
 type ContactRef = {
   contactId: Id<'contacts'>;
+  isSelf?: boolean;
   items: string[];
   amount: number;
   paid: boolean;
@@ -38,6 +39,7 @@ async function resolveContacts(
       const contact = await ctx.db.get(ref.contactId);
       return {
         ...ref,
+        isSelf: ref.isSelf ?? contact?.isSelf,
         name: contact?.name ?? 'Unknown',
         phone: contact?.phone,
         email: contact?.email,
@@ -137,10 +139,11 @@ export const billFilterOptions = query({
     // If no active bills, reset to sensible defaults
     if (activeBillCount === 0) { minTotal = 0; maxTotal = 0; }
 
-    const contacts = await ctx.db
+    const allContacts = await ctx.db
       .query('contacts')
       .withIndex('by_user', (q) => q.eq('userId', args.userId))
       .collect();
+    const contacts = allContacts.filter((c) => !c.isSelf);
 
     return { billsByState, activeBillCount, contacts, minTotal, maxTotal };
   },
@@ -241,9 +244,8 @@ export const remove = mutation({
     if (!bill) throw new Error('Bill not found');
     if (bill.userId !== args.userId) throw new Error('Not authorized');
 
-    // Decrement reference counts for all contacts on this bill
     for (const ref of bill.contacts) {
-      await decrementReference(ctx, ref.contactId);
+      if (!ref.isSelf) await decrementReference(ctx, ref.contactId);
     }
 
     await ctx.db.delete(args.id);
@@ -262,6 +264,7 @@ export const update = mutation({
     tipPercent: v.optional(v.number()),
     useCustomTip: v.optional(v.boolean()),
     country: v.optional(v.string()),
+    numPeople: v.optional(v.number()),
     items: v.optional(v.array(billItemValidator)),
   },
   handler: async (ctx, args) => {
@@ -330,6 +333,7 @@ export const assignContactToItem = mutation({
 
     const contactId = await getOrCreate(ctx, args.userId, args.contact);
     const contacts = [...bill.contacts];
+    const selfFlag = args.contact.isSelf ? true : undefined;
 
     const idx = contacts.findIndex((c) => c.contactId === contactId);
     const isNewOnBill = idx < 0;
@@ -338,10 +342,10 @@ export const assignContactToItem = mutation({
         contacts[idx] = { ...contacts[idx], items: [...contacts[idx].items, args.itemId] };
       }
     } else {
-      contacts.push({ contactId, items: [args.itemId], amount: 0, paid: false });
+      contacts.push({ contactId, isSelf: selfFlag, items: [args.itemId], amount: 0, paid: false });
     }
 
-    if (isNewOnBill) await incrementReference(ctx, contactId);
+    if (isNewOnBill && !selfFlag) await incrementReference(ctx, contactId);
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated, 'by_item');
@@ -365,6 +369,7 @@ export const assignContactToItems = mutation({
 
     const contactId = await getOrCreate(ctx, args.userId, args.contact);
     const contacts = [...bill.contacts];
+    const selfFlag = args.contact.isSelf ? true : undefined;
 
     const idx = contacts.findIndex((c) => c.contactId === contactId);
     const isNewOnBill = idx < 0;
@@ -373,10 +378,10 @@ export const assignContactToItems = mutation({
       for (const itemId of args.itemIds) existingItems.add(itemId);
       contacts[idx] = { ...contacts[idx], items: Array.from(existingItems) };
     } else {
-      contacts.push({ contactId, items: [...args.itemIds], amount: 0, paid: false });
+      contacts.push({ contactId, isSelf: selfFlag, items: [...args.itemIds], amount: 0, paid: false });
     }
 
-    if (isNewOnBill) await incrementReference(ctx, contactId);
+    if (isNewOnBill && !selfFlag) await incrementReference(ctx, contactId);
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated, 'by_item');
@@ -403,8 +408,9 @@ export const removeContactFromItem = mutation({
 
     const newItems = contacts[idx].items.filter((i) => i !== args.itemId);
     if (newItems.length === 0) {
+      const wasSelf = contacts[idx].isSelf;
       contacts.splice(idx, 1);
-      await decrementReference(ctx, args.contactId);
+      if (!wasSelf) await decrementReference(ctx, args.contactId);
     } else {
       contacts[idx] = { ...contacts[idx], items: newItems };
     }
@@ -438,9 +444,8 @@ export const removeContactsFromItems = mutation({
       }))
       .filter((c) => c.items.length > 0);
 
-    // Decrement reference for contacts fully removed
     for (const ref of bill.contacts) {
-      if (!contacts.some((c) => c.contactId === ref.contactId)) {
+      if (!ref.isSelf && !contacts.some((c) => c.contactId === ref.contactId)) {
         await decrementReference(ctx, ref.contactId);
       }
     }
@@ -495,17 +500,19 @@ export const assignEqualSplit = mutation({
     const perPerson = Math.floor(bill.total / args.numPeople);
     const remainder = bill.total - perPerson * args.numPeople;
 
-    // Decrement refs for any previously assigned contacts being replaced
     for (const ref of bill.contacts) {
-      await decrementReference(ctx, ref.contactId);
+      if (!ref.isSelf) await decrementReference(ctx, ref.contactId);
     }
 
     const contacts: ContactRef[] = [];
     for (let i = 0; i < args.contacts.length; i++) {
-      const contactId = await getOrCreate(ctx, args.userId, args.contacts[i]);
-      await incrementReference(ctx, contactId);
+      const c = args.contacts[i];
+      const contactId = await getOrCreate(ctx, args.userId, c);
+      const selfFlag = c.isSelf ? true : undefined;
+      if (!selfFlag) await incrementReference(ctx, contactId);
       contacts.push({
         contactId,
+        isSelf: selfFlag,
         items: [],
         amount: i === 0 ? perPerson + remainder : perPerson,
         paid: false,
@@ -540,9 +547,8 @@ export const clearSplitAssignments = mutation({
     if (!bill) throw new Error('Bill not found');
     if (bill.userId !== args.userId) throw new Error('Not authorized');
 
-    // Decrement refs for all contacts
     for (const ref of bill.contacts) {
-      await decrementReference(ctx, ref.contactId);
+      if (!ref.isSelf) await decrementReference(ctx, ref.contactId);
     }
 
     await ctx.db.patch(args.id, {

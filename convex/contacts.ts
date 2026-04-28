@@ -12,8 +12,14 @@ import type { Id } from './_generated/dataModel';
 export async function getOrCreate(
   ctx: MutationCtx,
   userId: string,
-  contact: { name: string; phone: string; imageUri?: string },
+  contact: { name: string; phone?: string; isSelf?: boolean; imageUri?: string },
 ): Promise<Id<'contacts'>> {
+  if (contact.isSelf) {
+    return getOrCreateSelf(ctx, userId, { name: contact.name, imageUri: contact.imageUri });
+  }
+
+  if (!contact.phone) throw new Error('Phone is required for non-self contacts');
+
   const existing = await ctx.db
     .query('contacts')
     .withIndex('by_user_phone', (q) =>
@@ -22,7 +28,6 @@ export async function getOrCreate(
     .unique();
 
   if (existing) {
-    // Update name/imageUri if changed (contact info may have been updated on device)
     if (existing.name !== contact.name || existing.imageUri !== contact.imageUri) {
       await ctx.db.patch(existing._id, {
         name: contact.name,
@@ -38,6 +43,38 @@ export async function getOrCreate(
     phone: contact.phone,
     email: undefined,
     imageUri: contact.imageUri,
+    referenceCount: 0,
+    lastReferencedAt: Date.now(),
+  });
+}
+
+export async function getOrCreateSelf(
+  ctx: MutationCtx,
+  userId: string,
+  profile: { name?: string; imageUri?: string },
+): Promise<Id<'contacts'>> {
+  const all = await ctx.db
+    .query('contacts')
+    .withIndex('by_user', (q) => q.eq('userId', userId))
+    .collect();
+  const existing = all.find((c) => c.isSelf === true);
+
+  if (existing) {
+    const patches: Record<string, unknown> = {};
+    if (profile.name && profile.name !== existing.name) patches.name = profile.name;
+    if (profile.imageUri !== undefined && profile.imageUri !== existing.imageUri) patches.imageUri = profile.imageUri;
+    if (Object.keys(patches).length > 0) {
+      await ctx.db.patch(existing._id, patches);
+    }
+    return existing._id;
+  }
+
+  return await ctx.db.insert('contacts', {
+    userId,
+    name: profile.name ?? 'Me',
+    isSelf: true,
+    email: undefined,
+    imageUri: profile.imageUri,
     referenceCount: 0,
     lastReferencedAt: Date.now(),
   });
@@ -72,10 +109,22 @@ export async function decrementReference(
 export const list = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const all = await ctx.db
       .query('contacts')
       .withIndex('by_user', (q) => q.eq('userId', args.userId))
       .collect();
+    return all.filter((c) => !c.isSelf);
+  },
+});
+
+export const getSelf = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const all = await ctx.db
+      .query('contacts')
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .collect();
+    return all.find((c) => c.isSelf === true) ?? null;
   },
 });
 
@@ -87,8 +136,7 @@ export const suggested = query({
       .withIndex('by_user', (q) => q.eq('userId', args.userId))
       .collect();
 
-    // Only contacts that have been referenced at least once
-    const referenced = all.filter((c) => c.referenceCount > 0);
+    const referenced = all.filter((c) => c.referenceCount > 0 && !c.isSelf);
 
     const frequent = [...referenced]
       .sort((a, b) => b.referenceCount - a.referenceCount)
@@ -127,6 +175,7 @@ export const syncFromDevice = mutation({
 
     let updated = 0;
     for (const contact of allContacts) {
+      if (contact.isSelf || !contact.phone) continue;
       const device = deviceByPhone.get(contact.phone);
       if (!device) continue;
 
@@ -141,6 +190,17 @@ export const syncFromDevice = mutation({
     }
 
     return { updated };
+  },
+});
+
+export const syncSelfContact = mutation({
+  args: {
+    userId: v.string(),
+    name: v.optional(v.string()),
+    imageUri: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await getOrCreateSelf(ctx, args.userId, { name: args.name, imageUri: args.imageUri });
   },
 });
 

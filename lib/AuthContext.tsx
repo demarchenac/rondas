@@ -53,9 +53,12 @@ async function syncAfterLogin(user: User): Promise<void> {
   };
 
   if (existing?.config) {
-    // Update profile (handles provider change + avatar overwrite)
     await convex.mutation(api.users.updateProfile, profileData);
-    // Load remote config into local stores
+    await convex.mutation(api.contacts.syncSelfContact, {
+      userId: user.id,
+      name: profileData.name,
+      imageUri: profileData.avatarUrl,
+    });
     const c = existing.config;
     const settings = useSettingsStore.getState();
     settings.setCountry(c.country as 'CO' | 'US');
@@ -67,9 +70,12 @@ async function syncAfterLogin(user: User): Promise<void> {
     useThemeStore.getState().setMode(c.theme as 'light' | 'dark' | 'system');
     settings.setHasCompletedSetup(true);
   } else {
-    // Create user if doesn't exist (idempotent)
     await convex.mutation(api.users.createUser, profileData);
-    // hasCompletedSetup stays false → setup dialog will show
+    await convex.mutation(api.contacts.syncSelfContact, {
+      userId: user.id,
+      name: profileData.name,
+      imageUri: profileData.avatarUrl,
+    });
     useSettingsStore.getState().setHasCompletedSetup(false);
   }
 }

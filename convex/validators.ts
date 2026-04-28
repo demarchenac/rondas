@@ -28,6 +28,7 @@ export const billItemValidator = v.object({
 
 export const billContactRefValidator = v.object({
   contactId: v.id('contacts'),
+  isSelf: v.optional(v.boolean()),
   items: v.array(v.string()),
   amount: v.number(),
   paid: v.boolean(),
@@ -62,6 +63,7 @@ export const scanResultValidator = v.object({
 
 export const contactArgValidator = v.object({
   name: v.string(),
-  phone: v.string(),
+  phone: v.optional(v.string()),
+  isSelf: v.optional(v.boolean()),
   imageUri: v.optional(v.string()),
 });
