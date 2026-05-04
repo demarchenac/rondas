@@ -99,15 +99,9 @@ export function getSuggestedTip(country: Country, category: ReceiptCategory, sub
   return Math.round(subtotal * config.suggestedTip);
 }
 
-/**
- * Extract the tax amount from a tax-inclusive total.
- * When tax is included in item prices: base = total / (1 + rate), tax = base * rate
- * When tax is separate: returns the tax amount directly.
- */
 export function computeTax(amount: number, taxConfig: TaxConfig): number {
-  if (!taxConfig.taxIncluded) return 0;
-  const base = amount / (1 + taxConfig.taxRate);
-  return Math.round(base * taxConfig.taxRate);
+  const base = computeBase(amount, taxConfig);
+  return base * taxConfig.taxRate;
 }
 
 /**
@@ -117,5 +111,17 @@ export function computeTax(amount: number, taxConfig: TaxConfig): number {
  */
 export function computeBase(amount: number, taxConfig: TaxConfig): number {
   if (!taxConfig.taxIncluded) return amount;
-  return Math.round(amount / (1 + taxConfig.taxRate));
+  return amount / (1 + taxConfig.taxRate);
+}
+
+export function withTaxIncludedOverride(config: TaxConfig, override?: boolean): TaxConfig {
+  if (override === undefined || override === config.taxIncluded) return config;
+  return {
+    ...config,
+    taxIncluded: override,
+    taxLabel: config.taxLabel.replace(
+      override ? '(separate)' : '(included)',
+      override ? '(included)' : '(separate)',
+    ),
+  };
 }

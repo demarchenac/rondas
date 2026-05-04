@@ -7,16 +7,14 @@ interface CurrencyInputProps extends Omit<TextInputProps, 'value' | 'onChangeTex
   value: number;
   onChangeValue: (n: number) => void;
   country: string;
+  decimalPlaces?: number;
   className?: string;
 }
 
-/**
- * Currency input with live formatting using react-native-currency-input.
- * Configures delimiters per country (CO: dot thousands, US: comma thousands).
- */
-function CurrencyInput({ value, onChangeValue, country, className, ...rest }: CurrencyInputProps) {
+function CurrencyInput({ value, onChangeValue, country, decimalPlaces, className, ...rest }: CurrencyInputProps) {
   const isCO = country === 'CO';
   const isAndroid = Platform.OS === 'android';
+  const precision = decimalPlaces ?? (isCO ? 0 : 2);
 
   return (
     <RNCurrencyInput
@@ -26,9 +24,9 @@ function CurrencyInput({ value, onChangeValue, country, className, ...rest }: Cu
       suffix={isCO ? ' COP' : ' USD'}
       delimiter={isCO ? '.' : ','}
       separator={isCO ? ',' : '.'}
-      precision={0}
+      precision={precision}
       minValue={0}
-      keyboardType="number-pad"
+      keyboardType={precision > 0 ? 'decimal-pad' : 'number-pad'}
       className={cn('text-foreground', className)}
       {...rest}
       {...(isAndroid && {

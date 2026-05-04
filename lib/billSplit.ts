@@ -12,7 +12,7 @@ interface ContactRef {
 /**
  * Compute what a single contact owes on a bill.
  * Splits shared items evenly among all contacts assigned to that item,
- * then applies tax and tip proportionally.
+ * then applies discount, tax and tip proportionally.
  */
 export function computeContactTotal(
   contact: { items: string[] },
@@ -20,16 +20,21 @@ export function computeContactTotal(
   allContacts: ContactRef[],
   taxConfig: TaxConfig,
   tipPercent: number,
+  positiveTotal: number,
+  discountTotal: number,
 ): number {
-  const itemsTotal = contact.items.reduce((sum, itemId) => {
+  const contactItemsTotal = contact.items.reduce((sum, itemId) => {
     const item = billItems.find((i) => i.id === itemId);
     if (!item) return sum;
     const splitCount = allContacts.filter((c) => c.items.includes(itemId)).length;
     return sum + Math.round(item.subtotal / Math.max(splitCount, 1));
   }, 0);
 
-  const base = computeBase(itemsTotal, taxConfig);
-  const tax = taxConfig.taxIncluded ? computeTax(itemsTotal, taxConfig) : 0;
-  const tip = Math.round(base * (tipPercent / 100));
+  const share = positiveTotal > 0 ? contactItemsTotal / positiveTotal : 0;
+  const withDiscount = contactItemsTotal + Math.round(discountTotal * share);
+
+  const base = computeBase(withDiscount, taxConfig);
+  const tax = computeTax(withDiscount, taxConfig);
+  const tip = base * (tipPercent / 100);
   return base + tax + tip;
 }

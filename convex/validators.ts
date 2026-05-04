@@ -59,6 +59,7 @@ export const scanResultValidator = v.object({
   tax: v.number(),
   tip: v.number(),
   total: v.number(),
+  decimalPlaces: v.optional(v.number()),
 });
 
 export const contactArgValidator = v.object({

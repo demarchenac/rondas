@@ -174,6 +174,8 @@ export const create = mutation({
     ),
     category: v.optional(categoryValidator),
     country: v.optional(v.string()),
+    taxIncludedOverride: v.optional(v.boolean()),
+    decimalPlaces: v.optional(v.number()),
     photoTakenAt: v.optional(v.string()),
     location: v.optional(locationValidator),
     isPro: v.optional(v.boolean()),
@@ -221,7 +223,7 @@ export const create = mutation({
     const billId = await ctx.db.insert('bills', {
       ...insertArgs,
       items,
-      state: 'draft',
+      state: 'unsplit',
       contacts: [],
       createdAt: now,
       updatedAt: now,
@@ -264,6 +266,7 @@ export const update = mutation({
     tipPercent: v.optional(v.number()),
     useCustomTip: v.optional(v.boolean()),
     country: v.optional(v.string()),
+    taxIncludedOverride: v.optional(v.boolean()),
     numPeople: v.optional(v.number()),
     items: v.optional(v.array(billItemValidator)),
   },
@@ -304,7 +307,8 @@ export const update = mutation({
     }
 
     const itemsTotal = newItems.reduce((sum, i) => sum + i.subtotal, 0);
-    const isTaxIncluded = billCountry === 'CO';
+    const overrideVal = (defined.taxIncludedOverride as boolean | undefined) ?? bill.taxIncludedOverride;
+    const isTaxIncluded = overrideVal !== undefined ? overrideVal : billCountry === 'CO';
     const newTotal = isTaxIncluded ? itemsTotal + newTip : itemsTotal + newTax + newTip;
 
     await ctx.db.patch(id, {
@@ -586,7 +590,9 @@ function recalculateAmounts(
   tax: number,
   tip: number,
 ): ContactRef[] {
-  const itemsTotal = items.reduce((sum, i) => sum + i.subtotal, 0);
+  const positiveTotal = items.reduce((sum, i) => sum + Math.max(0, i.subtotal), 0);
+  const discountTotal = items.reduce((sum, i) => sum + Math.min(0, i.subtotal), 0);
+  const itemsTotal = positiveTotal + discountTotal;
 
   for (const contact of contacts) {
     contact.items = contact.items.filter((itemId) => items.some((i) => i.id === itemId));
@@ -598,8 +604,8 @@ function recalculateAmounts(
       return sum + item.subtotal / numContacts;
     }, 0);
 
-    const share = itemsTotal > 0 ? contactItemsTotal / itemsTotal : 0;
-    contact.amount = Math.round(contactItemsTotal + tax * share + tip * share);
+    const share = positiveTotal > 0 ? contactItemsTotal / positiveTotal : 0;
+    contact.amount = Math.round(contactItemsTotal + discountTotal * share + tax * share + tip * share);
   }
 
   const active = contacts.filter((c) => c.items.length > 0);
