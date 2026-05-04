@@ -109,7 +109,9 @@ export const es: typeof en = {
 
   // Tax labels
   tax_impoconsumo: 'Impoconsumo (incluido)',
+  tax_impoconsumoSeparate: 'Impoconsumo (separado)',
   tax_iva: 'IVA (incluido)',
+  tax_ivaSeparate: 'IVA (separado)',
   tax_salesTax: 'Impuesto de venta',
 
   // Settings
@@ -137,6 +139,13 @@ export const es: typeof en = {
   settings_captureLocationInfo: 'Etiqueta las facturas con tu ubicación o la del lugar desde los datos GPS de la foto',
   settings_syncContacts: 'Sincronizar contactos',
   settings_syncContactsInfo: 'Actualiza la info de contactos desde tu dispositivo al abrir la app',
+  settings_taxSection: 'Impuestos',
+  settings_impoconsumoIncluded: 'Impoconsumo (8%)',
+  settings_impoconsumoIncludedInfo: 'Cuando está activo, los precios de comida ya incluyen el 8% de impoconsumo',
+  settings_ivaIncluded: 'IVA (19%)',
+  settings_ivaIncludedInfo: 'Cuando está activo, los precios de comercio/servicio ya incluyen el 19% de IVA',
+  settings_taxIncludedHint: 'Incluido en precios',
+  settings_taxSeparateHint: 'Calculado aparte',
   settings_account: 'Cuenta',
   settings_signOut: 'Cerrar sesión',
   settings_signOutConfirm: '¿Estás seguro de que quieres cerrar sesión?',

@@ -43,7 +43,9 @@ export default function SettingsScreen() {
   const { mode, setMode } = useThemeStore();
   const {
     extractPhotoTime, useLocation, syncContacts, country, usState, defaultTipPercent, language,
+    impoconsumoIncluded, ivaIncluded,
     setExtractPhotoTime, setUseLocation, setSyncContacts, setCountry, setUsState, setDefaultTipPercent, setLanguage,
+    setImpoconsumoIncluded, setIvaIncluded,
   } = useSettingsStore();
   const { user, signOut } = useAuth();
   const t = useT();
@@ -102,6 +104,8 @@ export default function SettingsScreen() {
         theme: ts.mode,
         extractPhotoTime: s.extractPhotoTime,
         useLocation: s.useLocation,
+        impoconsumoIncluded: s.impoconsumoIncluded,
+        ivaIncluded: s.ivaIncluded,
       },
     }).catch(() => {}); // fire-and-forget
   }, [user, updateConfigMutation]);
@@ -133,6 +137,8 @@ export default function SettingsScreen() {
   const handleExtractPhotoTimeChange = useCallback((v: boolean) => { setExtractPhotoTime(v); syncConfig(); }, [setExtractPhotoTime, syncConfig]);
   const handleUseLocationChange = useCallback((v: boolean) => { setUseLocation(v); syncConfig(); }, [setUseLocation, syncConfig]);
   const handleSyncContactsChange = useCallback((v: boolean) => { setSyncContacts(v); syncConfig(); }, [setSyncContacts, syncConfig]);
+  const handleImpoconsumoChange = useCallback((v: boolean) => { setImpoconsumoIncluded(v); syncConfig(); }, [setImpoconsumoIncluded, syncConfig]);
+  const handleIvaChange = useCallback((v: boolean) => { setIvaIncluded(v); syncConfig(); }, [setIvaIncluded, syncConfig]);
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
@@ -332,6 +338,48 @@ export default function SettingsScreen() {
             <TipSelector value={defaultTipPercent} onSelect={handleTipChange} />
           </View>
         </SettingsSection>
+
+        {/* Taxes (CO only) */}
+        {country === 'CO' && (
+          <SettingsSection title={t.settings_taxSection}>
+            <SettingsRow
+              icon="percent"
+              iconColor={iconColors.accent}
+              label={t.settings_impoconsumoIncluded}
+              info={t.settings_impoconsumoIncludedInfo}
+            >
+              <View className="items-end">
+                <Switch
+                  value={impoconsumoIncluded}
+                  onValueChange={handleImpoconsumoChange}
+                  trackColor={{ false: '#263354', true: '#38bdf8' }}
+                  thumbColor="#fff"
+                />
+                <Text className="mt-0.5 text-[10px] text-muted-foreground">
+                  {impoconsumoIncluded ? t.settings_taxIncludedHint : t.settings_taxSeparateHint}
+                </Text>
+              </View>
+            </SettingsRow>
+            <SettingsRow
+              icon="percent"
+              iconColor={iconColors.accent}
+              label={t.settings_ivaIncluded}
+              info={t.settings_ivaIncludedInfo}
+            >
+              <View className="items-end">
+                <Switch
+                  value={ivaIncluded}
+                  onValueChange={handleIvaChange}
+                  trackColor={{ false: '#263354', true: '#38bdf8' }}
+                  thumbColor="#fff"
+                />
+                <Text className="mt-0.5 text-[10px] text-muted-foreground">
+                  {ivaIncluded ? t.settings_taxIncludedHint : t.settings_taxSeparateHint}
+                </Text>
+              </View>
+            </SettingsRow>
+          </SettingsSection>
+        )}
 
         {/* Scanning */}
         <SettingsSection title={t.settings_scanning}>

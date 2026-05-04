@@ -1,5 +1,5 @@
 import { formatCurrency } from '@/lib/format';
-import { computeBase, computeTax, getTaxConfig, type Country, type ReceiptCategory } from '@/constants/taxes';
+import { computeBase, computeTax, type Country, type TaxConfig } from '@/constants/taxes';
 import { getTaxLabel } from '@/lib/billHelpers';
 import type { Translations } from '@/lib/i18n';
 
@@ -27,12 +27,11 @@ interface ContactData {
 export function buildWhatsAppMessage(params: {
   bill: BillData;
   contact: ContactData;
+  taxConfig: TaxConfig;
   t: Translations;
 }): string {
-  const { bill, contact, t } = params;
+  const { bill, contact, taxConfig, t } = params;
   const billCountry: Country = (bill.country as Country) || 'CO';
-  const billCategory: ReceiptCategory = (bill.category as ReceiptCategory) || 'dining';
-  const taxConfig = getTaxConfig(billCountry, billCategory);
   const tipPercent = bill.tipPercent ?? 0;
   const translatedTax = getTaxLabel(taxConfig, t);
   const sep = '─────────────';

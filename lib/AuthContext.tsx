@@ -67,6 +67,8 @@ async function syncAfterLogin(user: User): Promise<void> {
     settings.setLanguage(c.language as 'en' | 'es');
     settings.setExtractPhotoTime(c.extractPhotoTime);
     settings.setUseLocation(c.useLocation);
+    if (c.impoconsumoIncluded !== undefined) settings.setImpoconsumoIncluded(c.impoconsumoIncluded);
+    if (c.ivaIncluded !== undefined) settings.setIvaIncluded(c.ivaIncluded);
     useThemeStore.getState().setMode(c.theme as 'light' | 'dark' | 'system');
     settings.setHasCompletedSetup(true);
   } else {

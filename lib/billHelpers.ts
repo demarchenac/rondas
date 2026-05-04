@@ -29,7 +29,9 @@ export function stateLabel(t: Translations, state: BillState): string {
 
 const TAX_LABEL_MAP: Record<string, keyof Translations> = {
   'Impoconsumo (included)': 'tax_impoconsumo',
+  'Impoconsumo (separate)': 'tax_impoconsumoSeparate',
   'IVA (included)': 'tax_iva',
+  'IVA (separate)': 'tax_ivaSeparate',
   'Sales Tax': 'tax_salesTax',
 };
 

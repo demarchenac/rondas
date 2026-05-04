@@ -28,6 +28,7 @@ import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
 import { formatCurrency } from '@/lib/format';
+import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride } from '@/constants/taxes';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useT } from '@/lib/i18n';
 import BillCard from '@/components/bills/BillCard';
@@ -312,8 +313,8 @@ export default function HomeScreen() {
                   </View>
                 )}
                 {isPro && (
-                  <View className="absolute bottom-0 right-0 h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-pro">
-                    <IconSymbol name="crown.fill" size={10} color="#fff" />
+                  <View className="absolute -bottom-0.5 -right-0.5 h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-background bg-pro">
+                    <IconSymbol name="crown.fill" size={8} color="#fff" />
                   </View>
                 )}
               </Pressable>
@@ -323,11 +324,20 @@ export default function HomeScreen() {
                 </Text>
                 <View className="mt-1 flex-row items-center gap-3">
                   <Text className="text-xs text-muted-foreground">
-                    {t.home_billCount(activeBillCount)}
+                    {t.home_billCount(bills.length)}
                   </Text>
                   {bills.length > 0 && (
                     <Text className="text-xs font-semibold text-foreground">
-                      {formatCurrency(bills.reduce((sum, b) => sum + b.total, 0), country)}
+                      {formatCurrency(bills.reduce((sum, b) => {
+                        const bc = (b.country as 'CO' | 'US') || 'CO';
+                        const cat = (b.category as 'dining' | 'retail' | 'service') || 'dining';
+                        const tc = withTaxIncludedOverride(getTaxConfig(bc, cat), b.taxIncludedOverride ?? undefined);
+                        const items = b.items.reduce((s, i) => s + i.subtotal, 0);
+                        const base = computeBase(items, tc);
+                        const tax = computeTax(items, tc);
+                        const tip = b.useCustomTip ? (b.tip ?? 0) : base * ((b.tipPercent ?? 0) / 100);
+                        return sum + base + tax + tip;
+                      }, 0), country)}
                     </Text>
                   )}
                 </View>

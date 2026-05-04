@@ -18,6 +18,8 @@ interface SettingsState {
   country: Country;
   usState: string;
   defaultTipPercent: number;
+  impoconsumoIncluded: boolean;
+  ivaIncluded: boolean;
   setHasCompletedSetup: (value: boolean) => void;
   setLanguage: (value: Language) => void;
   setExtractPhotoTime: (value: boolean) => void;
@@ -26,6 +28,8 @@ interface SettingsState {
   setCountry: (value: Country) => void;
   setUsState: (value: string) => void;
   setDefaultTipPercent: (value: number) => void;
+  setImpoconsumoIncluded: (value: boolean) => void;
+  setIvaIncluded: (value: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -39,6 +43,8 @@ export const useSettingsStore = create<SettingsState>()(
       country: 'CO',
       usState: 'FL',
       defaultTipPercent: 10,
+      impoconsumoIncluded: true,
+      ivaIncluded: true,
       setHasCompletedSetup: (value) => set({ hasCompletedSetup: value }),
       setLanguage: (value) => set({ language: value }),
       setExtractPhotoTime: (value) => set({ extractPhotoTime: value }),
@@ -47,11 +53,13 @@ export const useSettingsStore = create<SettingsState>()(
       setCountry: (value) => set({ country: value }),
       setUsState: (value) => set({ usState: value }),
       setDefaultTipPercent: (value) => set({ defaultTipPercent: value }),
+      setImpoconsumoIncluded: (value) => set({ impoconsumoIncluded: value }),
+      setIvaIncluded: (value) => set({ ivaIncluded: value }),
     }),
     {
       name: 'settings-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 2,
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Record<string, unknown>;
         if (version === 0) {
@@ -59,7 +67,12 @@ export const useSettingsStore = create<SettingsState>()(
             ...state,
             hasCompletedSetup: true,
             language: (state.language as Language) ?? deviceLanguage,
+            impoconsumoIncluded: true,
+            ivaIncluded: true,
           };
+        }
+        if (version === 1) {
+          return { ...state, impoconsumoIncluded: true, ivaIncluded: true };
         }
         return state;
       },

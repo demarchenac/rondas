@@ -107,7 +107,9 @@ export const en = {
 
   // Tax labels
   tax_impoconsumo: 'Impoconsumo (included)',
+  tax_impoconsumoSeparate: 'Impoconsumo (separate)',
   tax_iva: 'IVA (included)',
+  tax_ivaSeparate: 'IVA (separate)',
   tax_salesTax: 'Sales Tax',
 
   // Settings
@@ -135,6 +137,13 @@ export const en = {
   settings_captureLocationInfo: "Tags bills with your location or the venue from the photo's GPS data",
   settings_syncContacts: 'Sync contacts',
   settings_syncContactsInfo: 'Updates contact info from your device when the app opens',
+  settings_taxSection: 'Taxes',
+  settings_impoconsumoIncluded: 'Impoconsumo (8%)',
+  settings_impoconsumoIncludedInfo: 'When enabled, dining item prices already include the 8% consumption tax',
+  settings_ivaIncluded: 'IVA (19%)',
+  settings_ivaIncludedInfo: 'When enabled, retail/service item prices already include the 19% value-added tax',
+  settings_taxIncludedHint: 'Included in prices',
+  settings_taxSeparateHint: 'Added separately',
   settings_account: 'Account',
   settings_signOut: 'Sign Out',
   settings_signOutConfirm: 'Are you sure you want to sign out?',

@@ -9,6 +9,8 @@ const configValidator = v.object({
   theme: v.string(),
   extractPhotoTime: v.boolean(),
   useLocation: v.boolean(),
+  impoconsumoIncluded: v.optional(v.boolean()),
+  ivaIncluded: v.optional(v.boolean()),
 });
 
 export const count = query({
