@@ -1,10 +1,8 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { formatCurrency } from '@/lib/format';
-import { useBufferedInput } from '@/hooks/useBufferedInput';
-import CurrencyInput from '@/components/form/CurrencyInput';
 import type { TaxConfig } from '@/constants/taxes';
 import type { Translations } from '@/lib/i18n';
 
@@ -21,8 +19,11 @@ interface BillSummaryCardProps {
   taxConfig: TaxConfig;
   iconColors: Record<string, string>;
   t: Translations;
+  showTaxToggle?: boolean;
+  taxIncluded?: boolean;
+  onToggleTaxIncluded?: () => void;
+  decimalPlaces?: number;
   onTipPress: () => void;
-  onUpdateTax: (value: string) => void;
 }
 
 function BillSummaryCard({
@@ -38,10 +39,12 @@ function BillSummaryCard({
   taxConfig,
   iconColors,
   t,
+  showTaxToggle,
+  taxIncluded,
+  decimalPlaces,
+  onToggleTaxIncluded,
   onTipPress,
-  onUpdateTax,
 }: BillSummaryCardProps) {
-  const taxInput = useBufferedInput(String(computedTax), (v) => onUpdateTax(v));
 
   return (
     <View className="mx-7 mt-4 overflow-hidden rounded-xl bg-card">
@@ -49,28 +52,37 @@ function BillSummaryCard({
       <View className="flex-row items-center justify-between px-4 py-3">
         <Text className="text-sm text-muted-foreground">{t.bill_subtotal}</Text>
         <Text className="text-sm font-semibold tabular-nums text-foreground">
-          {formatCurrency(base, billCountry)}
+          {formatCurrency(base, billCountry, decimalPlaces)}
         </Text>
       </View>
       <View className="mx-4 h-px bg-border/30" />
 
       {/* Tax */}
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <Text className="text-sm text-muted-foreground">{translatedTaxLabel}</Text>
-        {taxConfig.taxIncluded ? (
+      <View className="px-4 py-3">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-sm text-muted-foreground">{translatedTaxLabel}</Text>
+              {showTaxToggle && (
+                <Switch
+                  value={taxIncluded ?? true}
+                  onValueChange={() => onToggleTaxIncluded?.()}
+                  style={{ transform: [{ scale: 0.7 }] }}
+                  trackColor={{ false: '#263354', true: '#38bdf8' }}
+                  thumbColor="#fff"
+                />
+              )}
+            </View>
+            {showTaxToggle && (
+              <Text className="mt-0.5 text-[10px] text-muted-foreground">
+                {taxIncluded ? t.settings_taxIncludedHint : t.settings_taxSeparateHint}
+              </Text>
+            )}
+          </View>
           <Text className="text-sm font-semibold tabular-nums text-muted-foreground">
-            {formatCurrency(computedTax, billCountry)}
+            {formatCurrency(computedTax, billCountry, decimalPlaces)}
           </Text>
-        ) : (
-          <CurrencyInput
-            value={Number(taxInput.value) || 0}
-            onChangeValue={(n) => taxInput.onChangeText(String(n))}
-            onFocus={taxInput.onFocus}
-            onBlur={taxInput.onBlur}
-            country={billCountry}
-            className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
-          />
-        )}
+        </View>
       </View>
       <View className="mx-4 h-px bg-border/30" />
 
@@ -78,7 +90,7 @@ function BillSummaryCard({
       <View className="flex-row items-center justify-between px-4 py-3">
         <Text className="text-sm font-semibold text-foreground">{t.bill_beforeTip}</Text>
         <Text className="text-sm font-semibold tabular-nums text-foreground">
-          {formatCurrency(beforeTip, billCountry)}
+          {formatCurrency(beforeTip, billCountry, decimalPlaces)}
         </Text>
       </View>
       <View className="mx-4 h-px bg-border/30" />
@@ -95,7 +107,7 @@ function BillSummaryCard({
           <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
         </View>
         <Text className="text-sm font-semibold tabular-nums text-foreground">
-          {formatCurrency(computedTip, billCountry)}
+          {formatCurrency(computedTip, billCountry, decimalPlaces)}
         </Text>
       </Pressable>
 
@@ -104,7 +116,7 @@ function BillSummaryCard({
       <View className="flex-row items-center justify-between bg-primary/5 px-4 py-4">
         <Text className="text-sm font-bold text-foreground">{t.bill_total}</Text>
         <Text className="text-2xl font-extrabold tracking-tight text-primary">
-          {formatCurrency(total, billCountry)}
+          {formatCurrency(total, billCountry, decimalPlaces)}
         </Text>
       </View>
     </View>

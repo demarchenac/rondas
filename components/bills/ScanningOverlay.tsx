@@ -38,6 +38,7 @@ interface ScanProgressData {
   status?: string;
   result?: {
     items?: ScanItem[];
+    decimalPlaces?: number;
   } | null;
 }
 
@@ -47,6 +48,7 @@ interface ScanningOverlayProps {
   scanProgress: ScanProgressData | null | undefined;
   localPhase: ScanPhase;
   billCountry: string;
+  decimalPlaces?: number;
   t: ReturnType<typeof useT>;
 }
 
@@ -183,11 +185,13 @@ function RunningTotal({
   total,
   pricedCount,
   billCountry,
+  decimalPlaces,
   t,
 }: {
   total: number;
   pricedCount: number;
   billCountry: string;
+  decimalPlaces?: number;
   t: ReturnType<typeof useT>;
 }) {
   const scale = useSharedValue(1);
@@ -216,7 +220,7 @@ function RunningTotal({
     >
       <Animated.View style={animatedStyle} className="items-center">
         <Text className="text-[20px] font-bold tabular-nums text-primary">
-          {formatCurrency(total, billCountry)}
+          {formatCurrency(total, billCountry, decimalPlaces)}
         </Text>
       </Animated.View>
       <Text className="mt-1 text-center text-[12px] text-muted-foreground">
@@ -232,10 +236,12 @@ function StreamItem({
   item,
   isModifier,
   billCountry,
+  decimalPlaces,
 }: {
   item: KeyedScanItem;
   isModifier: boolean;
   billCountry: string;
+  decimalPlaces?: number;
 }) {
   const confidence = computeConfidence(item);
   const borderColor = getConfidenceBorderColor(confidence);
@@ -259,8 +265,8 @@ function StreamItem({
         {displayName}
       </Text>
       {!isModifier && (
-        <Text className="ml-3 text-[13px] font-semibold text-primary">
-          {formatCurrency(item.subtotal, billCountry)}
+        <Text className={`ml-3 text-[13px] font-semibold ${item.subtotal < 0 ? 'text-emerald-500' : 'text-primary'}`}>
+          {formatCurrency(item.subtotal, billCountry, decimalPlaces)}
         </Text>
       )}
     </Animated.View>
@@ -273,6 +279,7 @@ function ScanningOverlay({
   scanProgress,
   localPhase,
   billCountry,
+  decimalPlaces,
   t,
 }: ScanningOverlayProps) {
   const { colorScheme } = useColorScheme();
@@ -400,6 +407,7 @@ function ScanningOverlay({
                   item={item}
                   isModifier={item.subtotal === 0}
                   billCountry={billCountry}
+                  decimalPlaces={decimalPlaces ?? scanProgress?.result?.decimalPlaces}
                 />
               ))}
             </ScrollView>
@@ -411,6 +419,7 @@ function ScanningOverlay({
           total={runningTotal}
           pricedCount={pricedCount}
           billCountry={billCountry}
+          decimalPlaces={decimalPlaces ?? scanProgress?.result?.decimalPlaces}
           t={t}
         />
       </View>

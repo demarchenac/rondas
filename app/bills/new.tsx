@@ -30,7 +30,7 @@ import { ICON_COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/convex/_generated/api';
 import { resolvePlace } from '@/lib/places';
-import { computeBase, computeTax, getTaxConfig } from '@/constants/taxes';
+import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride } from '@/constants/taxes';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { formatCurrency, parseCurrency } from '@/lib/format';
 import { useT } from '@/lib/i18n';
@@ -67,7 +67,7 @@ function prepareItems(items: BillItem[]): BillItem[] {
       ...item,
       id: item.id || generateItemId(),
       name: item.name.trim().replace(/^\w/, (c) => c.toUpperCase()),
-      unitPrice: item.quantity > 0 ? Math.round(item.subtotal / item.quantity) : item.subtotal,
+      unitPrice: item.quantity > 0 ? item.subtotal / item.quantity : item.subtotal,
     }));
 }
 
@@ -241,16 +241,19 @@ export default function NewBillScreen() {
           result.items.map((item) => ({ ...item, id: generateItemId() }))
         );
 
-        const { country, defaultTipPercent } = useSettingsStore.getState();
+        const { country, defaultTipPercent, impoconsumoIncluded, ivaIncluded } = useSettingsStore.getState();
         const category = result.category || 'dining';
         const itemsTotal = preparedItems.reduce((sum, i) => sum + i.subtotal, 0);
-        const taxConfig = getTaxConfig(country, category);
+        const rawTaxConfig = getTaxConfig(country, category);
+
+        const taxIncludedOverride = country === 'CO'
+          ? (category === 'dining' ? impoconsumoIncluded : ivaIncluded)
+          : undefined;
+        const taxConfig = withTaxIncludedOverride(rawTaxConfig, taxIncludedOverride);
 
         const base = computeBase(itemsTotal, taxConfig);
-        const tax = taxConfig.taxIncluded
-          ? computeTax(itemsTotal, taxConfig)
-          : (result.tax || 0);
-        const tip = Math.round(base * (defaultTipPercent / 100));
+        const tax = computeTax(itemsTotal, taxConfig);
+        const tip = base * (defaultTipPercent / 100);
         const calculatedTotal = base + tax + tip;
 
         const itemsForDB = preparedItems.map(({ id: _id, ...rest }) => rest);
@@ -265,6 +268,8 @@ export default function NewBillScreen() {
           items: itemsForDB,
           category,
           country,
+          taxIncludedOverride,
+          decimalPlaces: result.decimalPlaces,
           isPro,
           ...metadataParams,
         });
@@ -319,7 +324,7 @@ export default function NewBillScreen() {
     if (field === 'name') {
       items[index] = { ...items[index], name: value };
     } else {
-      const num = parseCurrency(value);
+      const num = parseCurrency(value, country);
       items[index] = { ...items[index], [field]: num };
       if (field === 'quantity' || field === 'unitPrice') {
         items[index].subtotal = items[index].quantity * items[index].unitPrice;
@@ -709,7 +714,7 @@ export default function NewBillScreen() {
           <Text className="text-sm text-foreground">{t.scan_taxIva}</Text>
           <Input
             value={formatCurrency(bill.tax, country)}
-            onChangeText={(v) => setBill({ ...bill, tax: parseCurrency(v) })}
+            onChangeText={(v) => setBill({ ...bill, tax: parseCurrency(v, country) })}
             className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
             keyboardType="number-pad"
           />
@@ -718,7 +723,7 @@ export default function NewBillScreen() {
           <Text className="text-sm text-foreground">{t.scan_tipPropina}</Text>
           <Input
             value={bill.tip === 0 ? '' : formatCurrency(bill.tip, country)}
-            onChangeText={(v) => setBill({ ...bill, tip: parseCurrency(v) })}
+            onChangeText={(v) => setBill({ ...bill, tip: parseCurrency(v, country) })}
             className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
             placeholder="$0"
             placeholderTextColor={iconColors.mutedLight}

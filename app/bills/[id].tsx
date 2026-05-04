@@ -18,10 +18,10 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { api } from '@/convex/_generated/api';
 import { useAuth } from '@/lib/AuthContext';
-import { parseCurrency } from '@/lib/format';
+
 import { useT } from '@/lib/i18n';
 import { toE164 } from '@/lib/phone';
-import { computeBase, computeTax, getTaxConfig } from '@/constants/taxes';
+import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride } from '@/constants/taxes';
 import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel } from '@/lib/billHelpers';
 import { buildWhatsAppMessage } from '@/lib/whatsapp';
 
@@ -161,11 +161,6 @@ export default function BillDetailScreen() {
     updateBill({ id: id as Id<'bills'>, userId, items });
     setEditingItemId(null);
   }, [bill, id, updateBill, userId]);
-
-  const handleUpdateTax = useCallback((value: string) => {
-    if (!userId) return;
-    updateBill({ id: id as Id<'bills'>, userId, tax: parseCurrency(value) });
-  }, [id, updateBill, userId]);
 
   const toggleItemSelection = useCallback((itemId: string) => {
     setSelectedItemIds((prev) => {
@@ -630,7 +625,11 @@ export default function BillDetailScreen() {
       alert(t.bill_noPhone, t.bill_noPhoneMessage);
       return;
     }
-    const message = buildWhatsAppMessage({ bill, contact, t });
+    const billCountry = (bill.country as 'CO' | 'US') || 'CO';
+    const billCategory = bill.category || 'dining';
+    const rawTaxConfig = getTaxConfig(billCountry, billCategory);
+    const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill.taxIncludedOverride ?? undefined);
+    const message = buildWhatsAppMessage({ bill, contact, taxConfig, t });
     const url = `https://wa.me/${toE164(contact.phone)}?text=${encodeURIComponent(message)}`;
     const canOpen = await Linking.canOpenURL(url);
     if (!canOpen) {
@@ -697,19 +696,28 @@ export default function BillDetailScreen() {
     const itemsTotal = bill.items.reduce((sum, billItem) => sum + billItem.subtotal, 0);
     const billCountry = (bill.country as 'CO' | 'US') || 'CO';
     const billCategory = bill.category || 'dining';
-    const taxConfig = getTaxConfig(billCountry, billCategory);
+    const rawTaxConfig = getTaxConfig(billCountry, billCategory);
+    const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill.taxIncludedOverride ?? undefined);
     const translatedTaxLabel = getTaxLabel(taxConfig, t);
     const base = computeBase(itemsTotal, taxConfig);
-    const computedTax = taxConfig.taxIncluded ? computeTax(itemsTotal, taxConfig) : (bill.tax ?? 0);
+    const computedTax = computeTax(itemsTotal, taxConfig);
     const tipPercent = bill.tipPercent ?? 0;
     const useCustomTip = bill.useCustomTip ?? false;
-    const computedTip = useCustomTip ? (bill.tip ?? 0) : Math.round(base * (tipPercent / 100));
+    const computedTip = useCustomTip ? (bill.tip ?? 0) : base * (tipPercent / 100);
     const beforeTip = base + computedTax;
     const total = base + computedTax + computedTip;
     const stateStyle = STATE_STYLES[bill.state];
     const stateLabel = t[STATE_LABEL_KEYS[bill.state]] as string;
-    return { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, useCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel };
+    const decimalPlaces = bill.decimalPlaces;
+    return { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, useCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel, decimalPlaces };
   }, [bill, t]);
+
+  const handleToggleTaxIncluded = useCallback(() => {
+    if (!bill || !userId || !billDerived) return;
+    const current = bill.taxIncludedOverride ?? billDerived.taxConfig.taxIncluded;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    updateBill({ id: id as Id<'bills'>, userId, taxIncludedOverride: !current });
+  }, [bill, userId, billDerived, id, updateBill]);
 
   // --- Loading / Error states ---
 
@@ -740,7 +748,7 @@ export default function BillDetailScreen() {
     );
   }
 
-  const { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, useCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel } = billDerived;
+  const { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, useCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel, decimalPlaces } = billDerived;
 
   // Progress bar computation
   const totalItems = bill.items.length;
@@ -837,6 +845,7 @@ export default function BillDetailScreen() {
               total={total}
               numPeople={numPeople}
               billCountry={billCountry}
+              decimalPlaces={decimalPlaces}
               iconColors={iconColors}
               t={t}
               editingItemId={editingItemId}
@@ -875,6 +884,7 @@ export default function BillDetailScreen() {
                     item={item}
                     index={index}
                     billCountry={billCountry}
+                    decimalPlaces={decimalPlaces}
                     stateStyle={stateStyle}
                     assignedContacts={assignedContacts}
                     isEditing={editingItemId === itemId}
@@ -905,6 +915,7 @@ export default function BillDetailScreen() {
               contacts={bill.contacts}
               billItems={bill.items}
               billCountry={billCountry}
+              decimalPlaces={decimalPlaces}
               splitStrategy={bill.splitStrategy}
               taxConfig={taxConfig}
               tipPercent={tipPercent}
@@ -926,12 +937,15 @@ export default function BillDetailScreen() {
             computedTip={computedTip}
             total={total}
             billCountry={billCountry}
+            decimalPlaces={decimalPlaces}
             translatedTaxLabel={translatedTaxLabel}
             taxConfig={taxConfig}
             iconColors={iconColors}
             t={t}
+            showTaxToggle={billCountry === 'CO'}
+            taxIncluded={taxConfig.taxIncluded}
+            onToggleTaxIncluded={handleToggleTaxIncluded}
             onTipPress={() => setActiveDialog('tip')}
-            onUpdateTax={handleUpdateTax}
           />
         </Animated.View>
       </ScrollView>
@@ -953,30 +967,6 @@ export default function BillDetailScreen() {
           </View>
         )}
 
-        {/* Confirm button for draft bills */}
-        {!multiSelectMode && bill.state === 'draft' && (
-          <View className="px-7 pb-2 pt-3">
-            <Pressable
-              onPress={async () => {
-                try {
-                  await updateBill({ id: id as Id<'bills'>, userId, state: 'unsplit' });
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  router.back();
-                } catch (err) {
-                  console.error('[Bill] confirm draft failed:', err);
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                  alert(t.error, t.error_mutationFailed);
-                }
-              }}
-              className="items-center rounded-xl bg-primary py-4 active:opacity-80"
-            >
-              <View className="flex-row items-center gap-2">
-                <IconSymbol name="checkmark" size={18} color={iconColors.primaryForeground} />
-                <Text className="text-base font-semibold text-primary-foreground">{t.bill_confirmItems}</Text>
-              </View>
-            </Pressable>
-          </View>
-        )}
 
         {/* Bulk toolbar — above add item */}
         {multiSelectMode && selectedItemIds.size > 0 && (
@@ -1067,6 +1057,7 @@ export default function BillDetailScreen() {
         customTip={bill.tip ?? 0}
         subtotal={base}
         billCountry={billCountry}
+        decimalPlaces={decimalPlaces}
         iconColors={iconColors}
         onSelectTip={async (pct, newTip) => {
           await updateBill({ id: id as Id<'bills'>, userId, tipPercent: pct, tip: newTip, useCustomTip: false });
@@ -1079,7 +1070,7 @@ export default function BillDetailScreen() {
           if (enabled) {
             updateBill({ id: id as Id<'bills'>, userId, useCustomTip: true });
           } else {
-            const newTip = Math.round(base * (tipPercent / 100));
+            const newTip = base * (tipPercent / 100);
             updateBill({ id: id as Id<'bills'>, userId, tip: newTip, useCustomTip: false });
           }
         }}

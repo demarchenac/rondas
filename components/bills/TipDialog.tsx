@@ -12,6 +12,7 @@ interface TipDialogProps {
   customTip: number;
   subtotal: number;
   billCountry: 'CO' | 'US';
+  decimalPlaces?: number;
   iconColors: Record<string, string>;
   onSelectTip: (percent: number, tipAmount: number) => void;
   onSelectCustomTip: (tipAmount: number) => void;
@@ -26,6 +27,7 @@ function TipDialog({
   customTip,
   subtotal,
   billCountry,
+  decimalPlaces,
   iconColors,
   onSelectTip,
   onSelectCustomTip,
@@ -102,6 +104,7 @@ function TipDialog({
                     value={localCustomTip}
                     onChangeValue={(n) => setLocalCustomTip(n ?? 0)}
                     country={billCountry}
+                    decimalPlaces={decimalPlaces}
                     className="h-11 rounded-xl border border-border bg-muted px-3 text-center text-base font-semibold tabular-nums shadow-none"
                   />
                   <Pressable

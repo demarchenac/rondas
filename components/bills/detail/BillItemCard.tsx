@@ -51,12 +51,14 @@ interface BillItemCardProps {
   onDismissEdit: () => void;
   onAssignContact: (itemId: string) => void;
   onRemoveContact: (itemId: string, contactId: Id<'contacts'>) => void;
+  decimalPlaces?: number;
   onToggleSelection: (itemId: string) => void;
 }
 
 function BillItemEditForm({
   item,
   billCountry,
+  decimalPlaces,
   iconColors,
   t,
   onSubmit,
@@ -64,6 +66,7 @@ function BillItemEditForm({
 }: {
   item: BillItem;
   billCountry: string;
+  decimalPlaces?: number;
   iconColors: Record<string, string>;
   t: Translations;
   onSubmit: (values: { name: string; quantity: number; unitPrice: number }) => void;
@@ -77,13 +80,13 @@ function BillItemEditForm({
     },
     onSubmit: ({ value }) => {
       const qty = parseInt(value.quantity, 10) || item.quantity;
-      const price = parseCurrency(value.unitPrice);
+      const price = parseCurrency(value.unitPrice, billCountry);
       onSubmit({ name: value.name, quantity: qty, unitPrice: price });
     },
   });
 
   const qty = parseInt(form.state.values.quantity, 10) || 0;
-  const price = parseCurrency(form.state.values.unitPrice);
+  const price = parseCurrency(form.state.values.unitPrice, billCountry);
   const subtotal = qty * price;
 
   return (
@@ -125,10 +128,11 @@ function BillItemEditForm({
           <form.Field name="unitPrice">
             {(field) => (
               <CurrencyInput
-                value={parseCurrency(field.state.value)}
-                onChangeValue={(n) => field.handleChange(formatCurrency(n, billCountry))}
+                value={parseCurrency(field.state.value, billCountry)}
+                onChangeValue={(n) => field.handleChange(formatCurrency(n, billCountry, decimalPlaces))}
                 onBlur={field.handleBlur}
                 country={billCountry}
+                decimalPlaces={decimalPlaces}
                 className={`rounded-lg border-0 bg-muted px-3 text-sm font-medium shadow-none ${Platform.OS === 'ios' ? 'h-9' : ''}`}
               />
             )}
@@ -171,6 +175,7 @@ function BillItemCard({
   onSubmitEdit,
   onDismissEdit,
   onAssignContact,
+  decimalPlaces,
   onRemoveContact,
   onToggleSelection,
 }: BillItemCardProps) {
@@ -188,6 +193,7 @@ function BillItemCard({
           <BillItemEditForm
             item={item}
             billCountry={billCountry}
+            decimalPlaces={decimalPlaces}
             iconColors={iconColors}
             t={t}
             onSubmit={(values) => onSubmitEdit(itemId, values)}
@@ -224,18 +230,21 @@ function BillItemCard({
                   )}
                 </View>
                 <Text className="mt-0.5 text-xs text-muted-foreground">
-                  {item.quantity} × {formatCurrency(item.unitPrice, billCountry)}
+                  {item.quantity} × {formatCurrency(item.unitPrice, billCountry, decimalPlaces)}
                 </Text>
                 {/* Assign hint */}
-                {!hasContacts && !multiSelectMode && (
+                {!hasContacts && !multiSelectMode && item.subtotal >= 0 && (
                   <Text className="mt-1.5 text-[11px] text-muted-foreground/40">{t.bill_tapToAssign}</Text>
                 )}
               </View>
               <View className="flex-row items-center gap-2">
-                <Text className="text-[15px] font-bold tabular-nums text-foreground">
-                  {formatCurrency(item.subtotal, billCountry)}
+                <Text className={cn(
+                  'text-[15px] font-bold tabular-nums',
+                  item.subtotal < 0 ? 'text-emerald-500' : 'text-foreground',
+                )}>
+                  {formatCurrency(item.subtotal, billCountry, decimalPlaces)}
                 </Text>
-                {!multiSelectMode && (
+                {!multiSelectMode && item.subtotal >= 0 && (
                   <Pressable
                     onPress={() => onAssignContact(itemId)}
                     className="h-7 w-7 items-center justify-center rounded-full border border-dashed border-primary/30 bg-primary/5"

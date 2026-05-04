@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import { relativeTime } from '@/lib/date';
 import { STATE_STYLES, stateLabel, type BillState } from '@/lib/billHelpers';
+import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride } from '@/constants/taxes';
 import { ICON_COLORS } from '@/constants/colors';
 import { useColorScheme } from 'nativewind';
 import type { Translations } from '@/lib/i18n';
@@ -44,6 +45,17 @@ function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
   const categoryIcon = bill.category ? CATEGORY_ICONS[bill.category] : null;
   const paidCount = bill.contacts.filter((c) => c.paid).length;
 
+  const billCountry = (bill.country as 'CO' | 'US') || 'CO';
+  const billCategory = (bill.category as 'dining' | 'retail' | 'service') || 'dining';
+  const rawTaxConfig = getTaxConfig(billCountry, billCategory);
+  const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill.taxIncludedOverride ?? undefined);
+  const itemsTotal = bill.items.reduce((sum, i) => sum + i.subtotal, 0);
+  const base = computeBase(itemsTotal, taxConfig);
+  const computedTax = computeTax(itemsTotal, taxConfig);
+  const tipPercent = bill.tipPercent ?? 0;
+  const computedTip = bill.useCustomTip ? (bill.tip ?? 0) : base * (tipPercent / 100);
+  const displayTotal = base + computedTax + computedTip;
+
   return (
     <Pressable
       onPress={onPress}
@@ -75,7 +87,7 @@ function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
 
       {/* Amount */}
       <Text className="mt-1 text-2xl font-extrabold tracking-tight text-foreground">
-        {formatCurrency(bill.total, bill.country)}
+        {formatCurrency(displayTotal, billCountry, bill.decimalPlaces)}
       </Text>
 
       {/* Meta row: time + items + contacts */}

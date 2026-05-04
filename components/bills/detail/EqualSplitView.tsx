@@ -39,6 +39,7 @@ interface EqualSplitViewProps {
   total: number;
   numPeople: number;
   billCountry: string;
+  decimalPlaces?: number;
   iconColors: Record<string, string>;
   t: Translations;
   editingItemId: string | null;
@@ -56,12 +57,14 @@ interface EqualSplitViewProps {
 function EqualSplitItemEdit({
   item,
   billCountry,
+  decimalPlaces,
   t,
   onSubmit,
   onCancel,
 }: {
   item: BillItem;
   billCountry: string;
+  decimalPlaces?: number;
   t: Translations;
   onSubmit: (values: { name: string; quantity: number; unitPrice: number }) => void;
   onCancel: () => void;
@@ -105,6 +108,7 @@ function EqualSplitItemEdit({
             value={unitPrice}
             onChangeValue={setUnitPrice}
             country={billCountry}
+            decimalPlaces={decimalPlaces}
             className={`rounded-lg border border-border bg-card px-3 text-sm ${Platform.OS === 'ios' ? 'h-10' : ''}`}
           />
         </View>
@@ -148,6 +152,7 @@ function EqualSplitView({
   total,
   numPeople,
   billCountry,
+  decimalPlaces,
   iconColors,
   t,
   editingItemId,
@@ -217,12 +222,12 @@ function EqualSplitView({
         </View>
         <View className="mt-3 items-center">
           <Text className="text-2xl font-bold text-primary">
-            {formatCurrency(perPerson + (remainder > 0 ? 1 : 0), billCountry)}
+            {formatCurrency(perPerson + (remainder > 0 ? 1 : 0), billCountry, decimalPlaces)}
           </Text>
           <Text className="text-sm text-muted-foreground">{t.bill_equalPerPerson}</Text>
           {remainder > 0 && (
             <Text className="mt-1 text-xs text-muted-foreground">
-              {t.bill_equalRemainder(formatCurrency(remainder, billCountry))}
+              {t.bill_equalRemainder(formatCurrency(remainder, billCountry, decimalPlaces))}
             </Text>
           )}
         </View>
@@ -244,7 +249,7 @@ function EqualSplitView({
                       {contact.isSelf ? t.self_label(contact.name) : contact.name}
                     </Text>
                     <Text className="text-sm font-semibold tabular-nums text-foreground">
-                      {formatCurrency(i === 0 ? perPerson + remainder : perPerson, billCountry)}
+                      {formatCurrency(i === 0 ? perPerson + remainder : perPerson, billCountry, decimalPlaces)}
                     </Text>
                     <Pressable
                       onPress={() => {
@@ -270,7 +275,7 @@ function EqualSplitView({
                       {t.bill_persona(i + 1)}
                     </Text>
                     <Text className="text-sm tabular-nums text-muted-foreground">
-                      {formatCurrency(i === 0 ? perPerson + remainder : perPerson, billCountry)}
+                      {formatCurrency(i === 0 ? perPerson + remainder : perPerson, billCountry, decimalPlaces)}
                     </Text>
                   </Pressable>
                 )}
@@ -308,6 +313,7 @@ function EqualSplitView({
               key={itemId}
               item={item}
               billCountry={billCountry}
+              decimalPlaces={decimalPlaces}
               t={t}
               onSubmit={(values) => onSubmitEdit(itemId, values)}
               onCancel={onDismissEdit}
@@ -322,13 +328,13 @@ function EqualSplitView({
                   <Text className="text-sm text-foreground" numberOfLines={1}>{item.name || t.scan_itemName}</Text>
                   {item.quantity > 1 && (
                     <Text className="text-xs text-muted-foreground">
-                      {item.quantity} × {formatCurrency(item.unitPrice, billCountry)}
+                      {item.quantity} × {formatCurrency(item.unitPrice, billCountry, decimalPlaces)}
                     </Text>
                   )}
                 </View>
                 <View className="flex-row items-center gap-2">
                   <Text className="text-sm tabular-nums text-muted-foreground">
-                    {formatCurrency(item.subtotal, billCountry)}
+                    {formatCurrency(item.subtotal, billCountry, decimalPlaces)}
                   </Text>
                   <IconSymbol name="pencil.line" size={11} color={iconColors.muted} />
                 </View>

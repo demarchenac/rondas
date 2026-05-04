@@ -38,6 +38,7 @@ interface PeopleSummaryProps {
   splitStrategy?: string;
   taxConfig: TaxConfig;
   tipPercent: number;
+  decimalPlaces?: number;
   iconColors: Record<string, string>;
   t: Translations;
   onTogglePaid: (contactId: Id<'contacts'>) => void;
@@ -50,6 +51,7 @@ function PeopleSummary({
   splitStrategy,
   taxConfig,
   tipPercent,
+  decimalPlaces,
   iconColors,
   t,
   onTogglePaid,
@@ -61,9 +63,11 @@ function PeopleSummary({
   const isEqualSplit = splitStrategy === 'equal';
 
   const contactTotals = useMemo(() => {
+    const positiveTotal = billItems.reduce((sum, i) => sum + Math.max(0, i.subtotal), 0);
+    const discountTotal = billItems.reduce((sum, i) => sum + Math.min(0, i.subtotal), 0);
     const withTotals = contacts.map((c) => ({
       ...c,
-      total: isEqualSplit ? c.amount : computeContactTotal(c, billItems, contacts, taxConfig, tipPercent),
+      total: isEqualSplit ? c.amount : computeContactTotal(c, billItems, contacts, taxConfig, tipPercent, positiveTotal, discountTotal),
     }));
     return withTotals.sort((a, b) => {
       if (a.isSelf) return -1;
@@ -136,13 +140,13 @@ function PeopleSummary({
             {/* Row 2: Amount · debt context */}
             <View className="mt-1 flex-row items-center gap-1">
               <Text className="text-xs font-bold tabular-nums text-foreground">
-                {formatCurrency(c.total, billCountry)}
+                {formatCurrency(c.total, billCountry, decimalPlaces)}
               </Text>
               <Text className="text-[11px] text-muted-foreground">·</Text>
               <Text className={cn('text-[11px]', c.paid ? 'text-emerald-500' : 'text-amber-500')}>
                 {c.paid
-                  ? (paidCount < contacts.length ? t.people_isOwed(formatCurrency(c.total, billCountry)) : t.share_paid)
-                  : t.people_owes(formatCurrency(c.total, billCountry))}
+                  ? (paidCount < contacts.length ? t.people_isOwed(formatCurrency(c.total, billCountry, decimalPlaces)) : t.share_paid)
+                  : t.people_owes(formatCurrency(c.total, billCountry, decimalPlaces))}
               </Text>
             </View>
           </Pressable>
