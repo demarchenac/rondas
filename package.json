@@ -43,6 +43,7 @@
     "expo-dev-client": "56.0.0-canary-20260409-6fc2991",
     "expo-file-system": "56.0.0-canary-20260409-6fc2991",
     "expo-font": "56.0.0-canary-20260409-6fc2991",
+    "expo-glass-effect": "56.0.0-canary-20260409-6fc2991",
     "expo-haptics": "56.0.0-canary-20260409-6fc2991",
     "expo-image": "56.0.0-canary-20260409-6fc2991",
     "expo-image-manipulator": "56.0.0-canary-20260409-6fc2991",

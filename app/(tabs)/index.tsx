@@ -1,21 +1,17 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Dimensions, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import { LinearGradient } from 'expo-linear-gradient';
 import { FlashList } from '@shopify/flash-list';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
 import SwipeableRow from '@/components/bills/SwipeableRow';
 import { useProGate, FREE_HISTORY_DAYS } from '@/hooks/useProGate';
+import { useNewBillAction } from '@/hooks/useNewBillAction';
 import { useMutation } from 'convex/react';
-import Animated, {
-  FadeInDown,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-import { IMAGE_QUALITY } from '@/constants/media';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import type { Id } from '@/convex/_generated/dataModel';
 import type { ResolvedBill, SortOption } from '@/lib/filters';
 import { defaultFilters } from '@/lib/filters';
@@ -50,7 +46,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const t = useT();
   useContactSync(user?.id);
-  const { alert, actionSheet } = useCustomAlert();
+  const { alert } = useCustomAlert();
 
   const {
     activeFilters,
@@ -72,113 +68,12 @@ export default function HomeScreen() {
   const maxTotal = filterOptions?.maxTotal;
 
   const removeBill = useMutation(api.bills.remove);
-  const createBill = useMutation(api.bills.create);
   const [refreshing, setRefreshing] = useState(false);
   const { isPro, unlocked, showPaywall } = useProGate();
   const historyCutoff = Date.now() - FREE_HISTORY_DAYS * 24 * 60 * 60 * 1000;
-  const { extractPhotoTime, useLocation: useLocationSetting, country } = useSettingsStore();
-
-  const addScale = useSharedValue(1);
-  const addAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: addScale.value }],
-  }));
-
-  const createBlankBill = useCallback(async () => {
-    if (!user) return;
-    try {
-      const billId = await createBill({
-        userId: user.id,
-        name: 'Bill',
-        total: 0,
-        items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],
-        isPro,
-      });
-      router.push(`/bills/${billId}` as Href);
-    } catch (err) {
-      const msg = (err as Error).message ?? '';
-      if (msg.includes('monthly_limit_reached')) {
-        showPaywall();
-        return;
-      }
-      if (__DEV__) console.warn('[Home] createBlankBill error:', msg);
-      alert(t.error, msg || t.error_mutationFailed);
-    }
-  }, [user, createBill, isPro, router, showPaywall, t, alert]);
-
-  const gateScanOrRun = useCallback(
-    (fn: () => void) => {
-      if (!unlocked) {
-        showPaywall();
-        return;
-      }
-      fn();
-    },
-    [unlocked, showPaywall],
-  );
-
-  const pickFromCamera = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      alert(t.home_permissionNeeded, t.home_permissionCamera);
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      quality: IMAGE_QUALITY,
-      exif: extractPhotoTime,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const photoTakenAt = extractPhotoTime ? (asset.exif?.DateTimeOriginal ?? asset.exif?.DateTime) : undefined;
-      const params: Record<string, string> = { imageUri: asset.uri };
-      if (photoTakenAt) params.photoTakenAt = String(photoTakenAt);
-      if (useLocationSetting) params.resolveLocation = 'device';
-      router.push({ pathname: '/bills/new', params } as Href);
-    }
-  }, [router, extractPhotoTime, useLocationSetting, t, alert]);
-
-  const pickFromLibrary = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      alert(t.home_permissionNeeded, t.home_permissionLibrary);
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: IMAGE_QUALITY,
-      exif: true,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const photoTakenAt = extractPhotoTime ? (asset.exif?.DateTimeOriginal ?? asset.exif?.DateTime) : undefined;
-      const gpsLat = asset.exif?.GPSLatitude;
-      const gpsLng = asset.exif?.GPSLongitude;
-      const gpsLatRef = asset.exif?.GPSLatitudeRef;
-      const gpsLngRef = asset.exif?.GPSLongitudeRef;
-      const params: Record<string, string> = { imageUri: asset.uri };
-      if (photoTakenAt) params.photoTakenAt = String(photoTakenAt);
-      if (gpsLat != null && gpsLng != null) {
-        params.latitude = String(gpsLatRef === 'S' ? -gpsLat : gpsLat);
-        params.longitude = String(gpsLngRef === 'W' ? -gpsLng : gpsLng);
-        params.resolveLocation = 'exif';
-      }
-      router.push({ pathname: '/bills/new', params } as Href);
-    }
-  }, [router, extractPhotoTime, t, alert]);
-
-  const handleAddPress = useCallback(() => {
-    actionSheet({
-      options: [t.cancel, t.home_takePhoto, t.home_chooseLibrary, t.gate_manualEntry],
-      cancelButtonIndex: 0,
-      onSelect: (buttonIndex) => {
-        if (buttonIndex === 1) gateScanOrRun(pickFromCamera);
-        if (buttonIndex === 2) gateScanOrRun(pickFromLibrary);
-        if (buttonIndex === 3) createBlankBill();
-      },
-    });
-  }, [pickFromCamera, pickFromLibrary, createBlankBill, gateScanOrRun, t, actionSheet]);
+  const { country } = useSettingsStore();
+  const { openNewBillSheet } = useNewBillAction();
+  const glassAvailable = isGlassEffectAPIAvailable();
 
   // Track animated IDs to prevent re-animation on FlashList recycle
   const animatedIds = useRef(new Set<string>());
@@ -281,44 +176,88 @@ export default function HomeScreen() {
     });
   }, [defaults, setActiveFilters]);
 
+  const headerHeight = hasNonDefaultFilters ? 110 : 64;
+
   return (
-    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      {/* Header */}
-      <View className="px-5 pb-1 pt-4">
+    <View className="flex-1 bg-background">
+      {/* Top gradient for status bar readability */}
+      <LinearGradient
+        colors={[colorScheme === 'dark' ? 'rgba(15,23,42,0.7)' : 'rgba(250,251,252,0.7)', 'transparent']}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top + headerHeight + 24, zIndex: 5 }}
+        pointerEvents="none"
+      />
+
+      {/* Header — floating overlay */}
+      <View className="absolute left-0 right-0 z-10 px-5 pb-2 pt-4" style={{ top: insets.top }}>
         {!user ? (
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-3">
-              <Skeleton width={40} height={40} borderRadius={20} />
-              <View className="gap-2">
-                <Skeleton width={160} height={22} borderRadius={6} />
-                <Skeleton width={90} height={12} borderRadius={4} />
-              </View>
-            </View>
-            <Skeleton width={40} height={40} borderRadius={20} />
+          <View className="flex-row items-center gap-3">
+            <Skeleton width={44} height={44} borderRadius={22} />
+            <Skeleton width="100%" height={44} borderRadius={22} style={{ flex: 1 }} />
+            <Skeleton width={44} height={44} borderRadius={22} />
           </View>
         ) : (
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-3">
-              <Pressable
-                onPress={() => router.push('/(tabs)/settings' as Href)}
-                className="relative"
-              >
-                {user.profilePictureUrl ? (
-                  <Image source={{ uri: user.profilePictureUrl }} className="h-10 w-10 rounded-full" />
-                ) : (
-                  <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+          <View className="flex-row items-center gap-3">
+            {/* Avatar — glass circle */}
+            <Pressable onPress={() => router.push('/(tabs)/settings' as Href)}>
+              {glassAvailable ? (
+                <GlassView
+                  isInteractive
+                  style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  {user.profilePictureUrl ? (
+                    <Image source={{ uri: user.profilePictureUrl }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                  ) : (
                     <Text className="text-base font-bold text-primary">
                       {(user.firstName?.[0] ?? user.email?.[0] ?? '?').toUpperCase()}
                     </Text>
-                  </View>
-                )}
-                {isPro && (
-                  <View className="absolute -bottom-0.5 -right-0.5 h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-background bg-pro">
-                    <IconSymbol name="crown.fill" size={8} color="#fff" />
-                  </View>
-                )}
-              </Pressable>
-              <View>
+                  )}
+                </GlassView>
+              ) : (
+                <View className="relative">
+                  {user.profilePictureUrl ? (
+                    <Image source={{ uri: user.profilePictureUrl }} className="h-10 w-10 rounded-full" />
+                  ) : (
+                    <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                      <Text className="text-base font-bold text-primary">
+                        {(user.firstName?.[0] ?? user.email?.[0] ?? '?').toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+              {isPro && (
+                <View className="absolute -bottom-0.5 -right-0.5 h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-background bg-pro">
+                  <IconSymbol name="crown.fill" size={8} color="#fff" />
+                </View>
+              )}
+            </Pressable>
+
+            {/* Summary — glass capsule */}
+            {glassAvailable ? (
+              <GlassView
+                style={{ flex: 1, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' }}
+              >
+                <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
+                  {t.home_billCount(bills.length)}
+                  {bills.length > 0 && (
+                    <>
+                      {'  ·  '}
+                      {formatCurrency(bills.reduce((sum, b) => {
+                        const bc = (b.country as 'CO' | 'US') || 'CO';
+                        const cat = (b.category as 'dining' | 'retail' | 'service') || 'dining';
+                        const tc = withTaxIncludedOverride(getTaxConfig(bc, cat), b.taxIncludedOverride ?? undefined);
+                        const items = b.items.reduce((s, i) => s + i.subtotal, 0);
+                        const base = computeBase(items, tc);
+                        const tax = computeTax(items, tc);
+                        const tip = b.useCustomTip ? (b.tip ?? 0) : base * ((b.tipPercent ?? 0) / 100);
+                        return sum + base + tax + tip;
+                      }, 0), country)}
+                    </>
+                  )}
+                </Text>
+              </GlassView>
+            ) : (
+              <View className="flex-1">
                 <Text className="text-2xl font-extrabold tracking-tight text-foreground">
                   {t.home_greeting(firstName)}
                 </Text>
@@ -342,64 +281,75 @@ export default function HomeScreen() {
                   )}
                 </View>
               </View>
-            </View>
-            <Animated.View style={addAnimatedStyle}>
-              <Pressable
-                onPress={handleAddPress}
-                onPressIn={() => { addScale.value = withSpring(0.88, { damping: 15, stiffness: 400 }); }}
-                onPressOut={() => { addScale.value = withSpring(1, { damping: 10, stiffness: 300 }); }}
-                className="h-10 w-10 items-center justify-center rounded-full bg-primary"
-              >
-                <IconSymbol name="plus" size={22} color={iconColors.primaryForeground} />
-              </Pressable>
-            </Animated.View>
+            )}
+
+            {/* Filter button — glass circle */}
+            <Pressable onPress={() => setFilterSheetVisible(true)}>
+              {glassAvailable ? (
+                <GlassView
+                  isInteractive
+                  style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <IconSymbol name="line.3.horizontal.decrease" size={18} color={iconColors.primary} />
+                  {hasNonDefaultFilters && (
+                    <View className="absolute -top-1 -right-1 h-5 w-5 items-center justify-center rounded-full bg-primary">
+                      <Text className="text-[9px] font-bold text-primary-foreground">{nonDefaultFilterCount}</Text>
+                    </View>
+                  )}
+                </GlassView>
+              ) : (
+                <View className="h-10 w-10 items-center justify-center rounded-full bg-card border border-border">
+                  <IconSymbol name="line.3.horizontal.decrease" size={18} color={iconColors.muted} />
+                  {hasNonDefaultFilters && (
+                    <View className="absolute -top-1 -right-1 h-5 w-5 items-center justify-center rounded-full bg-primary">
+                      <Text className="text-[9px] font-bold text-primary-foreground">{nonDefaultFilterCount}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </Pressable>
+          </View>
+        )}
+
+        {/* Filter chips — inside the floating header */}
+        {hasNonDefaultFilters && (
+          <View className="mt-2">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row items-center gap-2">
+                {appliedFilterChips.filter((chip) => !chip.isDefault).map((chip) => (
+                  glassAvailable ? (
+                    <Pressable
+                      key={chip.key}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        dismissFilter(chip.key);
+                      }}
+                    >
+                      <GlassView
+                        isInteractive
+                        style={{ borderRadius: 16, paddingHorizontal: 14, paddingVertical: 6 }}
+                      >
+                        <Text className="text-xs font-semibold text-foreground">{chip.label}</Text>
+                      </GlassView>
+                    </Pressable>
+                  ) : (
+                    <FilterChip
+                      key={chip.key}
+                      label={chip.label}
+                      isActive
+                      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); dismissFilter(chip.key); }}
+                    />
+                  )
+                ))}
+              </View>
+            </ScrollView>
           </View>
         )}
       </View>
 
-      {/* Filter Bar */}
-      <View className="px-5 py-2.5">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View className="flex-row items-center gap-2">
-            {/* Clear button — only when non-default filters */}
-            {hasNonDefaultFilters && (
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setActiveFilters(defaultFilters(userCountry));
-                }}
-                className="items-center justify-center px-1 py-1.5"
-              >
-                <IconSymbol name="trash" size={18} color={iconColors.destructive} />
-              </Pressable>
-            )}
-
-            {/* Filter button — always first */}
-            <FilterChip
-              label={t.filter_filters}
-              isActive={hasNonDefaultFilters}
-              count={hasNonDefaultFilters ? nonDefaultFilterCount : undefined}
-              onPress={() => setFilterSheetVisible(true)}
-              icon={<IconSymbol name="line.3.horizontal.decrease" size={12} color={hasNonDefaultFilters ? iconColors.primaryForeground : iconColors.muted} />}
-            />
-
-            {/* Applied non-default filter chips — each taps to open sheet, dismissible */}
-            {appliedFilterChips.filter((chip) => !chip.isDefault).map((chip) => (
-              <FilterChip
-                key={chip.key}
-                label={chip.label}
-                isActive
-                onPress={() => setFilterSheetVisible(true)}
-                onDismiss={() => dismissFilter(chip.key)}
-              />
-            ))}
-          </View>
-        </ScrollView>
-      </View>
-
       {/* Bill List */}
       {paginationStatus === 'LoadingFirstPage' ? (
-        <View className="flex-1 px-5">
+        <View className="flex-1 px-5" style={{ paddingTop: insets.top + headerHeight + 16 }}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Animated.View
               key={i}
@@ -420,7 +370,7 @@ export default function HomeScreen() {
             {t.home_noBillsHint}
           </Text>
           <Pressable
-            onPress={handleAddPress}
+            onPress={openNewBillSheet}
             className="mt-5 flex-row items-center gap-2 rounded-full bg-primary px-5 py-2.5 active:opacity-80"
           >
             <IconSymbol name="plus" size={16} color={iconColors.primaryForeground} />
@@ -460,7 +410,7 @@ export default function HomeScreen() {
               </Animated.View>
             );
           }}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingTop: insets.top + headerHeight + 16, paddingBottom: 100, minHeight: Dimensions.get('window').height }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl

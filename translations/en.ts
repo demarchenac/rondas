@@ -12,7 +12,7 @@ export const en = {
   or: 'or',
 
   // Tabs
-  tabs_home: 'Home',
+  tabs_home: 'Bills',
   tabs_settings: 'Settings',
 
   // Auth / Login

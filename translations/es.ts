@@ -14,7 +14,7 @@ export const es: typeof en = {
   or: 'o',
 
   // Tabs
-  tabs_home: 'Inicio',
+  tabs_home: 'Facturas',
   tabs_settings: 'Configuración',
 
   // Auth / Login
