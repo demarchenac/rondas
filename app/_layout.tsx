@@ -23,7 +23,7 @@ import { useSubscriptionSync } from '@/hooks/useSubscriptionSync';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
-  dsn: 'https://2292b3138ea83933a76d4bac6a9a89d9@o4511188898807808.ingest.us.sentry.io/4511188908900352',
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   sendDefaultPii: true,
   enableLogs: true,
 });
