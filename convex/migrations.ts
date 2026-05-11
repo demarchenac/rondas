@@ -39,6 +39,30 @@ export const deduplicateAddresses = internalMutation({
   },
 });
 
+export const migrateContactItemsToUnits = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const bills = await ctx.db.query('bills').collect();
+    let updated = 0;
+
+    for (const bill of bills) {
+      if (bill.contacts.length === 0) continue;
+      const first = bill.contacts[0].items[0];
+      if (first && typeof first === 'object' && 'itemId' in first) continue;
+
+      const contacts = bill.contacts.map((c) => ({
+        ...c,
+        items: (c.items as unknown as string[]).map((itemId) => ({ itemId, units: 1 })),
+      }));
+
+      await ctx.db.patch(bill._id, { contacts });
+      updated++;
+    }
+
+    return { total: bills.length, updated };
+  },
+});
+
 export const backfillAuthProvider = internalMutation({
   args: {},
   handler: async (ctx) => {

@@ -28,7 +28,7 @@ interface ResolvedContact {
   name: string;
   phone?: string;
   imageUri?: string;
-  items: string[];
+  items: { itemId: string; units: number }[];
   amount: number;
   paid: boolean;
 }

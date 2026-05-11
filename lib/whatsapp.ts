@@ -3,6 +3,11 @@ import { computeBase, computeTax, type Country, type TaxConfig } from '@/constan
 import { getTaxLabel } from '@/lib/billHelpers';
 import type { Translations } from '@/lib/i18n';
 
+interface ContactItemRef {
+  itemId: string;
+  units: number;
+}
+
 interface BillData {
   name: string;
   category?: string;
@@ -15,12 +20,12 @@ interface BillData {
   photoTakenAt?: string;
   _creationTime: number;
   items: { id?: string; name: string; subtotal: number }[];
-  contacts: { items: string[] }[];
+  contacts: { items: ContactItemRef[] }[];
 }
 
 interface ContactData {
   name: string;
-  items: string[];
+  items: ContactItemRef[];
   amount: number;
 }
 
@@ -61,22 +66,33 @@ export function buildWhatsAppMessage(params: {
 
   // Per-contact item shares
   const itemLines = contact.items
-    .map((itemId) => {
-      const item = bill.items.find((billItem) => billItem.id === itemId);
+    .map((ref) => {
+      const item = bill.items.find((billItem) => billItem.id === ref.itemId);
       if (!item) return null;
-      const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-      const share = Math.round(item.subtotal / numContacts);
+      const totalAssignedUnits = bill.contacts.reduce((u, c) => {
+        const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
+        return u + (cRef ? cRef.units : 0);
+      }, 0);
+      const share = totalAssignedUnits > 0
+        ? Math.round((ref.units / totalAssignedUnits) * item.subtotal)
+        : Math.round(item.subtotal);
       return `- ${item.name} — ${formatCurrency(share, billCountry)}`;
     })
     .filter(Boolean)
     .join('\n');
 
   // Per-contact totals
-  const contactItemsTotal = contact.items.reduce((sum, itemId) => {
-    const item = bill.items.find((billItem) => billItem.id === itemId);
+  const contactItemsTotal = contact.items.reduce((sum, ref) => {
+    const item = bill.items.find((billItem) => billItem.id === ref.itemId);
     if (!item) return sum;
-    const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-    return sum + Math.round(item.subtotal / numContacts);
+    const totalAssignedUnits = bill.contacts.reduce((u, c) => {
+      const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
+      return u + (cRef ? cRef.units : 0);
+    }, 0);
+    const share = totalAssignedUnits > 0
+      ? Math.round((ref.units / totalAssignedUnits) * item.subtotal)
+      : Math.round(item.subtotal);
+    return sum + share;
   }, 0);
   const contactBase = computeBase(contactItemsTotal, taxConfig);
   const contactTax = computeTax(contactItemsTotal, taxConfig);

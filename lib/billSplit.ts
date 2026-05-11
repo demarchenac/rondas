@@ -5,17 +5,17 @@ interface BillItem {
   subtotal: number;
 }
 
-interface ContactRef {
-  items: string[];
+interface ContactItemRef {
+  itemId: string;
+  units: number;
 }
 
-/**
- * Compute what a single contact owes on a bill.
- * Splits shared items evenly among all contacts assigned to that item,
- * then applies discount, tax and tip proportionally.
- */
+interface ContactRef {
+  items: ContactItemRef[];
+}
+
 export function computeContactTotal(
-  contact: { items: string[] },
+  contact: { items: ContactItemRef[] },
   billItems: BillItem[],
   allContacts: ContactRef[],
   taxConfig: TaxConfig,
@@ -23,11 +23,17 @@ export function computeContactTotal(
   positiveTotal: number,
   discountTotal: number,
 ): number {
-  const contactItemsTotal = contact.items.reduce((sum, itemId) => {
-    const item = billItems.find((i) => i.id === itemId);
+  const contactItemsTotal = contact.items.reduce((sum, ref) => {
+    const item = billItems.find((i) => i.id === ref.itemId);
     if (!item) return sum;
-    const splitCount = allContacts.filter((c) => c.items.includes(itemId)).length;
-    return sum + Math.round(item.subtotal / Math.max(splitCount, 1));
+    const totalAssignedUnits = allContacts.reduce((u, c) => {
+      const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
+      return u + (cRef ? cRef.units : 0);
+    }, 0);
+    const share = totalAssignedUnits > 0
+      ? (ref.units / totalAssignedUnits) * item.subtotal
+      : item.subtotal;
+    return sum + Math.round(share);
   }, 0);
 
   const share = positiveTotal > 0 ? contactItemsTotal / positiveTotal : 0;

@@ -147,11 +147,16 @@ function BillShareSheet({
                   contactTax = 0;
                   contactTip = 0;
                 } else {
-                  const contactItemAmounts = contact.items.map((itemId) => {
-                    const item = bill.items.find((i) => i.id === itemId);
+                  const contactItemAmounts = contact.items.map((ref) => {
+                    const item = bill.items.find((i) => i.id === ref.itemId);
                     if (!item) return 0;
-                    const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-                    return Math.round(item.subtotal / numContacts);
+                    const totalUnits = bill.contacts.reduce((u, c) => {
+                      const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
+                      return u + (cRef ? cRef.units : 0);
+                    }, 0);
+                    return totalUnits > 0
+                      ? Math.round((ref.units / totalUnits) * item.subtotal)
+                      : Math.round(item.subtotal);
                   });
                   const contactItemsTotal = contactItemAmounts.reduce((s, a) => s + a, 0);
                   const contactBase = computeBase(contactItemsTotal, taxConfig);
@@ -189,14 +194,21 @@ function BillShareSheet({
 
                   {!isEqualSplit && (
                     <View className="ml-[52px] mt-2 flex-row flex-wrap">
-                      {contact.items.map((itemId) => {
-                        const item = bill.items.find((i) => i.id === itemId);
+                      {contact.items.map((ref) => {
+                        const item = bill.items.find((i) => i.id === ref.itemId);
                         if (!item) return null;
-                        const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-                        const share = Math.round(item.subtotal / numContacts);
+                        const totalUnits = bill.contacts.reduce((u, c) => {
+                          const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
+                          return u + (cRef ? cRef.units : 0);
+                        }, 0);
+                        const share = totalUnits > 0
+                          ? Math.round((ref.units / totalUnits) * item.subtotal)
+                          : Math.round(item.subtotal);
                         return (
-                          <View key={itemId} className="w-1/2 pr-2 mb-1">
-                            <Text className="text-xs text-foreground" numberOfLines={1}>{item.name}</Text>
+                          <View key={ref.itemId} className="w-1/2 pr-2 mb-1">
+                            <Text className="text-xs text-foreground" numberOfLines={1}>
+                              {ref.units > 1 ? `${item.name} ×${ref.units}` : item.name}
+                            </Text>
                             <Text className="text-[11px] text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
                           </View>
                         );
@@ -286,13 +298,18 @@ function BillShareSheet({
                         items={isEqualSplit
                           ? [{ name: t.share_equalSplit, amount: contactTotal }]
                           : contact.items
-                            .map((itemId) => {
-                              const item = bill.items.find((i) => i.id === itemId);
+                            .map((ref) => {
+                              const item = bill.items.find((i) => i.id === ref.itemId);
                               if (!item) return null;
-                              const numContacts = bill.contacts.filter((c) => c.items.includes(itemId)).length;
-                              const amount = Math.round(item.subtotal / numContacts);
+                              const totalUnits = bill.contacts.reduce((u, c) => {
+                                const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
+                                return u + (cRef ? cRef.units : 0);
+                              }, 0);
+                              const amount = totalUnits > 0
+                                ? Math.round((ref.units / totalUnits) * item.subtotal)
+                                : Math.round(item.subtotal);
                               if (amount === 0) return null;
-                              return { name: item.name, amount };
+                              return { name: ref.units > 1 ? `${item.name} ×${ref.units}` : item.name, amount };
                             })
                             .filter((i): i is { name: string; amount: number } => i !== null)}
                         taxConfig={taxConfig}

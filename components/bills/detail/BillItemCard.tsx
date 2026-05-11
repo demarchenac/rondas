@@ -27,7 +27,7 @@ interface AssignedContact {
   name: string;
   phone?: string;
   imageUri?: string;
-  items: string[];
+  items: { itemId: string; units: number }[];
   amount: number;
   paid: boolean;
 }
@@ -51,6 +51,7 @@ interface BillItemCardProps {
   onDismissEdit: () => void;
   onAssignContact: (itemId: string) => void;
   onRemoveContact: (itemId: string, contactId: Id<'contacts'>) => void;
+  onContactPress: (itemId: string, contactId: Id<'contacts'>) => void;
   decimalPlaces?: number;
   onToggleSelection: (itemId: string) => void;
 }
@@ -177,6 +178,7 @@ function BillItemCard({
   onAssignContact,
   decimalPlaces,
   onRemoveContact,
+  onContactPress,
   onToggleSelection,
 }: BillItemCardProps) {
   const itemId = item.id!;
@@ -258,30 +260,47 @@ function BillItemCard({
             {/* Contact chips — full width below the top row */}
             {hasContacts && (
               <View className="mt-1.5 flex-row flex-wrap gap-1.5">
-                {assignedContacts.map((c) => (
-                  <Pressable
-                    key={String(c.contactId)}
-                    onPress={() => item.id && onRemoveContact(item.id, c.contactId)}
-                    className={cn(
-                      'flex-row items-center gap-1.5 rounded-full border px-2.5 py-1',
-                      c.paid
-                        ? 'border-emerald-500/20 bg-emerald-500/10'
-                        : 'border-primary/20 bg-primary/10',
-                    )}
-                  >
-                    {c.imageUri ? (
-                      <Image source={{ uri: c.imageUri }} className="w-4 h-4 rounded-full" />
-                    ) : (
-                      <IconSymbol name="person.crop.circle" size={13} color={c.paid ? '#10b981' : iconColors.primary} />
-                    )}
-                    <Text className={cn(
-                      'text-[11px] font-medium',
-                      c.paid ? 'text-emerald-500' : 'text-primary',
-                    )}>
-                      {c.isSelf ? t.self_label(c.name) : c.name}
-                    </Text>
-                  </Pressable>
-                ))}
+                {assignedContacts.map((c) => {
+                  const ref = c.items.find((i) => i.itemId === item.id);
+                  const units = ref?.units ?? 1;
+                  return (
+                    <Pressable
+                      key={String(c.contactId)}
+                      onPress={() => item.id && onContactPress(item.id, c.contactId)}
+                      className={cn(
+                        'flex-row items-center gap-1.5 rounded-full border px-2.5 py-1',
+                        c.paid
+                          ? 'border-emerald-500/20 bg-emerald-500/10'
+                          : 'border-primary/20 bg-primary/10',
+                      )}
+                    >
+                      {c.imageUri ? (
+                        <Image source={{ uri: c.imageUri }} className="w-4 h-4 rounded-full" />
+                      ) : (
+                        <IconSymbol name="person.crop.circle" size={13} color={c.paid ? '#10b981' : iconColors.primary} />
+                      )}
+                      <Text className={cn(
+                        'text-[11px] font-medium',
+                        c.paid ? 'text-emerald-500' : 'text-primary',
+                      )}>
+                        {c.isSelf ? t.self_label(c.name) : c.name}
+                      </Text>
+                      {units > 1 && (
+                        <View className={cn(
+                          'rounded-full px-1.5 py-0.5',
+                          c.paid ? 'bg-emerald-500/20' : 'bg-primary/20',
+                        )}>
+                          <Text className={cn(
+                            'text-[9px] font-bold',
+                            c.paid ? 'text-emerald-500' : 'text-primary',
+                          )}>
+                            x{units}
+                          </Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
               </View>
             )}
           </Pressable>

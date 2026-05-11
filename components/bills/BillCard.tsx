@@ -37,7 +37,7 @@ function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
   const contactCount = bill.contacts.length;
   const itemCount = bill.items.length;
   const assignedItems = bill.state !== 'unsplit' && bill.state !== 'draft'
-    ? new Set(bill.contacts.flatMap((c) => c.items)).size
+    ? new Set(bill.contacts.flatMap((c) => c.items.map((i) => i.itemId))).size
     : 0;
   const progress = itemCount > 0 ? assignedItems / itemCount : 0;
   const isDraft = bill.state === 'draft';

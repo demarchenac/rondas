@@ -18,10 +18,12 @@ function assertMaxLength(value: string, max: number, field: string) {
 
 // --- Contact ref type used internally ---
 
+type ContactItemRef = { itemId: string; units: number };
+
 type ContactRef = {
   contactId: Id<'contacts'>;
   isSelf?: boolean;
-  items: string[];
+  items: ContactItemRef[];
   amount: number;
   paid: boolean;
 };
@@ -342,11 +344,11 @@ export const assignContactToItem = mutation({
     const idx = contacts.findIndex((c) => c.contactId === contactId);
     const isNewOnBill = idx < 0;
     if (idx >= 0) {
-      if (!contacts[idx].items.includes(args.itemId)) {
-        contacts[idx] = { ...contacts[idx], items: [...contacts[idx].items, args.itemId] };
+      if (!contacts[idx].items.some((i) => i.itemId === args.itemId)) {
+        contacts[idx] = { ...contacts[idx], items: [...contacts[idx].items, { itemId: args.itemId, units: 1 }] };
       }
     } else {
-      contacts.push({ contactId, isSelf: selfFlag, items: [args.itemId], amount: 0, paid: false });
+      contacts.push({ contactId, isSelf: selfFlag, items: [{ itemId: args.itemId, units: 1 }], amount: 0, paid: false });
     }
 
     if (isNewOnBill && !selfFlag) await incrementReference(ctx, contactId);
@@ -378,11 +380,16 @@ export const assignContactToItems = mutation({
     const idx = contacts.findIndex((c) => c.contactId === contactId);
     const isNewOnBill = idx < 0;
     if (idx >= 0) {
-      const existingItems = new Set(contacts[idx].items);
-      for (const itemId of args.itemIds) existingItems.add(itemId);
-      contacts[idx] = { ...contacts[idx], items: Array.from(existingItems) };
+      const existingItemIds = new Set(contacts[idx].items.map((i) => i.itemId));
+      const newItems = [...contacts[idx].items];
+      for (const itemId of args.itemIds) {
+        if (!existingItemIds.has(itemId)) {
+          newItems.push({ itemId, units: 1 });
+        }
+      }
+      contacts[idx] = { ...contacts[idx], items: newItems };
     } else {
-      contacts.push({ contactId, isSelf: selfFlag, items: [...args.itemIds], amount: 0, paid: false });
+      contacts.push({ contactId, isSelf: selfFlag, items: args.itemIds.map((itemId) => ({ itemId, units: 1 })), amount: 0, paid: false });
     }
 
     if (isNewOnBill && !selfFlag) await incrementReference(ctx, contactId);
@@ -410,7 +417,7 @@ export const removeContactFromItem = mutation({
     const idx = contacts.findIndex((c) => c.contactId === args.contactId);
     if (idx < 0) throw new Error('Contact not found on this bill');
 
-    const newItems = contacts[idx].items.filter((i) => i !== args.itemId);
+    const newItems = contacts[idx].items.filter((i) => i.itemId !== args.itemId);
     if (newItems.length === 0) {
       const wasSelf = contacts[idx].isSelf;
       contacts.splice(idx, 1);
@@ -443,7 +450,7 @@ export const removeContactsFromItems = mutation({
       .map((c) => ({
         ...c,
         items: contactIdSet.has(String(c.contactId))
-          ? c.items.filter((itemId) => !args.itemIds.includes(itemId))
+          ? c.items.filter((i) => !args.itemIds.includes(i.itemId))
           : c.items,
       }))
       .filter((c) => c.items.length > 0);
@@ -453,6 +460,49 @@ export const removeContactsFromItems = mutation({
         await decrementReference(ctx, ref.contactId);
       }
     }
+
+    const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
+    const state = computeBillState(bill.items, updated, bill.splitStrategy);
+
+    await ctx.db.patch(args.id, { contacts: updated, state });
+  },
+});
+
+export const updateContactUnits = mutation({
+  args: {
+    id: v.id('bills'),
+    userId: v.string(),
+    itemId: v.string(),
+    contactId: v.id('contacts'),
+    units: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const bill = await ctx.db.get(args.id);
+    if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (args.units < 1) throw new Error('Units must be at least 1');
+
+    const item = bill.items.find((i) => i.id === args.itemId);
+    if (!item) throw new Error('Item not found');
+
+    const contacts = [...bill.contacts];
+    const idx = contacts.findIndex((c) => c.contactId === args.contactId);
+    if (idx < 0) throw new Error('Contact not found on this bill');
+
+    const othersUnits = contacts.reduce((sum, c, i) => {
+      if (i === idx) return sum;
+      const ref = c.items.find((r) => r.itemId === args.itemId);
+      return sum + (ref ? ref.units : 0);
+    }, 0);
+    const maxUnits = item.quantity - othersUnits;
+    if (args.units > maxUnits) throw new Error('Exceeds available units');
+
+    contacts[idx] = {
+      ...contacts[idx],
+      items: contacts[idx].items.map((ref) =>
+        ref.itemId === args.itemId ? { ...ref, units: args.units } : ref,
+      ),
+    };
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated, bill.splitStrategy);
@@ -569,7 +619,7 @@ export const clearSplitAssignments = mutation({
 
 function computeBillState(
   items: { id?: string; subtotal: number }[],
-  contacts: { items: string[]; paid: boolean }[],
+  contacts: { items: ContactItemRef[]; paid: boolean }[],
   splitStrategy?: string,
 ): 'unsplit' | 'split' | 'unresolved' {
   if (contacts.length === 0) return 'unsplit';
@@ -578,14 +628,14 @@ function computeBillState(
     return allPaid ? 'split' : 'unresolved';
   }
   const allItemsCovered = items.every((item) =>
-    item.id ? contacts.some((c) => c.items.includes(item.id!)) : false,
+    item.id ? contacts.some((c) => c.items.some((i) => i.itemId === item.id)) : false,
   );
   const allPaid = contacts.every((c) => c.paid);
   return allItemsCovered && allPaid ? 'split' : 'unresolved';
 }
 
 function recalculateAmounts(
-  items: { id?: string; subtotal: number }[],
+  items: { id?: string; quantity: number; subtotal: number }[],
   contacts: ContactRef[],
   tax: number,
   tip: number,
@@ -595,13 +645,19 @@ function recalculateAmounts(
   const itemsTotal = positiveTotal + discountTotal;
 
   for (const contact of contacts) {
-    contact.items = contact.items.filter((itemId) => items.some((i) => i.id === itemId));
+    contact.items = contact.items.filter((ref) => items.some((i) => i.id === ref.itemId));
 
-    const contactItemsTotal = contact.items.reduce((sum, itemId) => {
-      const item = items.find((i) => i.id === itemId);
+    const contactItemsTotal = contact.items.reduce((sum, ref) => {
+      const item = items.find((i) => i.id === ref.itemId);
       if (!item) return sum;
-      const numContacts = contacts.filter((c) => c.items.includes(itemId)).length;
-      return sum + item.subtotal / numContacts;
+      const totalAssignedUnits = contacts.reduce((u, c) => {
+        const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
+        return u + (cRef ? cRef.units : 0);
+      }, 0);
+      const effectiveTotal = totalAssignedUnits > 0
+        ? (ref.units / totalAssignedUnits) * item.subtotal
+        : item.subtotal;
+      return sum + effectiveTotal;
     }, 0);
 
     const share = positiveTotal > 0 ? contactItemsTotal / positiveTotal : 0;

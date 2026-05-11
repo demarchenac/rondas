@@ -5,7 +5,7 @@ import type { BillState } from '@/lib/billHelpers';
 export interface ResolvedContact {
   contactId: Id<'contacts'>;
   isSelf?: boolean;
-  items: string[];
+  items: { itemId: string; units: number }[];
   amount: number;
   paid: boolean;
   // Resolved from contacts table by query join

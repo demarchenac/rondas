@@ -12,7 +12,7 @@ import type { Id } from '@/convex/_generated/dataModel';
 
 interface UnassignPickerSheetProps {
   visible: boolean;
-  contacts: { name: string; imageUri?: string; items: string[]; contactId: Id<'contacts'> }[];
+  contacts: { name: string; imageUri?: string; items: { itemId: string; units: number }[]; contactId: Id<'contacts'> }[];
   selectedItemIds: Set<string>;
   selectedContactIds: Set<string>;
   bottomInset: number;
@@ -38,7 +38,7 @@ function UnassignPickerSheet({
   const insets = useSafeAreaInsets();
 
   const contactsOnSelected = contacts.filter((c) =>
-    c.items.some((itemId) => selectedItemIds.has(itemId))
+    c.items.some((ref) => selectedItemIds.has(ref.itemId))
   );
 
   return (
@@ -62,7 +62,7 @@ function UnassignPickerSheet({
         <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
           {contactsOnSelected.map((c) => {
             const isSelected = selectedContactIds.has(String(c.contactId));
-            const itemCount = c.items.filter((itemId) => selectedItemIds.has(itemId)).length;
+            const itemCount = c.items.filter((ref) => selectedItemIds.has(ref.itemId)).length;
             return (
               <Pressable
                 key={String(c.contactId)}

@@ -26,10 +26,15 @@ export const billItemValidator = v.object({
   subtotal: v.number(),
 });
 
+export const contactItemRefValidator = v.object({
+  itemId: v.string(),
+  units: v.number(),
+});
+
 export const billContactRefValidator = v.object({
   contactId: v.id('contacts'),
   isSelf: v.optional(v.boolean()),
-  items: v.array(v.string()),
+  items: v.array(contactItemRefValidator),
   amount: v.number(),
   paid: v.boolean(),
 });

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image as RNImage, Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image as RNImage, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
@@ -39,6 +40,7 @@ import BulkToolbar from '@/components/bills/BulkToolbar';
 import ContactPickerSheet, { SUGGESTED_PREFIX, SELF_PREFIX } from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import BillShareSheet from '@/components/bills/BillShareSheet';
+import ContactUnitSheet from '@/components/bills/detail/ContactUnitSheet';
 
 const CONTACTS_CACHE_TTL = 5 * 60_000; // 5 minutes
 
@@ -65,6 +67,7 @@ export default function BillDetailScreen() {
   const removeBill = useMutation(api.bills.remove);
   const removeContactsBatch = useMutation(api.bills.removeContactsFromItems);
   const assignContactToItems = useMutation(api.bills.assignContactToItems);
+  const updateContactUnits = useMutation(api.bills.updateContactUnits);
   const assignEqualSplit = useMutation(api.bills.assignEqualSplit);
   const clearSplit = useMutation(api.bills.clearSplitAssignments);
 
@@ -83,6 +86,7 @@ export default function BillDetailScreen() {
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [previewAspect, setPreviewAspect] = useState(1);
   const [previewContactName, setPreviewContactName] = useState('');
+  const [unitSheetTarget, setUnitSheetTarget] = useState<{ itemId: string; contactId: Id<'contacts'> } | null>(null);
   // Sync equal split state from bill
   const initializedRef = useRef(false);
   if (bill && !initializedRef.current) {
@@ -114,7 +118,7 @@ export default function BillDetailScreen() {
       const targetItemId = singleAssignItemId ?? (selectedItemIds.size === 1 ? Array.from(selectedItemIds)[0] : null);
       if (!targetItemId) return undefined;
       for (const c of bill.contacts) {
-        if (c.items.includes(targetItemId) && c.phone) phones.add(c.phone);
+        if (c.items.some((i) => i.itemId === targetItemId) && c.phone) phones.add(c.phone);
       }
     }
 
@@ -128,7 +132,7 @@ export default function BillDetailScreen() {
     }
     const targetItemId = singleAssignItemId ?? (selectedItemIds.size === 1 ? Array.from(selectedItemIds)[0] : null);
     if (!targetItemId) return false;
-    return bill.contacts.some((c) => c.isSelf && c.items.includes(targetItemId));
+    return bill.contacts.some((c) => c.isSelf && c.items.some((i) => i.itemId === targetItemId));
   }, [bill, equalSplitMode, singleAssignItemId, selectedItemIds]);
 
   // --- Callbacks ---
@@ -324,7 +328,7 @@ export default function BillDetailScreen() {
   const handleBulkRemoveContact = useCallback(() => {
     if (selectedItemIds.size === 0 || !bill || !userId) return;
     const selectedIds = Array.from(selectedItemIds);
-    const contactsOnSelected = bill.contacts.filter((c) => c.items.some((itemId) => selectedIds.includes(itemId)));
+    const contactsOnSelected = bill.contacts.filter((c) => c.items.some((ref) => selectedIds.includes(ref.itemId)));
     if (contactsOnSelected.length === 0) {
       alert(t.bill_noContacts, t.bill_noContactsOnItems);
       return;
@@ -423,6 +427,34 @@ export default function BillDetailScreen() {
       },
     ]);
   }, [id, removeContact, t, userId, alert]);
+
+  const handleContactPress = useCallback((itemId: string, contactId: Id<'contacts'>) => {
+    setUnitSheetTarget({ itemId, contactId });
+  }, []);
+
+  const handleUpdateUnits = useCallback(async (units: number) => {
+    if (!unitSheetTarget || !userId) return;
+    try {
+      await updateContactUnits({
+        id: id as Id<'bills'>,
+        userId,
+        itemId: unitSheetTarget.itemId,
+        contactId: unitSheetTarget.contactId,
+        units,
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.error('[Bill] updateContactUnits failed:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      alert(t.error, t.error_mutationFailed);
+    }
+  }, [unitSheetTarget, userId, id, updateContactUnits, t, alert]);
+
+  const handleRemoveFromUnitSheet = useCallback(() => {
+    if (!unitSheetTarget || !userId) return;
+    setUnitSheetTarget(null);
+    handleRemoveContact(unitSheetTarget.itemId, unitSheetTarget.contactId);
+  }, [unitSheetTarget, userId, handleRemoveContact]);
 
   const handleTogglePaid = useCallback(async (contactId: Id<'contacts'>) => {
     if (!userId) return;
@@ -620,7 +652,7 @@ export default function BillDetailScreen() {
     }
   }, [selectedContactIds, bill, userId, suggestedContacts, selfContact, phoneContacts, id, numPeople, assignEqualSplit, t, alert]);
 
-  const handleSendWhatsApp = useCallback(async (contact: { name: string; phone?: string; items: string[]; amount: number }) => {
+  const handleSendWhatsApp = useCallback(async (contact: { name: string; phone?: string; items: { itemId: string; units: number }[]; amount: number }) => {
     if (!bill || !contact.phone) {
       alert(t.bill_noPhone, t.bill_noPhoneMessage);
       return;
@@ -639,7 +671,7 @@ export default function BillDetailScreen() {
     Linking.openURL(url);
   }, [bill, t, alert]);
 
-  const handleShareInfographic = useCallback(async (contact: { name: string; imageUri?: string; items: string[]; amount: number }, contactIndex: number) => {
+  const handleShareInfographic = useCallback(async (contact: { name: string; imageUri?: string; items: { itemId: string; units: number }[]; amount: number }, contactIndex: number) => {
     if (!bill) return;
     const ref = infographicRefs.current[contactIndex];
     if (!ref?.capture) return;
@@ -764,7 +796,7 @@ export default function BillDetailScreen() {
     paidPercent = target > 0 ? (paidContactCount / target) * 100 : 0;
     unpaidPercent = target > 0 ? ((totalContacts - paidContactCount) / target) * 100 : 0;
   } else {
-    const assignedItemIds = new Set(bill.contacts.flatMap((c) => c.items));
+    const assignedItemIds = new Set(bill.contacts.flatMap((c) => c.items.map((i) => i.itemId)));
     const assignedPercent = totalItems > 0 ? (assignedItemIds.size / totalItems) * 100 : 0;
     const paidProportion = totalContacts > 0 ? paidContactCount / totalContacts : 0;
     paidPercent = assignedPercent * paidProportion;
@@ -874,7 +906,7 @@ export default function BillDetailScreen() {
             {/* Items */}
             {sortedItems.map((item, index) => {
               const itemId = item.id!;
-              const assignedContacts = bill.contacts.filter((c) => c.items.includes(itemId));
+              const assignedContacts = bill.contacts.filter((c) => c.items.some((i) => i.itemId === itemId));
               return (
                 <Animated.View
                   key={item.id ?? `legacy-${index}`}
@@ -900,6 +932,7 @@ export default function BillDetailScreen() {
                     onDismissEdit={() => setEditingItemId(null)}
                     onAssignContact={handleAssignContact}
                     onRemoveContact={handleRemoveContact}
+                    onContactPress={handleContactPress}
                     onToggleSelection={toggleItemSelection}
                   />
                 </Animated.View>
@@ -951,36 +984,30 @@ export default function BillDetailScreen() {
       </ScrollView>
 
       {/* Bottom fixed area */}
-      <View className="border-t border-border/30">
-        {/* Share button — filled primary when contacts exist */}
-        {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
-          <View className="px-7 pb-2 pt-3">
-            <Pressable
-              onPress={() => setActiveDialog('share')}
-              className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 active:opacity-80"
-            >
-              <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
-              <Text className="text-[15px] font-semibold text-primary-foreground">
-                {t.share_button(bill.contacts.length)}
-              </Text>
-            </Pressable>
-          </View>
-        )}
-
-
-        {/* Bulk toolbar — above add item */}
-        {multiSelectMode && selectedItemIds.size > 0 && (
-          <BulkToolbar
-            selectedItemIds={selectedItemIds}
-            hasContactsOnSelection={bill.contacts.some((c) => c.items.some((itemId) => selectedItemIds.has(itemId)))}
-            onAssign={handleMultiAssign}
-            onUnassign={handleBulkRemoveContact}
-            onDelete={handleBulkDelete}
-          />
-        )}
-
-        {/* Add Item button — always last */}
-        {(
+      {Platform.OS === 'ios' ? (
+        <BlurView intensity={80} tint={colorScheme === 'dark' ? 'dark' : 'light'} className="border-t border-border/30">
+          {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
+            <View className="px-7 pb-2 pt-3">
+              <Pressable
+                onPress={() => setActiveDialog('share')}
+                className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 active:opacity-80"
+              >
+                <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
+                <Text className="text-[15px] font-semibold text-primary-foreground">
+                  {t.share_button(bill.contacts.length)}
+                </Text>
+              </Pressable>
+            </View>
+          )}
+          {multiSelectMode && selectedItemIds.size > 0 && (
+            <BulkToolbar
+              selectedItemIds={selectedItemIds}
+              hasContactsOnSelection={bill.contacts.some((c) => c.items.some((ref) => selectedItemIds.has(ref.itemId)))}
+              onAssign={handleMultiAssign}
+              onUnassign={handleBulkRemoveContact}
+              onDelete={handleBulkDelete}
+            />
+          )}
           <View className="px-7 py-2">
             <Pressable
               onPress={handleAddItem}
@@ -990,8 +1017,42 @@ export default function BillDetailScreen() {
               <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
             </Pressable>
           </View>
-        )}
-      </View>
+        </BlurView>
+      ) : (
+        <View className="border-t border-border/30">
+          {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
+            <View className="px-7 pb-2 pt-3">
+              <Pressable
+                onPress={() => setActiveDialog('share')}
+                className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 active:opacity-80"
+              >
+                <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
+                <Text className="text-[15px] font-semibold text-primary-foreground">
+                  {t.share_button(bill.contacts.length)}
+                </Text>
+              </Pressable>
+            </View>
+          )}
+          {multiSelectMode && selectedItemIds.size > 0 && (
+            <BulkToolbar
+              selectedItemIds={selectedItemIds}
+              hasContactsOnSelection={bill.contacts.some((c) => c.items.some((ref) => selectedItemIds.has(ref.itemId)))}
+              onAssign={handleMultiAssign}
+              onUnassign={handleBulkRemoveContact}
+              onDelete={handleBulkDelete}
+            />
+          )}
+          <View className="px-7 py-2">
+            <Pressable
+              onPress={handleAddItem}
+              className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3 active:opacity-80"
+            >
+              <IconSymbol name="plus" size={14} color={iconColors.primary} />
+              <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
 
       {/* Dialogs & Sheets */}
       <BillShareSheet
@@ -1049,6 +1110,38 @@ export default function BillDetailScreen() {
           onClose={() => setActiveDialog(null)}
         />
       )}
+
+      {unitSheetTarget && bill && (() => {
+        const targetItem = bill.items.find((i) => i.id === unitSheetTarget.itemId);
+        const targetContact = bill.contacts.find((c) => c.contactId === unitSheetTarget.contactId);
+        if (!targetItem || !targetContact) return null;
+        const ref = targetContact.items.find((i) => i.itemId === unitSheetTarget.itemId);
+        if (!ref) return null;
+        const othersUnits = bill.contacts.reduce((sum, c) => {
+          if (c.contactId === unitSheetTarget.contactId) return sum;
+          const cRef = c.items.find((i) => i.itemId === unitSheetTarget.itemId);
+          return sum + (cRef ? cRef.units : 0);
+        }, 0);
+        return (
+          <ContactUnitSheet
+            visible
+            contactName={targetContact.name}
+            contactImageUri={targetContact.imageUri}
+            contactId={targetContact.contactId}
+            isSelf={targetContact.isSelf}
+            itemName={targetItem.name}
+            itemQuantity={targetItem.quantity}
+            unitPrice={targetItem.unitPrice}
+            currentUnits={ref.units}
+            maxUnits={targetItem.quantity - othersUnits}
+            billCountry={billCountry}
+            bottomInset={insets.bottom}
+            onUpdateUnits={handleUpdateUnits}
+            onRemove={handleRemoveFromUnitSheet}
+            onClose={() => setUnitSheetTarget(null)}
+          />
+        );
+      })()}
 
       <TipDialog
         visible={activeDialog === 'tip'}
