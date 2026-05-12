@@ -1,6 +1,7 @@
 import { mutation, query, type MutationCtx } from './_generated/server';
 import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
+import { computeDerivedFields } from './bills';
 
 // --- Internal helper (called within mutation handlers) ---
 
@@ -250,7 +251,8 @@ export const remove = mutation({
     for (const bill of bills) {
       const filtered = bill.contacts.filter((c) => c.contactId !== args.id);
       if (filtered.length !== bill.contacts.length) {
-        await ctx.db.patch(bill._id, { contacts: filtered });
+        const derived = computeDerivedFields(bill.items, filtered);
+        await ctx.db.patch(bill._id, { contacts: filtered, ...derived });
       }
     }
 

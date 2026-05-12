@@ -11,6 +11,8 @@ import {
   contactArgValidator,
 } from './validators';
 import { getOrCreate, incrementReference, decrementReference } from './contacts';
+import { getTaxConfig, computeBase, computeTax, withTaxIncludedOverride } from '../constants/taxes';
+import type { Country, ReceiptCategory } from '../constants/taxes';
 
 function assertMaxLength(value: string, max: number, field: string) {
   if (value.length > max) throw new Error(`${field} exceeds maximum length of ${max}`);
@@ -222,6 +224,8 @@ export const create = mutation({
     }));
     const now = Date.now();
     const { isPro: _isPro, ...insertArgs } = args;
+    const displayTotal = computeDisplayTotal(items, args);
+    const derived = computeDerivedFields(items, []);
     const billId = await ctx.db.insert('bills', {
       ...insertArgs,
       items,
@@ -229,6 +233,8 @@ export const create = mutation({
       contacts: [],
       createdAt: now,
       updatedAt: now,
+      displayTotal,
+      ...derived,
     });
 
     if (user) {
@@ -313,10 +319,16 @@ export const update = mutation({
     const isTaxIncluded = overrideVal !== undefined ? overrideVal : billCountry === 'CO';
     const newTotal = isTaxIncluded ? itemsTotal + newTip : itemsTotal + newTax + newTip;
 
+    const mergedBill = { ...bill, ...defined, tax: newTax, tip: newTip };
+    const displayTotal = computeDisplayTotal(newItems, mergedBill);
+    const derived = computeDerivedFields(newItems, contacts);
+
     await ctx.db.patch(id, {
       ...defined,
       contacts,
       total: newTotal,
+      displayTotal,
+      ...derived,
       updatedAt: Date.now(),
     });
   },
@@ -355,8 +367,9 @@ export const assignContactToItem = mutation({
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated, 'by_item');
+    const derived = computeDerivedFields(bill.items, updated);
 
-    await ctx.db.patch(args.id, { contacts: updated, state, splitStrategy: 'by_item' });
+    await ctx.db.patch(args.id, { contacts: updated, state, splitStrategy: 'by_item', ...derived });
   },
 });
 
@@ -396,8 +409,9 @@ export const assignContactToItems = mutation({
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated, 'by_item');
+    const derived = computeDerivedFields(bill.items, updated);
 
-    await ctx.db.patch(args.id, { contacts: updated, state, splitStrategy: 'by_item' });
+    await ctx.db.patch(args.id, { contacts: updated, state, splitStrategy: 'by_item', ...derived });
   },
 });
 
@@ -428,8 +442,9 @@ export const removeContactFromItem = mutation({
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated, bill.splitStrategy);
+    const derived = computeDerivedFields(bill.items, updated);
 
-    await ctx.db.patch(args.id, { contacts: updated, state });
+    await ctx.db.patch(args.id, { contacts: updated, state, ...derived });
   },
 });
 
@@ -463,8 +478,9 @@ export const removeContactsFromItems = mutation({
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated, bill.splitStrategy);
+    const derived = computeDerivedFields(bill.items, updated);
 
-    await ctx.db.patch(args.id, { contacts: updated, state });
+    await ctx.db.patch(args.id, { contacts: updated, state, ...derived });
   },
 });
 
@@ -506,8 +522,9 @@ export const updateContactUnits = mutation({
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated, bill.splitStrategy);
+    const derived = computeDerivedFields(bill.items, updated);
 
-    await ctx.db.patch(args.id, { contacts: updated, state });
+    await ctx.db.patch(args.id, { contacts: updated, state, ...derived });
   },
 });
 
@@ -526,8 +543,9 @@ export const togglePaymentStatus = mutation({
       c.contactId === args.contactId ? { ...c, paid: !c.paid } : c,
     );
     const state = computeBillState(bill.items, contacts, bill.splitStrategy);
+    const derived = computeDerivedFields(bill.items, contacts);
 
-    await ctx.db.patch(args.id, { contacts, state });
+    await ctx.db.patch(args.id, { contacts, state, ...derived });
   },
 });
 
@@ -580,6 +598,7 @@ export const assignEqualSplit = mutation({
     }
 
     const state = computeBillState(bill.items, contacts, 'equal');
+    const derived = computeDerivedFields(bill.items, contacts);
 
     await ctx.db.patch(args.id, {
       contacts,
@@ -587,6 +606,7 @@ export const assignEqualSplit = mutation({
       splitStrategy: 'equal',
       numPeople: args.numPeople,
       updatedAt: Date.now(),
+      ...derived,
     });
   },
 });
@@ -605,12 +625,15 @@ export const clearSplitAssignments = mutation({
       if (!ref.isSelf) await decrementReference(ctx, ref.contactId);
     }
 
+    const derived = computeDerivedFields(bill.items, []);
+
     await ctx.db.patch(args.id, {
       contacts: [],
       state: 'unsplit',
       splitStrategy: undefined,
       numPeople: undefined,
       updatedAt: Date.now(),
+      ...derived,
     });
   },
 });
@@ -632,6 +655,34 @@ function computeBillState(
   );
   const allPaid = contacts.every((c) => c.paid);
   return allItemsCovered && allPaid ? 'split' : 'unresolved';
+}
+
+function computeDisplayTotal(
+  items: { subtotal: number }[],
+  bill: { tax?: number; tip?: number; tipPercent?: number; useCustomTip?: boolean; country?: string; category?: string; taxIncludedOverride?: boolean },
+): number {
+  const country = (bill.country as Country) || 'CO';
+  const category = (bill.category as ReceiptCategory) || 'dining';
+  const rawConfig = getTaxConfig(country, category);
+  const taxConfig = withTaxIncludedOverride(rawConfig, bill.taxIncludedOverride ?? undefined);
+  const itemsTotal = items.reduce((sum, i) => sum + i.subtotal, 0);
+  const base = computeBase(itemsTotal, taxConfig);
+  const computedTax = computeTax(itemsTotal, taxConfig);
+  const tipPercent = bill.tipPercent ?? 0;
+  const computedTip = bill.useCustomTip ? (bill.tip ?? 0) : base * (tipPercent / 100);
+  return base + computedTax + computedTip;
+}
+
+export function computeDerivedFields(
+  items: { id?: string; subtotal: number }[],
+  contacts: { items: ContactItemRef[]; paid: boolean }[],
+) {
+  const totalItemCount = items.length;
+  const totalContactCount = contacts.length;
+  const paidContactCount = contacts.filter((c) => c.paid).length;
+  const assignedItemCount = new Set(contacts.flatMap((c) => c.items.map((i) => i.itemId))).size;
+  const progress = totalItemCount > 0 ? assignedItemCount / totalItemCount : 0;
+  return { totalItemCount, totalContactCount, paidContactCount, assignedItemCount, progress };
 }
 
 function recalculateAmounts(

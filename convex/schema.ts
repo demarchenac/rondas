@@ -66,6 +66,13 @@ export default defineSchema({
     location: v.optional(locationValidator),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
+    // Denormalized fields for card rendering (computed in mutations)
+    displayTotal: v.optional(v.number()),
+    paidContactCount: v.optional(v.number()),
+    assignedItemCount: v.optional(v.number()),
+    totalContactCount: v.optional(v.number()),
+    totalItemCount: v.optional(v.number()),
+    progress: v.optional(v.number()),
   })
     .index('by_user', ['userId'])
     .index('by_user_state', ['userId', 'state']),
