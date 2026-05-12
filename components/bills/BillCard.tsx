@@ -100,12 +100,15 @@ function CornerGlow({
   const gradId = corner === 'top-left' ? 'tlGrad' : 'brGrad';
   const cp = size * 0.08;
 
+  // Both corners: vertex at corner, edges along card sides, bezier curve connecting
+  // Top-left uses 70% of size to avoid a hard line across the full top edge
+  const span = size * 0.7;
   const path =
     corner === 'top-left'
-      ? `M 0 0 L ${size} 0 Q ${cp} ${cp} 0 ${size} Z`
-      : `M ${size} ${size} L 0 ${size} Q ${size - cp} ${size - cp} ${size} 0 Z`;
+      ? `M 0 0 L ${span} 0 Q ${cp} ${cp} 0 ${span} Z`
+      : `M ${size} ${size} L ${size - span} ${size} Q ${size - cp} ${size - cp} ${size} ${size - span} Z`;
 
-  // Gradient goes from corner vertex straight toward the bezier midpoint
+  // Both gradients: radiate from the corner vertex outward
   const gradProps =
     corner === 'top-left'
       ? { x1: '0', y1: '0', x2: `${size * 0.5}`, y2: `${size * 0.5}` }
@@ -327,26 +330,18 @@ function BillCardIOS({
     [stateStyle.color, mode, stateStyle.intensity],
   );
 
-  const glassAvailable = useMemo(() => isGlassEffectAPIAvailable(), []);
-
   const [cardHeight, setCardHeight] = useState(120);
   const onCardLayout = useCallback((e: LayoutChangeEvent) => {
     setCardHeight(e.nativeEvent.layout.height);
   }, []);
 
-  // GlassView disabled for now — dark backgrounds don't benefit from glass blur.
-  // Re-enable for light mode or overlay use cases.
-  const useGlass = false && glassAvailable && !isDraft;
-  const glassColorScheme = mode === 'dark' ? 'dark' : 'light';
-  const glassTint = stateStyle.color + '10';
-
   return (
     <Pressable onPress={onPress} style={{ opacity: locked ? 0.5 : 1 }}>
       <View style={{ marginBottom: 10 }}>
-        {/* Layer 1: Gradient background — behind card, extends below */}
-        {!isDraft && (
+        {/* Layer 1: Gradient background — disabled for testing */}
+        {false && !isDraft && (
           <LinearGradient
-            colors={[stateStyle.color + '60', stateStyle.color + '25', 'transparent']}
+            colors={[stateStyle.color + '50', stateStyle.color + '18', 'transparent']}
             locations={[0, 0.5, 1]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
@@ -355,7 +350,7 @@ function BillCardIOS({
               top: 0,
               left: 0,
               right: 0,
-              height: cardHeight + 20,
+              height: cardHeight + 24,
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
             }}
@@ -363,28 +358,31 @@ function BillCardIOS({
           />
         )}
 
-        {/* Layer 2: Card — GlassView when available, View fallback */}
-        {useGlass ? (
-        <GlassView
-          glassEffectStyle="clear"
-          colorScheme={glassColorScheme}
+        {/* Layer 2: Card */}
+        <View
           onLayout={onCardLayout}
-          className="overflow-hidden rounded-[20px] px-4 py-3"
+          className={cn(
+            'overflow-hidden rounded-[20px] bg-card px-4 py-3',
+            isDraft && 'opacity-60',
+          )}
           style={{
             zIndex: 1,
             shadowColor: stateStyle.color,
             shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: isUnresolved ? 0.28 : 0.14,
+            shadowOpacity: isDraft ? 0 : isUnresolved ? 0.28 : 0.14,
             shadowRadius: isUnresolved ? 12 : 8,
-            borderWidth: 1,
-            borderColor: glow.glowMid,
+            borderWidth: isDraft ? 0 : 1,
+            borderColor: isDraft ? 'transparent' : glow.glowMid,
           }}
         >
-          {/* Layer 3: Corner bezier artifacts */}
-          <>
-            <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
-            <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
-          </>
+          {/* Layer 3: Corner bezier glows */}
+          {!isDraft && (
+            <>
+              <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
+              <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
+            </>
+          )}
+
           {/* Layer 4: Content */}
           <View style={{ zIndex: 2 }}>
             <CardContent
@@ -404,51 +402,7 @@ function BillCardIOS({
               isIOS
             />
           </View>
-        </GlassView>
-        ) : (
-        <View
-          onLayout={onCardLayout}
-          className={cn(
-            'overflow-hidden rounded-[20px] bg-card px-4 py-3',
-            isDraft && 'opacity-60',
-          )}
-          style={{
-            zIndex: 1,
-            shadowColor: stateStyle.color,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: isDraft ? 0 : isUnresolved ? 0.28 : 0.14,
-            shadowRadius: isUnresolved ? 12 : 8,
-            borderWidth: isDraft ? 0 : 1,
-            borderColor: isDraft ? 'transparent' : glow.glowMid,
-          }}
-        >
-          {/* Corner bezier artifacts for fallback */}
-          {!isDraft && (
-            <>
-              <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
-              <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
-            </>
-          )}
-          <View style={{ zIndex: 2 }}>
-            <CardContent
-              bill={bill}
-              stateStyle={stateStyle}
-              label={label}
-              isDraft={isDraft}
-              isUnresolved={isUnresolved}
-              displayTotal={displayTotal}
-              itemCount={itemCount}
-              contactCount={contactCount}
-              paidCount={paidCount}
-              progress={progress}
-              iconColors={iconColors}
-              t={t}
-              locked={locked}
-              isIOS
-            />
-          </View>
         </View>
-        )}
       </View>
     </Pressable>
   );
