@@ -17,7 +17,8 @@
 | **Splital** | No | Si (auto) | No | No | No | Free / Pro $2.99/mo |
 | **Monyo** | Si | No detallado | No detallado | Gen Z | No | No publicado |
 | **OneSplit** | Si (OCR) | No | No | No | No | No publicado |
-| **Rondas (actual)** | Si (Gemini 2.5 Flash streaming) | No | No | Light/Dark/System | WhatsApp sharing | Free (3 scans/mo) / Pro $9,900 COP/mo |
+| **Splittier** | Si (AI) | No | No | Redesign v3 | No | Free + ads / Premium (precio no publicado) |
+| **Rondas (actual)** | Si (Gemini 2.5 Flash streaming) | Si (auto-tag AI) | No | Light/Dark/System + Liquid Glass | WhatsApp sharing | Free (3 scans/mo) / Pro $9,900 COP/mo |
 
 ---
 
@@ -39,7 +40,10 @@
 | Auto-categorization de gastos | Divide, SplitMyExpenses, Splital | Alta |
 | AI insights / chat con gastos | Divide, SplitMyExpenses | Media |
 | Graficas/estadisticas de gasto | Splitwise Pro, SplitMyExpenses, Splital | Media |
-| Recurring expenses | SplitMyExpenses, Settle Up | Baja |
+| Recurring expenses | SplitMyExpenses, Settle Up, Splittier | Baja |
+| Voice-based expense entry | Splittier | Media |
+| Monthly spending wrap-ups | Splittier | Media |
+| Loans tracking (prestamos) | Splittier | Baja |
 | Bank/card linking auto-import | SplitMyExpenses | Baja |
 | Payment integrations directas | Splitwise (Venmo), Tricount (bunq), ReceiptSplit (8 metodos) | Media |
 | Offline support | Splid, Settle Up, Splital | Baja |
@@ -203,3 +207,4 @@
 3. **Gen Z quiere personalizacion** -- Divide y Monyo apuntan a estetica juvenil. Theming es engagement driver.
 4. **One-time purchase gaining traction** -- Splital ofrece $17.99-$34.99 lifetime como alternativa a suscripcion.
 5. **WhatsApp como canal critico en LatAm** -- ninguna app lo aprovecha. Rondas ya tiene ventaja aqui.
+6. **Competencia en LATAM emergente** -- Splittier (SoadTech) apunta al mercado hispano con voice entry y personal finance. Traccion minima (50+ descargas) pero valida la demanda.

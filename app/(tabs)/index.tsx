@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo, useRef } from 'react';
 import { Dimensions, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { FlashList } from '@shopify/flash-list';
 import { useColorScheme } from 'nativewind';

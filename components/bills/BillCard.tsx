@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Platform, Pressable, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+// import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Path } from 'react-native-svg';
 import Animated, {
   Easing,
@@ -340,25 +339,10 @@ function BillCardIOS({
   return (
     <Pressable onPress={onPress} style={{ opacity: locked ? 0.5 : 1 }}>
       <View style={{ marginBottom: 10 }}>
-        {/* Layer 1: Gradient background — behind card, extends below */}
-        {!isDraft && (
-          <LinearGradient
-            colors={[stateStyle.color + '50', stateStyle.color + '18', 'transparent']}
-            locations={[0, 0.5, 1]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: cardHeight + 24,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-            }}
-            pointerEvents="none"
-          />
-        )}
+        {/* Layer 1: Gradient background — disabled, revisit if card needs a colored
+           backdrop glow behind it. Was: LinearGradient from stateStyle.color+'50' to
+           transparent, positioned absolute behind card extending 24px below.
+           Uncomment LinearGradient import above to re-enable. */}
 
         {/* Layer 2: Card */}
         <View
