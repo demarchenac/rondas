@@ -254,7 +254,7 @@ export default function HomeScreen() {
                       {'  ·  '}
                       {formatCurrency(bills.reduce((sum, b) => {
                         const bc = (b.country as 'CO' | 'US') || 'CO';
-                        const cat = (b.category as 'dining' | 'retail' | 'service') || 'dining';
+                        const cat = (b.tags?.find((t) => t.isPlatform)?.slug as 'dining' | 'retail' | 'service') || 'dining';
                         const tc = withTaxIncludedOverride(getTaxConfig(bc, cat), b.taxIncludedOverride ?? undefined);
                         const items = b.items.reduce((s, i) => s + i.subtotal, 0);
                         const base = computeBase(items, tc);
@@ -279,7 +279,7 @@ export default function HomeScreen() {
                     <Text className="text-xs font-semibold text-foreground">
                       {formatCurrency(bills.reduce((sum, b) => {
                         const bc = (b.country as 'CO' | 'US') || 'CO';
-                        const cat = (b.category as 'dining' | 'retail' | 'service') || 'dining';
+                        const cat = (b.tags?.find((t) => t.isPlatform)?.slug as 'dining' | 'retail' | 'service') || 'dining';
                         const tc = withTaxIncludedOverride(getTaxConfig(bc, cat), b.taxIncludedOverride ?? undefined);
                         const items = b.items.reduce((s, i) => s + i.subtotal, 0);
                         const base = computeBase(items, tc);

@@ -3,7 +3,6 @@ import { v } from 'convex/values';
 import {
   billStateValidator,
   splitStrategyValidator,
-  categoryValidator,
   billItemValidator,
   billContactRefValidator,
   locationValidator,
@@ -58,7 +57,6 @@ export default defineSchema({
     splitStrategy: v.optional(splitStrategyValidator),
     numPeople: v.optional(v.number()),
     contacts: v.array(billContactRefValidator),
-    category: v.optional(categoryValidator),
     tagIds: v.optional(v.array(v.id('tags'))),
     country: v.optional(v.string()),
     taxIncludedOverride: v.optional(v.boolean()),

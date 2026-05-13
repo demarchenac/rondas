@@ -12,12 +12,6 @@ export const splitStrategyValidator = v.union(
   v.literal('by_item')
 );
 
-export const categoryValidator = v.union(
-  v.literal('dining'),
-  v.literal('retail'),
-  v.literal('service')
-);
-
 export const billItemValidator = v.object({
   id: v.optional(v.string()),
   name: v.string(),

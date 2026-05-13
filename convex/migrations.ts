@@ -97,7 +97,7 @@ export const migrateCategoriesToTags = internalMutation({
         .unique();
       if (!user) continue;
 
-      const slug = bill.category || 'dining';
+      const slug = (bill as unknown as { category?: string }).category || 'dining';
       const platformTag = await ctx.db
         .query('tags')
         .withIndex('by_user_slug', (q) => q.eq('userId', user._id).eq('slug', slug))

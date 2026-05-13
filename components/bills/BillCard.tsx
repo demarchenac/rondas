@@ -204,7 +204,7 @@ function CardContent({
   isIOS: boolean;
 }) {
   const platformTag = bill.tags?.find((t) => t.isPlatform);
-  const categorySlug = platformTag?.slug ?? bill.category;
+  const categorySlug = platformTag?.slug;
   const categoryIcon = categorySlug ? CATEGORY_ICONS[categorySlug] : null;
   const billCountry = (bill.country as 'CO' | 'US') || 'CO';
 
@@ -498,7 +498,7 @@ function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
     displayTotal = bill.displayTotal;
   } else {
     const billCountry = (bill.country as 'CO' | 'US') || 'CO';
-    const billCategory = (bill.category as 'dining' | 'retail' | 'service') || 'dining';
+    const billCategory = (bill.tags?.find((t) => t.isPlatform)?.slug as 'dining' | 'retail' | 'service') || 'dining';
     const rawTaxConfig = getTaxConfig(billCountry, billCategory);
     const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill.taxIncludedOverride ?? undefined);
     const itemsTotal = bill.items.reduce((sum, i) => sum + i.subtotal, 0);

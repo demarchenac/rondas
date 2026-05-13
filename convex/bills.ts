@@ -5,7 +5,6 @@ import type { Id, Doc } from './_generated/dataModel';
 import {
   billStateValidator,
   splitStrategyValidator,
-  categoryValidator,
   billItemValidator,
   locationValidator,
   contactArgValidator,
@@ -192,8 +191,8 @@ export const create = mutation({
         subtotal: v.number(),
       }),
     ),
-    category: v.optional(categoryValidator),
     tagIds: v.optional(v.array(v.id('tags'))),
+    category: v.optional(v.string()),
     country: v.optional(v.string()),
     taxIncludedOverride: v.optional(v.boolean()),
     decimalPlaces: v.optional(v.number()),
@@ -355,7 +354,7 @@ export const update = mutation({
     const effectiveTagIds = (args.tagIds ?? bill.tagIds ?? []) as Id<'tags'>[];
     const platformSlug = effectiveTagIds.length > 0
       ? await resolvePlatformSlug(ctx, effectiveTagIds)
-      : (bill.category || 'dining');
+      : 'dining';
     const displayTotal = computeDisplayTotal(newItems, mergedBill, platformSlug);
     const derived = computeDerivedFields(newItems, contacts);
 
