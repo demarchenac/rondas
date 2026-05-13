@@ -1,4 +1,5 @@
 import { internalMutation } from './_generated/server';
+import { createPlatformTagsForUser } from './tags';
 
 /** Remove comma-separated segments already contained in a prior segment. */
 function deduplicateAddress(address: string): string {
@@ -60,6 +61,55 @@ export const migrateContactItemsToUnits = internalMutation({
     }
 
     return { total: bills.length, updated };
+  },
+});
+
+/**
+ * One-time migration: create platform tags for existing users, convert bill.category to tagIds.
+ * Run: npx convex run migrations:migrateCategoriesToTags
+ */
+export const migrateCategoriesToTags = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').collect();
+    let tagsCreated = 0;
+
+    for (const user of users) {
+      const existingTags = await ctx.db
+        .query('tags')
+        .withIndex('by_user', (q) => q.eq('userId', user._id))
+        .collect();
+      if (existingTags.length === 0) {
+        await createPlatformTagsForUser(ctx, user._id);
+        tagsCreated += 3;
+      }
+    }
+
+    const bills = await ctx.db.query('bills').collect();
+    let billsUpdated = 0;
+
+    for (const bill of bills) {
+      if (bill.tagIds && bill.tagIds.length > 0) continue;
+
+      const user = await ctx.db
+        .query('users')
+        .filter((q) => q.eq(q.field('workosId'), bill.userId))
+        .unique();
+      if (!user) continue;
+
+      const slug = bill.category || 'dining';
+      const platformTag = await ctx.db
+        .query('tags')
+        .withIndex('by_user_slug', (q) => q.eq('userId', user._id).eq('slug', slug))
+        .unique();
+
+      if (platformTag) {
+        await ctx.db.patch(bill._id, { tagIds: [platformTag._id] });
+        billsUpdated++;
+      }
+    }
+
+    return { users: users.length, tagsCreated, bills: bills.length, billsUpdated };
   },
 });
 

@@ -182,12 +182,20 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      {/* Top gradient for status bar readability */}
-      <LinearGradient
-        colors={[colorScheme === 'dark' ? 'rgba(15,23,42,0.7)' : 'rgba(250,251,252,0.7)', 'transparent']}
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top + headerHeight + 24, zIndex: 5 }}
+      {/* Top scroll edge — MaskedView fade without blur */}
+      <MaskedView
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top + headerHeight + 16, zIndex: 5 }}
         pointerEvents="none"
-      />
+        maskElement={
+          <LinearGradient
+            colors={['rgba(0,0,0,1)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)']}
+            locations={[0, 0.55, 1]}
+            style={{ flex: 1 }}
+          />
+        }
+      >
+        <View style={{ flex: 1, backgroundColor: colorScheme === 'dark' ? '#0f172a' : '#fafbfc' }} />
+      </MaskedView>
 
       {/* Header — floating overlay */}
       <View className="absolute left-0 right-0 z-10 px-5 pb-2 pt-4" style={{ top: insets.top }}>
@@ -423,6 +431,7 @@ export default function HomeScreen() {
               }}
               tintColor={iconColors.primary}
               colors={[iconColors.primary]}
+              progressViewOffset={insets.top + headerHeight + 20}
             />
           }
           ListFooterComponent={

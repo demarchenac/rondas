@@ -59,6 +59,7 @@ export default defineSchema({
     numPeople: v.optional(v.number()),
     contacts: v.array(billContactRefValidator),
     category: v.optional(categoryValidator),
+    tagIds: v.optional(v.array(v.id('tags'))),
     country: v.optional(v.string()),
     taxIncludedOverride: v.optional(v.boolean()),
     decimalPlaces: v.optional(v.number()),
@@ -89,6 +90,17 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_phone', ['userId', 'phone']),
+
+  tags: defineTable({
+    userId: v.id('users'),
+    name: v.string(),
+    slug: v.optional(v.string()),
+    color: v.string(),
+    isPlatform: v.boolean(),
+    sortOrder: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_slug', ['userId', 'slug']),
 
   scans: defineTable({
     userId: v.string(),

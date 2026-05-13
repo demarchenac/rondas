@@ -15,9 +15,19 @@ export interface ResolvedContact {
   imageUri?: string;
 }
 
-/** Bill with contacts resolved to include name/phone/imageUri from contacts table */
+export interface ResolvedTag {
+  _id: Id<'tags'>;
+  name: string;
+  slug?: string;
+  color: string;
+  isPlatform: boolean;
+  sortOrder: number;
+}
+
+/** Bill with contacts and tags resolved from their respective tables */
 export type ResolvedBill = Omit<Doc<'bills'>, 'contacts'> & {
   contacts: ResolvedContact[];
+  tags?: ResolvedTag[];
 };
 
 // --- Filter types ---

@@ -22,7 +22,7 @@ import { useAuth } from '@/lib/AuthContext';
 
 import { useT } from '@/lib/i18n';
 import { toE164 } from '@/lib/phone';
-import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride } from '@/constants/taxes';
+import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type ReceiptCategory } from '@/constants/taxes';
 import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel } from '@/lib/billHelpers';
 import { buildWhatsAppMessage } from '@/lib/whatsapp';
 
@@ -658,7 +658,7 @@ export default function BillDetailScreen() {
       return;
     }
     const billCountry = (bill.country as 'CO' | 'US') || 'CO';
-    const billCategory = bill.category || 'dining';
+    const billCategory = (bill.tags?.find((t) => t.isPlatform)?.slug || bill.category || 'dining') as ReceiptCategory;
     const rawTaxConfig = getTaxConfig(billCountry, billCategory);
     const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill.taxIncludedOverride ?? undefined);
     const message = buildWhatsAppMessage({ bill, contact, taxConfig, t });
@@ -727,7 +727,7 @@ export default function BillDetailScreen() {
     if (!bill) return null;
     const itemsTotal = bill.items.reduce((sum, billItem) => sum + billItem.subtotal, 0);
     const billCountry = (bill.country as 'CO' | 'US') || 'CO';
-    const billCategory = bill.category || 'dining';
+    const billCategory = (bill.tags?.find((t) => t.isPlatform)?.slug || bill.category || 'dining') as ReceiptCategory;
     const rawTaxConfig = getTaxConfig(billCountry, billCategory);
     const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill.taxIncludedOverride ?? undefined);
     const translatedTaxLabel = getTaxLabel(taxConfig, t);
@@ -857,7 +857,7 @@ export default function BillDetailScreen() {
         {/* Metadata */}
         <Animated.View entering={animate ? FadeInDown.delay(60).duration(300) : undefined}>
           <BillMetadata
-            category={bill.category}
+            category={bill.tags?.find((t: { isPlatform: boolean; slug?: string }) => t.isPlatform)?.slug || bill.category}
             location={bill.location}
             photoTakenAt={bill.photoTakenAt}
             creationTime={bill._creationTime}

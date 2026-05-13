@@ -203,7 +203,9 @@ function CardContent({
   locked: boolean;
   isIOS: boolean;
 }) {
-  const categoryIcon = bill.category ? CATEGORY_ICONS[bill.category] : null;
+  const platformTag = bill.tags?.find((t) => t.isPlatform);
+  const categorySlug = platformTag?.slug ?? bill.category;
+  const categoryIcon = categorySlug ? CATEGORY_ICONS[categorySlug] : null;
   const billCountry = (bill.country as 'CO' | 'US') || 'CO';
 
   return (
@@ -338,8 +340,8 @@ function BillCardIOS({
   return (
     <Pressable onPress={onPress} style={{ opacity: locked ? 0.5 : 1 }}>
       <View style={{ marginBottom: 10 }}>
-        {/* Layer 1: Gradient background — disabled for testing */}
-        {false && !isDraft && (
+        {/* Layer 1: Gradient background — behind card, extends below */}
+        {!isDraft && (
           <LinearGradient
             colors={[stateStyle.color + '50', stateStyle.color + '18', 'transparent']}
             locations={[0, 0.5, 1]}

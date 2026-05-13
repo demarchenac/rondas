@@ -1,5 +1,6 @@
 import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
+import { createPlatformTagsForUser } from './tags';
 
 const configValidator = v.object({
   country: v.string(),
@@ -47,10 +48,14 @@ export const createUser = mutation({
 
     if (existing) return existing._id;
 
-    return await ctx.db.insert('users', {
+    const userId = await ctx.db.insert('users', {
       ...args,
       authProvider: args.authProvider ?? 'email_otp',
     });
+
+    await createPlatformTagsForUser(ctx, userId);
+
+    return userId;
   },
 });
 

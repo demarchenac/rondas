@@ -13,6 +13,7 @@ import {
 import { getOrCreate, incrementReference, decrementReference } from './contacts';
 import { getTaxConfig, computeBase, computeTax, withTaxIncludedOverride } from '../constants/taxes';
 import type { Country, ReceiptCategory } from '../constants/taxes';
+import { resolvePlatformSlug } from './tags';
 
 function assertMaxLength(value: string, max: number, field: string) {
   if (value.length > max) throw new Error(`${field} exceeds maximum length of ${max}`);
@@ -95,11 +96,18 @@ export const list = query({
 
     const result = await q.paginate(args.paginationOpts);
 
-    // Resolve contact refs to full objects
+    // Fetch all user tags once for in-memory resolution
+    const user = await ctx.db.query('users').withIndex('by_workos_id', (q) => q.eq('workosId', args.userId)).unique();
+    const userTags = user
+      ? await ctx.db.query('tags').withIndex('by_user', (q) => q.eq('userId', user._id)).collect()
+      : [];
+    const tagMap = new Map(userTags.map((t) => [t._id, t]));
+
     const page = await Promise.all(
       result.page.map(async (bill) => ({
         ...bill,
         contacts: await resolveContacts(ctx, bill.contacts),
+        tags: (bill.tagIds ?? []).map((id) => tagMap.get(id)).filter((t): t is NonNullable<typeof t> => t != null),
       })),
     );
 
@@ -112,9 +120,17 @@ export const get = query({
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
     if (!bill || bill.userId !== args.userId) return null;
+
+    const user = await ctx.db.query('users').withIndex('by_workos_id', (q) => q.eq('workosId', args.userId)).unique();
+    const userTags = user
+      ? await ctx.db.query('tags').withIndex('by_user', (q) => q.eq('userId', user._id)).collect()
+      : [];
+    const tagMap = new Map(userTags.map((t) => [t._id, t]));
+
     return {
       ...bill,
       contacts: await resolveContacts(ctx, bill.contacts),
+      tags: (bill.tagIds ?? []).map((id) => tagMap.get(id)).filter((t): t is NonNullable<typeof t> => t != null),
     };
   },
 });
@@ -177,6 +193,7 @@ export const create = mutation({
       }),
     ),
     category: v.optional(categoryValidator),
+    tagIds: v.optional(v.array(v.id('tags'))),
     country: v.optional(v.string()),
     taxIncludedOverride: v.optional(v.boolean()),
     decimalPlaces: v.optional(v.number()),
@@ -223,12 +240,26 @@ export const create = mutation({
       id: crypto.randomUUID(),
     }));
     const now = Date.now();
-    const { isPro: _isPro, ...insertArgs } = args;
-    const displayTotal = computeDisplayTotal(items, args);
+
+    // Resolve tagIds: use provided tagIds, or resolve from legacy category string
+    let tagIds = args.tagIds;
+    if ((!tagIds || tagIds.length === 0) && user) {
+      const slug = args.category || 'dining';
+      const platformTag = await ctx.db
+        .query('tags')
+        .withIndex('by_user_slug', (q) => q.eq('userId', user._id).eq('slug', slug))
+        .unique();
+      if (platformTag) tagIds = [platformTag._id];
+    }
+
+    const platformSlug = tagIds ? await resolvePlatformSlug(ctx, tagIds) : (args.category || 'dining');
+    const { isPro: _isPro, category: _category, tagIds: _tagIds, ...insertArgs } = args;
+    const displayTotal = computeDisplayTotal(items, insertArgs, platformSlug);
     const derived = computeDerivedFields(items, []);
     const billId = await ctx.db.insert('bills', {
       ...insertArgs,
       items,
+      tagIds: tagIds ?? [],
       state: 'unsplit',
       contacts: [],
       createdAt: now,
@@ -277,6 +308,7 @@ export const update = mutation({
     taxIncludedOverride: v.optional(v.boolean()),
     numPeople: v.optional(v.number()),
     items: v.optional(v.array(billItemValidator)),
+    tagIds: v.optional(v.array(v.id('tags'))),
   },
   handler: async (ctx, args) => {
     if (args.name !== undefined) assertMaxLength(args.name, 200, 'Bill name');
@@ -320,7 +352,11 @@ export const update = mutation({
     const newTotal = isTaxIncluded ? itemsTotal + newTip : itemsTotal + newTax + newTip;
 
     const mergedBill = { ...bill, ...defined, tax: newTax, tip: newTip };
-    const displayTotal = computeDisplayTotal(newItems, mergedBill);
+    const effectiveTagIds = (args.tagIds ?? bill.tagIds ?? []) as Id<'tags'>[];
+    const platformSlug = effectiveTagIds.length > 0
+      ? await resolvePlatformSlug(ctx, effectiveTagIds)
+      : (bill.category || 'dining');
+    const displayTotal = computeDisplayTotal(newItems, mergedBill, platformSlug);
     const derived = computeDerivedFields(newItems, contacts);
 
     await ctx.db.patch(id, {
@@ -659,10 +695,11 @@ function computeBillState(
 
 function computeDisplayTotal(
   items: { subtotal: number }[],
-  bill: { tax?: number; tip?: number; tipPercent?: number; useCustomTip?: boolean; country?: string; category?: string; taxIncludedOverride?: boolean },
+  bill: { tax?: number; tip?: number; tipPercent?: number; useCustomTip?: boolean; country?: string; taxIncludedOverride?: boolean },
+  platformSlug: string = 'dining',
 ): number {
   const country = (bill.country as Country) || 'CO';
-  const category = (bill.category as ReceiptCategory) || 'dining';
+  const category = (platformSlug as ReceiptCategory) || 'dining';
   const rawConfig = getTaxConfig(country, category);
   const taxConfig = withTaxIncludedOverride(rawConfig, bill.taxIncludedOverride ?? undefined);
   const itemsTotal = items.reduce((sum, i) => sum + i.subtotal, 0);
