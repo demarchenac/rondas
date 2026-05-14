@@ -109,5 +109,10 @@
       "react-native-css@3.0.7": "patches/react-native-css@3.0.7.patch"
     }
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "install": {
+      "exclude": ["react-native-view-shot"]
+    }
+  }
 }
