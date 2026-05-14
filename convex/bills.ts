@@ -10,8 +10,8 @@ import {
   contactArgValidator,
 } from './validators';
 import { getOrCreate, incrementReference, decrementReference } from './contacts';
-import { getTaxConfig, computeBase, computeTax, withTaxIncludedOverride } from '../constants/taxes';
-import type { Country, ReceiptCategory } from '../constants/taxes';
+import { getTaxConfig, computeBase, computeTax, withTaxIncludedOverride } from './taxes';
+import type { Country, ReceiptCategory } from './taxes';
 import { resolvePlatformSlug } from './tags';
 
 function assertMaxLength(value: string, max: number, field: string) {

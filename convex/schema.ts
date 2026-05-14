@@ -58,6 +58,7 @@ export default defineSchema({
     numPeople: v.optional(v.number()),
     contacts: v.array(billContactRefValidator),
     tagIds: v.optional(v.array(v.id('tags'))),
+    category: v.optional(v.string()),
     country: v.optional(v.string()),
     taxIncludedOverride: v.optional(v.boolean()),
     decimalPlaces: v.optional(v.number()),

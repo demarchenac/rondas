@@ -1,6 +1,6 @@
 # Rondas
 
-AI-powered bill-splitting iOS app for the Colombian market, built with Expo + React Native.
+AI-powered bill-splitting iOS app for the Colombian market. Turborepo monorepo with Expo + React Native mobile app.
 
 Be concise in all responses.
 
@@ -8,15 +8,33 @@ Be concise in all responses.
 
 pnpm
 
+## Monorepo Structure
+
+```
+apps/mobile/    # Expo React Native app
+apps/landing/   # Landing page (TanStack Start, SSG)
+apps/web/       # Future web app
+packages/       # Shared packages (future)
+convex/         # Convex backend (stays at root)
+```
+
 ## Commands
 
 ```bash
-pnpm dev           # start Expo dev server
-pnpm typecheck     # tsc --noEmit
-pnpm lint          # expo lint
-pnpm convex        # start Convex dev server (auto-sync on file changes)
-pnpm convex:deploy # deploy Convex functions to production
+pnpm dev:mobile        # start Expo dev server
+pnpm dev:landing       # start landing dev server
+pnpm convex            # start Convex dev server
+pnpm convex:deploy     # deploy Convex to production
+pnpm build:preview     # EAS build preview → TestFlight
+pnpm build:production  # EAS build production → App Store
+pnpm ota:preview       # OTA update to preview channel
+pnpm ota:production    # OTA update to production channel
 ```
+
+## Path Aliases (mobile app)
+
+- `@/*` → `apps/mobile/*` (components, hooks, lib, etc.)
+- `@convex/*` → `convex/*` (root convex directory)
 
 ## Status
 

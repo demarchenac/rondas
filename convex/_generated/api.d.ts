@@ -16,6 +16,7 @@ import type * as notifications from "../notifications.js";
 import type * as promoCodes from "../promoCodes.js";
 import type * as scans from "../scans.js";
 import type * as tags from "../tags.js";
+import type * as taxes from "../taxes.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
 
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   promoCodes: typeof promoCodes;
   scans: typeof scans;
   tags: typeof tags;
+  taxes: typeof taxes;
   users: typeof users;
   validators: typeof validators;
 }>;
