@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image as RNImage, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { BlurView } from 'expo-blur';
-import ViewShot from 'react-native-view-shot';
+import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -100,7 +100,7 @@ export default function BillDetailScreen() {
   const swipeOpenRef = useRef(false);
   const billRef = useRef(bill);
   billRef.current = bill;
-  const infographicRefs = useRef<Record<number, ViewShot | null>>({});
+  const infographicRefs = useRef<Record<number, ViewShotRef | null>>({});
   const shouldAnimate = useRef(true);
   const contactsCacheRef = useRef<{ data: (Contacts.Contact & { id: string })[]; fetchedAt: number } | null>(null);
   const contactsPermissionRef = useRef(false);

@@ -6,7 +6,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, runOnJS,
 } from 'react-native-reanimated';
 import { Image } from '@/lib/expo-image';
-import ViewShot from 'react-native-view-shot';
+import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { WhatsAppIcon } from '@/components/icons/whatsapp';
@@ -34,7 +34,7 @@ interface BillShareSheetProps {
   tipPercent: number;
   translatedTaxLabel: string;
   bottomInset: number;
-  infographicRefs: React.MutableRefObject<Record<number, ViewShot | null>>;
+  infographicRefs: React.MutableRefObject<Record<number, ViewShotRef | null>>;
   onTogglePaid: (contactId: Id<'contacts'>) => void;
   onSendWhatsApp: (contact: ResolvedContact) => void;
   onShareInfographic: (contact: ResolvedContact, contactIndex: number) => void;
