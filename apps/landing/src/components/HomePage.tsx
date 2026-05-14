@@ -7,7 +7,7 @@ const APPLE_ICON = (
 );
 
 function Dot() {
-  return <span className="inline-block w-[5px] h-[5px] rounded-full bg-accent align-middle mx-1" />;
+  return <span className="inline-block w-[5px] h-[5px] rounded-full bg-accent align-middle mx-4" />;
 }
 
 function FeatureRow({ num, color, title, desc, first }: { num: string; color: string; title: string; desc: string; first?: boolean }) {
@@ -55,6 +55,9 @@ export default function HomePage({ locale }: { locale: Locale }) {
       <div className="fixed inset-0 pointer-events-none z-[1000] opacity-40" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E")` }} />
       <div className="fixed inset-0 z-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 60% 50% at 20% 20%, oklch(0.25 0.06 55 / 0.07) 0%, transparent 70%), radial-gradient(ellipse 40% 50% at 85% 75%, oklch(0.20 0.05 210 / 0.05) 0%, transparent 70%)' }} />
 
+      {/* Nav + Hero + Marquee fill viewport */}
+      <div className="min-h-dvh flex flex-col">
+
       <nav className="fixed top-0 left-0 right-0 z-100 flex items-center justify-between px-6 py-4 backdrop-blur-lg" style={{ background: 'oklch(0.14 0.02 260 / 0.8)' }}>
         <a href={prefix || '/'} className="flex items-center gap-[0.1rem] no-underline">
           <img src="/r-logo.png" alt="R" className="w-[34px] h-[34px]" />
@@ -66,7 +69,7 @@ export default function HomePage({ locale }: { locale: Locale }) {
         </div>
       </nav>
 
-      <section className="min-h-dvh flex flex-col justify-center px-6 pt-28 pb-12 relative z-1 animate-[rise_0.6s_ease-out_both]">
+      <section className="flex-1 flex flex-col justify-center px-6 pt-28 pb-16 relative z-1 max-w-[1100px] mx-auto w-full" style={{ animation: 'rise 0.6s ease-out both' }}>
         <h1 className="font-display text-[clamp(2.25rem,7vw,4rem)] font-extrabold leading-[1.1] tracking-tight max-w-[16ch]">
           {t.heroTitle} <span className="text-accent">{t.heroTitleAccent}</span>
         </h1>
@@ -81,12 +84,14 @@ export default function HomePage({ locale }: { locale: Locale }) {
       </section>
 
       <div className="overflow-hidden py-10 border-t border-b border-white/[0.04] relative z-1">
-        <div className="flex gap-12 animate-[scroll_22s_linear_infinite] w-max">
+        <div className="flex gap-12 w-max" style={{ animation: 'scroll 22s linear infinite' }}>
           {[0, 1].map((i) => (
             <span key={i} className="text-sm text-muted whitespace-nowrap tracking-wide">{marqueeText}</span>
           ))}
         </div>
       </div>
+
+      </div>{/* end min-h-dvh wrapper */}
 
       <div className="px-6 py-12 relative z-1 max-w-[1100px] mx-auto md:grid md:grid-cols-[1fr_auto] md:gap-12 md:items-start">
         <section className="max-w-[680px]">
