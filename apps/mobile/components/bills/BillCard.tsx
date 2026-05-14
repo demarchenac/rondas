@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Platform, Pressable, View } from 'react-native';
-// import { LinearGradient } from 'expo-linear-gradient';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Path } from 'react-native-svg';
 import Animated, {
   Easing,
@@ -331,64 +331,84 @@ function BillCardIOS({
     [stateStyle.color, mode, stateStyle.intensity],
   );
 
+  const glassAvailable = useMemo(() => isGlassEffectAPIAvailable(), []);
+  const useGlass = glassAvailable && !isDraft;
+
   const [cardHeight, setCardHeight] = useState(120);
   const onCardLayout = useCallback((e: LayoutChangeEvent) => {
     setCardHeight(e.nativeEvent.layout.height);
   }, []);
 
+  const cardContent = (
+    <>
+      {/* Corner bezier glows */}
+      {!isDraft && (
+        <>
+          <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
+          <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
+        </>
+      )}
+      <View style={{ zIndex: 2 }}>
+        <CardContent
+          bill={bill}
+          stateStyle={stateStyle}
+          label={label}
+          isDraft={isDraft}
+          isUnresolved={isUnresolved}
+          displayTotal={displayTotal}
+          itemCount={itemCount}
+          contactCount={contactCount}
+          paidCount={paidCount}
+          progress={progress}
+          iconColors={iconColors}
+          t={t}
+          locked={locked}
+          isIOS
+        />
+      </View>
+    </>
+  );
+
   return (
     <Pressable onPress={onPress} style={{ opacity: locked ? 0.5 : 1 }}>
       <View style={{ marginBottom: 10 }}>
-        {/* Layer 1: Gradient background — disabled, revisit if card needs a colored
-           backdrop glow behind it. Was: LinearGradient from stateStyle.color+'50' to
-           transparent, positioned absolute behind card extending 24px below.
-           Uncomment LinearGradient import above to re-enable. */}
-
-        {/* Layer 2: Card */}
-        <View
-          onLayout={onCardLayout}
-          className={cn(
-            'overflow-hidden rounded-[20px] bg-card px-4 py-3',
-            isDraft && 'opacity-60',
-          )}
-          style={{
-            zIndex: 1,
-            shadowColor: stateStyle.color,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: isDraft ? 0 : isUnresolved ? 0.28 : 0.14,
-            shadowRadius: isUnresolved ? 12 : 8,
-            borderWidth: isDraft ? 0 : 1,
-            borderColor: isDraft ? 'transparent' : glow.glowMid,
-          }}
-        >
-          {/* Layer 3: Corner bezier glows */}
-          {!isDraft && (
-            <>
-              <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
-              <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
-            </>
-          )}
-
-          {/* Layer 4: Content */}
-          <View style={{ zIndex: 2 }}>
-            <CardContent
-              bill={bill}
-              stateStyle={stateStyle}
-              label={label}
-              isDraft={isDraft}
-              isUnresolved={isUnresolved}
-              displayTotal={displayTotal}
-              itemCount={itemCount}
-              contactCount={contactCount}
-              paidCount={paidCount}
-              progress={progress}
-              iconColors={iconColors}
-              t={t}
-              locked={locked}
-              isIOS
-            />
+        {useGlass ? (
+          <GlassView
+            glassEffectStyle="regular"
+            onLayout={onCardLayout}
+            style={{
+              borderRadius: 20,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              overflow: 'hidden',
+              shadowColor: stateStyle.color,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: isUnresolved ? 0.28 : 0.14,
+              shadowRadius: isUnresolved ? 12 : 8,
+            }}
+          >
+            {cardContent}
+          </GlassView>
+        ) : (
+          <View
+            onLayout={onCardLayout}
+            className={cn(
+              'overflow-hidden rounded-[20px] bg-card px-4 py-3',
+              isDraft && 'opacity-60',
+            )}
+            style={{
+              zIndex: 1,
+              shadowColor: stateStyle.color,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: isDraft ? 0 : isUnresolved ? 0.28 : 0.14,
+              shadowRadius: isUnresolved ? 12 : 8,
+              borderWidth: isDraft ? 0 : 1,
+              borderColor: isDraft ? 'transparent' : glow.glowMid,
+            }}
+          >
+            {cardContent}
           </View>
-        </View>
+        )}
       </View>
     </Pressable>
   );
