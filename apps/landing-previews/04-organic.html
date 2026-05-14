@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rondas — Organic</title>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,400;0,700;0,800;1,400&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: oklch(0.13 0.02 300);
+    --fg: oklch(0.95 0.01 60);
+    --muted: oklch(0.55 0.04 300);
+    --warm: oklch(0.72 0.14 55);
+    --gold: oklch(0.75 0.12 80);
+    --teal: oklch(0.70 0.14 175);
+    --blush: oklch(0.62 0.14 350);
+    --card: oklch(0.16 0.02 300);
+    --card-border: oklch(0.22 0.02 300);
+    --display: 'Bitter', Georgia, serif;
+    --body: 'Manrope', system-ui, sans-serif;
+  }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--body); overflow-x: hidden; }
+
+  .glow-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 50% at 20% 30%, oklch(0.72 0.14 55 / 0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 80% 70%, oklch(0.62 0.14 350 / 0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 50% 10%, oklch(0.70 0.14 175 / 0.04) 0%, transparent 70%);
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 1; opacity: 0.5;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: oklch(0.13 0.02 300 / 0.8);
+    backdrop-filter: blur(16px);
+  }
+  .logo { display: flex; align-items: center; gap: 0.1rem; text-decoration: none; }
+  .logo img { width: 36px; height: 36px; }
+  .logo span { font-family: var(--display); font-size: 1.35rem; font-weight: 800; color: var(--fg); }
+  .nav-btn {
+    background: var(--warm);
+    color: var(--bg); padding: 0.6rem 1.5rem;
+    border-radius: 100px; font-weight: 700;
+    font-size: 0.8125rem; text-decoration: none;
+    font-family: var(--body); transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .nav-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px oklch(0.72 0.14 55 / 0.2); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 8rem 1.5rem 4rem;
+    position: relative; z-index: 2;
+    gap: 1.5rem;
+  }
+  .hero-pill {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 1.25rem;
+    border: 1px solid oklch(0.72 0.14 55 / 0.25);
+    border-radius: 100px;
+    font-size: 0.75rem; font-weight: 700; color: var(--warm);
+    opacity: 0; animation: warmFade 0.8s 0.2s ease-out forwards;
+  }
+  .hero h1 {
+    font-family: var(--display);
+    font-size: clamp(2.5rem, 7vw, 4.5rem);
+    font-weight: 800; line-height: 1.1;
+    letter-spacing: -0.02em; max-width: 16ch;
+    opacity: 0; animation: warmFade 0.8s 0.4s ease-out forwards;
+  }
+  .hero h1 .warm { color: var(--warm); }
+  .hero h1 .teal { color: var(--teal); }
+  .hero-desc {
+    font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
+    color: var(--muted); max-width: 42ch;
+    line-height: 1.75;
+    opacity: 0; animation: warmFade 0.8s 0.5s ease-out forwards;
+  }
+  .hero-proof {
+    font-size: 0.8125rem; color: var(--muted); line-height: 1.6;
+    opacity: 0; animation: warmFade 0.8s 0.6s ease-out forwards;
+  }
+  .hero-proof .stars { color: var(--gold); }
+  .hero-cta {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 1rem 2.25rem;
+    background: var(--warm);
+    color: var(--bg); font-weight: 700; font-size: 1rem;
+    border-radius: 100px; text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.3s;
+    opacity: 0; animation: warmFade 0.8s 0.7s ease-out forwards;
+  }
+  .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 40px oklch(0.72 0.14 55 / 0.25); }
+
+  /* FEATURES */
+  .features {
+    padding: 2rem 1.5rem 4rem;
+    position: relative; z-index: 2;
+    max-width: 520px; margin: 0 auto;
+  }
+  .features-label {
+    text-align: center;
+    font-family: var(--display);
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 800; margin-bottom: 2.5rem;
+  }
+  .f-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .f-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    padding: 2rem 1.75rem;
+    text-align: center;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+  .f-card:hover { transform: translateY(-4px); border-color: oklch(0.72 0.14 55 / 0.25); }
+  .f-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem; font-size: 1.4rem;
+  }
+  .fi-1 { background: oklch(0.72 0.14 55 / 0.1); }
+  .fi-2 { background: oklch(0.70 0.14 175 / 0.1); }
+  .fi-3 { background: oklch(0.62 0.14 350 / 0.1); }
+  .fi-4 { background: oklch(0.75 0.12 80 / 0.1); }
+  .f-card h3 { font-family: var(--display); font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .f-card p { color: var(--muted); font-size: 0.8125rem; line-height: 1.7; }
+
+  /* BOTTOM CTA */
+  .bottom-cta {
+    text-align: center;
+    padding: 3rem 1.5rem 4rem;
+    position: relative; z-index: 2;
+  }
+  .bottom-cta .hook {
+    font-family: var(--display);
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    font-weight: 800; margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+  .bottom-cta .hook .warm { color: var(--warm); }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    position: relative; z-index: 2;
+    border-top: 1px solid oklch(1 0 0 / 0.05);
+  }
+  footer .links { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; }
+  footer a { color: var(--muted); text-decoration: none; font-size: 0.8125rem; transition: color 0.2s; }
+  footer a:hover { color: var(--fg); }
+  footer .copy { color: var(--muted); font-size: 0.75rem; margin-top: 1rem; }
+
+  @keyframes warmFade {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (min-width: 700px) {
+    .features { max-width: 1000px; }
+    .f-grid { grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .f-card-wide { grid-column: span 2; }
+    .f-card { margin-bottom: 0; }
+    nav { padding: 1.25rem clamp(1.5rem, 5vw, 5rem); }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow-bg"></div>
+
+<nav>
+  <a href="/" class="logo"><img src="r-logo.png" alt="Rondas"><span>ondas</span></a>
+  <a href="#" class="nav-btn">Dividir mi cuenta</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-pill">&#127464;&#127476; Hecho para Colombia</div>
+  <h1>&iquest;Cansado de <span class="warm">hacer</span> las <span class="teal">cuentas</span> por todos?</h1>
+  <p class="hero-desc">Toma una foto del recibo. La IA extrae cada plato, divide con impuestos colombianos, y cada amigo recibe su parte por WhatsApp. En segundos.</p>
+  <div class="hero-proof">
+    <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>&nbsp; Gratis en App Store &middot; Hecho en Colombia &#127464;&#127476;
+  </div>
+  <a href="#" class="hero-cta">Divid&iacute; mi primera cuenta &rarr;</a>
+</section>
+
+<section class="features">
+  <div class="features-label">&iquest;C&oacute;mo funciona?</div>
+  <div class="f-grid">
+    <div class="f-card f-card-wide">
+      <div class="f-icon fi-1">&#128247;</div>
+      <h3>Escaneo IA</h3>
+      <p>Foto del recibo &rarr; Gemini extrae cada plato, bebida y precio al instante con streaming.</p>
+    </div>
+    <div class="f-card">
+      <div class="f-icon fi-2">&#9986;&#65039;</div>
+      <h3>Split inteligente</h3>
+      <p>IVA, impoconsumo y propina se calculan solos sobre la base correcta. Por &iacute;tem o partes iguales.</p>
+    </div>
+    <div class="f-card f-card-wide">
+      <div class="f-icon fi-3">&#128172;</div>
+      <h3>WhatsApp</h3>
+      <p>Desglose personalizado directo al chat de cada amigo. Un toque, listo.</p>
+    </div>
+    <div class="f-card">
+      <div class="f-icon fi-4">&#127991;&#65039;</div>
+      <h3>Tags inteligentes</h3>
+      <p>Restaurantes, viajes, regalos &mdash; la IA sugiere tags autom&aacute;ticamente al escanear.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bottom-cta">
+  <div class="hook">La pr&oacute;xima salida, que la <span class="warm">cuenta no sea drama</span>.</div>
+  <a href="#" class="hero-cta">Divid&iacute; mi primera cuenta &rarr;</a>
+</section>
+
+<footer>
+  <div class="links">
+    <a href="/privacy">Privacy Policy</a>
+    <a href="/terms">Terms of Service</a>
+    <a href="mailto:legal@rondas.co">legal@rondas.co</a>
+  </div>
+  <p class="copy">&copy; 2026 Rondas. Hecho con &#9749; en Barranquilla, Colombia.</p>
+</footer>
+
+</body>
+</html>

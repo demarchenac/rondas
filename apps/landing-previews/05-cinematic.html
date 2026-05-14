@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rondas — Cinematic</title>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,400;0,700;0,800;1,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: oklch(0.11 0.01 270);
+    --fg: oklch(0.94 0.01 260);
+    --muted: oklch(0.48 0.03 260);
+    --accent: oklch(0.72 0.15 210);
+    --emerald: oklch(0.70 0.14 160);
+    --violet: oklch(0.55 0.18 290);
+    --rose: oklch(0.63 0.22 15);
+    --display: 'Bitter', Georgia, serif;
+    --body: 'Manrope', system-ui, sans-serif;
+  }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--body); overflow-x: hidden; }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: oklch(0.11 0.01 270 / 0.7);
+    backdrop-filter: blur(20px);
+  }
+  .logo { display: flex; align-items: center; gap: 0.1rem; text-decoration: none; }
+  .logo img { width: 36px; height: 36px; }
+  .logo span { font-family: var(--body); font-weight: 800; font-size: 1.15rem; color: var(--fg); letter-spacing: -0.03em; }
+  .nav-cta {
+    background: var(--fg); color: var(--bg);
+    padding: 0.5rem 1.25rem; border-radius: 8px;
+    font-weight: 700; font-size: 0.8125rem;
+    text-decoration: none; font-family: var(--body);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 20px oklch(1 0 0 / 0.08); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 8rem 1.5rem 4rem;
+    position: relative; z-index: 1;
+    gap: 1.5rem;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.75rem;
+    font-size: 0.75rem; font-weight: 600;
+    color: var(--muted); letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0; animation: cFade 0.7s 0.2s ease-out forwards;
+  }
+  .eyebrow-line { width: 32px; height: 1px; background: var(--accent); }
+  .hero h1 {
+    font-family: var(--display);
+    font-size: clamp(2.5rem, 7vw, 4.5rem);
+    font-weight: 700; line-height: 1.1;
+    letter-spacing: -0.02em; max-width: 18ch;
+    opacity: 0; animation: cFade 0.7s 0.35s ease-out forwards;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .hero-proof {
+    font-size: 0.8125rem; color: var(--muted);
+    opacity: 0; animation: cFade 0.7s 0.5s ease-out forwards;
+  }
+  .hero-proof .stars { color: var(--accent); }
+  .btn-light {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.95rem 2.25rem;
+    background: var(--fg); color: var(--bg);
+    font-weight: 700; font-size: 0.9375rem;
+    border-radius: 10px; text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.3s;
+    opacity: 0; animation: cFade 0.7s 0.65s ease-out forwards;
+  }
+  .btn-light:hover { transform: translateY(-2px); box-shadow: 0 8px 30px oklch(1 0 0 / 0.1); }
+
+  /* MARQUEE */
+  .marquee-wrap {
+    overflow: hidden; padding: 2.5rem 0;
+    border-top: 1px solid oklch(1 0 0 / 0.04);
+    border-bottom: 1px solid oklch(1 0 0 / 0.04);
+    position: relative; z-index: 1;
+  }
+  .marquee {
+    display: flex; gap: 4rem;
+    animation: scroll 20s linear infinite;
+    width: max-content;
+  }
+  .marquee span {
+    font-size: clamp(0.875rem, 2vw, 1.25rem);
+    font-weight: 300; color: var(--muted);
+    white-space: nowrap; letter-spacing: 0.05em;
+  }
+  .marquee .dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--accent);
+    vertical-align: middle; margin: 0 0.5rem;
+  }
+  @keyframes scroll { to { transform: translateX(-50%); } }
+
+  /* FEATURES */
+  .features {
+    padding: 4rem 1.5rem;
+    position: relative; z-index: 1;
+    max-width: 800px; margin: 0 auto;
+  }
+  .section-tag {
+    font-size: 0.6875rem; font-weight: 600;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 0.75rem;
+  }
+  .features h2 {
+    font-family: var(--display);
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700; margin-bottom: 3rem;
+    max-width: 20ch; line-height: 1.15;
+  }
+  .feat-list { display: flex; flex-direction: column; }
+  .feat-row {
+    display: grid; grid-template-columns: 50px 1fr;
+    gap: 1rem; padding: 2rem 0;
+    border-bottom: 1px solid oklch(1 0 0 / 0.04);
+    align-items: start; transition: background 0.3s;
+  }
+  .feat-row:hover { background: oklch(1 0 0 / 0.01); margin: 0 -1rem; padding: 2rem 1rem; }
+  .feat-num { font-family: var(--display); font-size: 2rem; font-weight: 700; line-height: 1; }
+  .c1 { color: var(--accent); }
+  .c2 { color: var(--emerald); }
+  .c3 { color: var(--violet); }
+  .c4 { color: var(--rose); }
+  .feat-row h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.3rem; letter-spacing: -0.01em; }
+  .feat-row p { color: var(--muted); font-size: 0.8125rem; line-height: 1.7; max-width: 50ch; }
+
+  /* BOTTOM CTA */
+  .bottom-cta {
+    text-align: center;
+    padding: 4rem 1.5rem;
+    position: relative; z-index: 1;
+  }
+  .bottom-cta .hook {
+    font-family: var(--display);
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    font-weight: 700; margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+  .bottom-cta .hook em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .bottom-cta .btn-light { opacity: 1; animation: none; }
+
+  /* FOOTER */
+  footer {
+    padding: 2.5rem 1.5rem;
+    border-top: 1px solid oklch(1 0 0 / 0.04);
+    text-align: center;
+    position: relative; z-index: 1;
+  }
+  footer .links { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; }
+  footer a { color: var(--muted); text-decoration: none; font-size: 0.8125rem; transition: color 0.2s; }
+  footer a:hover { color: var(--fg); }
+  footer .copy { color: var(--muted); font-size: 0.75rem; margin-top: 1rem; }
+
+  @keyframes cFade {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (min-width: 700px) {
+    nav { padding: 1.25rem clamp(2rem, 5vw, 5rem); }
+    .feat-row { grid-template-columns: 80px 1fr; gap: 2rem; }
+    .feat-num { font-size: 2.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo"><img src="r-logo.png" alt="Rondas"><span>ondas</span></a>
+  <a href="#" class="nav-cta">Dividir mi cuenta</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-eyebrow">
+    <span class="eyebrow-line"></span>
+    Disponible gratis en iOS
+  </div>
+  <h1>&iquest;Siempre te toca sacar la <em>calculadora</em>?</h1>
+  <div class="hero-proof">
+    <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>&nbsp; Gratis en App Store &middot; Hecho en Colombia &#127464;&#127476;
+  </div>
+  <a href="#" class="btn-light">Divid&iacute; mi primera cuenta &rarr;</a>
+</section>
+
+<div class="marquee-wrap">
+  <div class="marquee">
+    <span>Escaneo con IA <span class="dot"></span> IVA e impoconsumo <span class="dot"></span> WhatsApp sharing <span class="dot"></span> Tags inteligentes <span class="dot"></span> Hecho en Colombia <span class="dot"></span> Gratis</span>
+    <span>Escaneo con IA <span class="dot"></span> IVA e impoconsumo <span class="dot"></span> WhatsApp sharing <span class="dot"></span> Tags inteligentes <span class="dot"></span> Hecho en Colombia <span class="dot"></span> Gratis</span>
+  </div>
+</div>
+
+<section class="features">
+  <div class="section-tag">C&oacute;mo funciona</div>
+  <h2>De la foto al WhatsApp en cuatro pasos</h2>
+  <div class="feat-list">
+    <div class="feat-row">
+      <div class="feat-num c1">01</div>
+      <div>
+        <h3>Escaneo IA</h3>
+        <p>Foto del recibo. Gemini extrae cada &iacute;tem, cantidad, precio y total con streaming en tiempo real.</p>
+      </div>
+    </div>
+    <div class="feat-row">
+      <div class="feat-num c2">02</div>
+      <div>
+        <h3>Split inteligente</h3>
+        <p>Por &iacute;tem o partes iguales. IVA, impoconsumo y propina se calculan autom&aacute;ticamente sobre la base correcta.</p>
+      </div>
+    </div>
+    <div class="feat-row">
+      <div class="feat-num c3">03</div>
+      <div>
+        <h3>WhatsApp personalizado</h3>
+        <p>Cada persona recibe su desglose directo en WhatsApp. Un toque, listo.</p>
+      </div>
+    </div>
+    <div class="feat-row">
+      <div class="feat-num c4">04</div>
+      <div>
+        <h3>Tags por IA</h3>
+        <p>Restaurantes, viajes, regalos &mdash; la IA sugiere tags autom&aacute;ticamente al escanear el recibo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bottom-cta">
+  <div class="hook">La cuenta dej&oacute; de ser un <em>problema</em>.</div>
+  <a href="#" class="btn-light">Divid&iacute; mi primera cuenta &rarr;</a>
+</section>
+
+<footer>
+  <div class="links">
+    <a href="/privacy">Privacy Policy</a>
+    <a href="/terms">Terms of Service</a>
+    <a href="mailto:legal@rondas.co">legal@rondas.co</a>
+  </div>
+  <p class="copy">&copy; 2026 Rondas</p>
+</footer>
+
+</body>
+</html>

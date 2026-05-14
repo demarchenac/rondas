@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rondas — Divide cuentas con IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,400;0,700;0,800;1,400&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:oklch(0.13 0.02 260);--fg:oklch(0.92 0.01 260);--muted:oklch(0.50 0.04 250);--accent:oklch(0.72 0.15 210);--serif:'Bitter',Georgia,serif;--sans:'Manrope',system-ui,sans-serif}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.5;overflow-x:hidden}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.25rem clamp(2rem,6vw,6rem);backdrop-filter:blur(20px);background:oklch(0.13 0.02 260 / 0.8)}
+  .logo{display:flex;align-items:center;gap:0.1rem;text-decoration:none}
+  .logo img{width:36px;height:36px}
+  .logo span{font-family:var(--serif);font-size:1.25rem;color:var(--fg)}
+  .nav-cta{background:var(--accent);color:var(--bg);padding:0.5rem 1.25rem;border-radius:6px;font-weight:600;font-size:0.8125rem;text-decoration:none;transition:transform 0.2s}
+  .nav-cta:hover{transform:translateY(-1px)}
+
+  .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:clamp(8rem,14vh,12rem) clamp(2rem,6vw,6rem) clamp(4rem,8vh,8rem);position:relative}
+  .hero::after{content:'';position:absolute;top:20%;right:-10%;width:600px;height:600px;background:radial-gradient(circle,oklch(0.72 0.15 210 / 0.06) 0%,transparent 70%);pointer-events:none}
+
+  .hero h1{font-family:var(--serif);font-size:clamp(3.5rem,9vw,8rem);line-height:0.95;letter-spacing:-0.03em;max-width:14ch;opacity:0;animation:fadeUp 0.8s 0.2s ease-out forwards}
+  .hero h1 em{font-style:italic;color:var(--accent)}
+
+  .hero-sub{font-size:clamp(1rem,1.5vw,1.25rem);color:var(--muted);max-width:42ch;margin-top:2rem;line-height:1.7;opacity:0;animation:fadeUp 0.8s 0.4s ease-out forwards}
+
+  .hero-cta{display:inline-flex;align-items:center;gap:0.75rem;margin-top:2.5rem;padding:1rem 2rem;background:var(--accent);color:var(--bg);text-decoration:none;font-weight:600;font-size:0.9375rem;border-radius:8px;transition:transform 0.2s,box-shadow 0.2s;opacity:0;animation:fadeUp 0.8s 0.6s ease-out forwards}
+  .hero-cta:hover{transform:translateY(-2px);box-shadow:0 8px 30px oklch(0.72 0.15 210 / 0.25)}
+  .hero-cta svg{width:20px;height:20px}
+
+  .hero-proof{display:flex;align-items:center;gap:1rem;margin-top:1.5rem;opacity:0;animation:fadeUp 0.8s 0.8s ease-out forwards;font-size:0.8125rem;color:var(--muted)}
+  .hero-proof .stars{color:oklch(0.80 0.14 85);font-size:0.875rem}
+
+  /* phone mockup */
+  .phone-section{display:flex;justify-content:center;padding:2rem 1.5rem 0;position:relative;z-index:1;opacity:0;animation:fadeUp 0.8s 1s ease-out forwards}
+  .phone{width:240px;height:480px;background:oklch(0.18 0.02 260);border:1px solid oklch(0.25 0.02 260);border-radius:36px;padding:12px;box-shadow:0 24px 64px oklch(0 0 0 / 0.5),inset 0 1px 0 oklch(1 0 0 / 0.04)}
+  .phone-screen{width:100%;height:100%;background:oklch(0.15 0.02 260);border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;overflow:hidden;position:relative;padding:2rem 0.75rem}
+  .phone-screen::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:80px;height:24px;background:oklch(0.08 0 0);border-radius:0 0 14px 14px}
+  .screen-card{width:100%;padding:0.625rem 0.75rem;background:oklch(0.19 0.02 260);border:1px solid oklch(0.24 0.02 260);border-radius:12px}
+  .screen-card .name{font-size:0.5625rem;font-weight:600;color:var(--fg)}
+  .screen-card .amount{font-size:0.8125rem;font-weight:800;color:var(--fg);margin-top:0.1rem}
+  .screen-card .meta{font-size:0.4375rem;color:var(--muted);margin-top:0.1rem}
+  .screen-card .badge{display:inline-block;font-size:0.375rem;font-weight:700;padding:0.1rem 0.4rem;border-radius:100px;margin-top:0.15rem}
+  .badge-split{background:oklch(0.70 0.14 175 / 0.15);color:oklch(0.70 0.14 175)}
+  .badge-pending{background:oklch(0.72 0.14 55 / 0.15);color:oklch(0.72 0.14 55)}
+
+  .divider{height:1px;background:linear-gradient(90deg,transparent,oklch(1 0 0 / 0.06) 30%,oklch(1 0 0 / 0.06) 70%,transparent);margin:0 clamp(2rem,6vw,6rem)}
+
+  .features{padding:clamp(6rem,10vh,10rem) clamp(2rem,6vw,6rem)}
+  .features-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:5rem;gap:2rem;flex-wrap:wrap}
+  .features-header h2{font-family:var(--serif);font-size:clamp(2rem,4vw,3.5rem);line-height:1.1;letter-spacing:-0.02em}
+  .features-header p{color:var(--muted);max-width:30ch;font-size:0.9375rem;text-align:right}
+
+  .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:oklch(1 0 0 / 0.04);border:1px solid oklch(1 0 0 / 0.04)}
+  .feature-card{background:var(--bg);padding:3rem 2.5rem;transition:background 0.3s}
+  .feature-card:hover{background:oklch(0.15 0.02 260 / 0.6)}
+  .feature-num{font-family:var(--serif);font-size:3rem;color:oklch(0.72 0.15 210 / 0.12);line-height:1;margin-bottom:1.5rem}
+  .feature-card h3{font-size:1.125rem;font-weight:600;margin-bottom:0.75rem}
+  .feature-card p{color:var(--muted);font-size:0.875rem;line-height:1.7}
+
+  .final-cta{text-align:center;padding:clamp(4rem,8vh,8rem) 2rem}
+  .final-cta h2{font-family:var(--serif);font-size:clamp(2rem,4vw,3rem);margin-bottom:1.5rem}
+  .final-cta a{display:inline-flex;align-items:center;gap:0.75rem;padding:1rem 2.5rem;background:var(--accent);color:var(--bg);text-decoration:none;font-weight:600;font-size:1rem;border-radius:8px;transition:transform 0.2s,box-shadow 0.2s}
+  .final-cta a:hover{transform:translateY(-2px);box-shadow:0 8px 30px oklch(0.72 0.15 210 / 0.25)}
+  .final-cta a svg{width:20px;height:20px}
+
+  footer{padding:3rem clamp(2rem,6vw,6rem);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:2rem;border-top:1px solid oklch(1 0 0 / 0.04)}
+  .footer-left{display:flex;align-items:center;gap:0.5rem}
+  .footer-left img{width:28px;height:28px}
+  .footer-left span{font-family:var(--serif);font-size:1rem}
+  .footer-links{display:flex;gap:2rem}
+  .footer-links a{color:var(--muted);text-decoration:none;font-size:0.8125rem;transition:color 0.2s}
+  .footer-links a:hover{color:var(--fg)}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+  @media(min-width:768px){
+    .features-grid{grid-template-columns:1fr 1fr}
+    .feature-card-wide{grid-column:span 2}
+  }
+  @media(max-width:768px){
+    .features-header{flex-direction:column;align-items:flex-start}
+    .features-header p{text-align:left}
+    footer{flex-direction:column;align-items:flex-start}
+  }
+  @media(min-width:640px){
+    .phone{width:260px;height:520px}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo"><img src="r-logo.png" alt="Rondas"><span>ondas</span></a>
+  <a href="#" class="nav-cta">Dividi mi primera cuenta</a>
+</nav>
+
+<section class="hero">
+  <h1>¿Cansado de hacer<br>las cuentas<br><em>a mano?</em></h1>
+  <p class="hero-sub">Toma una foto del recibo. La IA extrae cada item, divide entre amigos con impuestos colombianos, y comparte por WhatsApp. En segundos.</p>
+  <a href="#" class="hero-cta">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+    Dividi mi primera cuenta
+  </a>
+  <div class="hero-proof">
+    <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+    Gratis en App Store · Hecho en Colombia &#127464;&#127476;
+  </div>
+</section>
+
+<section class="phone-section">
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="screen-card">
+        <div class="name">El Corral Usaquén</div>
+        <div class="amount">$303.529 COP</div>
+        <div class="meta">Abr 20 · 3 ítems</div>
+        <div class="badge badge-split">&#9679; Dividida</div>
+      </div>
+      <div class="screen-card">
+        <div class="name">Andrés Carne de Res</div>
+        <div class="amount">$1.801.139 COP</div>
+        <div class="meta">Abr 13 · 24 ítems</div>
+        <div class="badge badge-pending">&#9679; Sin resolver</div>
+      </div>
+      <div class="screen-card">
+        <div class="name">Juan Valdez Parque 93</div>
+        <div class="amount">$32.012 COP</div>
+        <div class="meta">Abr 10 · 3 ítems</div>
+        <div class="badge badge-split">&#9679; Dividida</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="features" id="features">
+  <div class="features-header">
+    <h2>Del recibo al<br>WhatsApp en 30s.</h2>
+    <p>Sin discusiones. Sin calculadora. Sin excusas.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card feature-card-wide">
+      <div class="feature-num">01</div>
+      <h3>Foto → items al instante</h3>
+      <p>Gemini extrae cada plato, bebida y precio en tiempo real. Solo toma la foto.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-num">02</div>
+      <h3>IVA e impoconsumo incluidos</h3>
+      <p>Divide por item o en partes iguales. Impuestos colombianos y propina se calculan solos.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-num">03</div>
+      <h3>Directo al WhatsApp</h3>
+      <p>Cada persona recibe su desglose personalizado con un toque. Sin instalar nada.</p>
+    </div>
+    <div class="feature-card feature-card-wide">
+      <div class="feature-num">04</div>
+      <h3>Tus gastos organizados</h3>
+      <p>Tags personalizados para rastrear dónde va tu plata. Restaurantes, viajes, lo que sea.</p>
+    </div>
+  </div>
+</section>
+
+<section class="final-cta">
+  <h2>La próxima salida, que otro haga las cuentas.</h2>
+  <a href="#">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+    Descargar gratis en App Store
+  </a>
+</section>
+
+<footer>
+  <div class="footer-left"><img src="r-logo.png" alt="Rondas"><span>ondas</span></div>
+  <div class="footer-links">
+    <a href="/privacy">Privacy Policy</a>
+    <a href="/terms">Terms of Service</a>
+    <a href="mailto:legal@rondas.co">legal@rondas.co</a>
+  </div>
+</footer>
+
+</body>
+</html>

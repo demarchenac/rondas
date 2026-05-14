@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rondas — Geometric</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Manrope:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: oklch(0.12 0.01 270);
+    --fg: oklch(0.95 0.005 270);
+    --muted: oklch(0.50 0.03 260);
+    --cyan: oklch(0.72 0.15 210);
+    --lime: oklch(0.72 0.17 130);
+    --rose: oklch(0.63 0.22 15);
+    --amber: oklch(0.80 0.14 85);
+    --display: 'Manrope', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--display); overflow-x: hidden; }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(oklch(1 0 0 / 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(1 0 0 / 0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: oklch(0.12 0.01 270 / 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid var(--cyan);
+  }
+  .logo { display: flex; align-items: center; gap: 0.1rem; text-decoration: none; }
+  .logo img { width: 36px; height: 36px; }
+  .logo span { font-weight: 900; font-size: 1.25rem; letter-spacing: 0.1em; color: var(--fg); }
+  .btn-nav {
+    background: var(--cyan); color: var(--bg);
+    padding: 0.6rem 1.5rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    font-size: 0.75rem; text-decoration: none;
+    clip-path: polygon(0 0, 100% 0, 95% 100%, 0% 100%);
+    transition: background 0.2s; font-family: var(--display);
+  }
+  .btn-nav:hover { background: var(--lime); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 7rem 1.5rem 3rem;
+    position: relative; z-index: 1;
+    gap: 1.5rem;
+  }
+  .hero-tag {
+    font-family: var(--mono); font-size: 0.6875rem;
+    color: var(--lime); text-transform: uppercase;
+    letter-spacing: 0.2em;
+    opacity: 0; animation: slideIn 0.5s 0.2s ease-out forwards;
+  }
+  .hero h1 {
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 900; line-height: 0.95;
+    letter-spacing: -0.04em;
+    max-width: 16ch;
+    opacity: 0; animation: slideIn 0.5s 0.35s ease-out forwards;
+  }
+  .hero h1 .accent { color: var(--cyan); }
+  .hero h1 .strike {
+    text-decoration: line-through; text-decoration-color: var(--rose);
+    text-decoration-thickness: 4px; color: var(--muted);
+  }
+  .hero-proof {
+    font-family: var(--mono); font-size: 0.75rem;
+    color: var(--muted); letter-spacing: 0.05em;
+    opacity: 0; animation: slideIn 0.5s 0.5s ease-out forwards;
+  }
+  .hero-proof .stars { color: var(--amber); letter-spacing: 0.1em; }
+  .hero-cta {
+    display: inline-block;
+    background: var(--cyan); color: var(--bg);
+    padding: 1rem 2.5rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    font-size: 0.875rem; text-decoration: none;
+    clip-path: polygon(0 0, 100% 0, 97% 100%, 0% 100%);
+    transition: background 0.2s, transform 0.2s;
+    opacity: 0; animation: slideIn 0.5s 0.65s ease-out forwards;
+  }
+  .hero-cta:hover { background: var(--lime); transform: scale(1.04); }
+
+  /* BENTO */
+  .bento-section {
+    padding: 2rem 1.5rem 4rem;
+    position: relative; z-index: 1;
+  }
+  .bento-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    max-width: 900px; margin: 0 auto;
+    opacity: 0; animation: slideIn 0.5s 0.8s ease-out forwards;
+  }
+  .bento-card {
+    padding: 1.75rem 1.5rem;
+    border: 1px solid oklch(1 0 0 / 0.06);
+    background: oklch(1 0 0 / 0.02);
+    position: relative; overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+  .bento-card:hover { border-color: var(--cyan); transform: scale(1.02); }
+  .bento-card .label {
+    font-family: var(--mono); font-size: 0.5625rem;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.15em; margin-bottom: 0.5rem;
+  }
+  .bento-card h3 { font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; }
+  .bento-card p { font-size: 0.8125rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.6; }
+  .bento-card .corner { position: absolute; bottom: 1rem; right: 1rem; font-size: 2rem; opacity: 0.15; }
+  .ba-1 { border-top: 3px solid var(--cyan); }
+  .ba-2 { border-top: 3px solid var(--lime); }
+  .ba-3 { border-top: 3px solid var(--rose); }
+  .ba-4 { border-top: 3px solid var(--amber); }
+
+  /* BOTTOM CTA */
+  .bottom-cta {
+    text-align: center;
+    padding: 4rem 1.5rem;
+    position: relative; z-index: 1;
+  }
+  .bottom-cta .hook {
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    font-weight: 800;
+    margin-bottom: 1.5rem; line-height: 1.2;
+  }
+  .bottom-cta .hook .accent { color: var(--cyan); }
+
+  /* FOOTER */
+  footer {
+    padding: 2rem 1.5rem;
+    border-top: 2px solid var(--cyan);
+    text-align: center;
+    position: relative; z-index: 1;
+  }
+  footer .links { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; }
+  footer .links a {
+    font-family: var(--mono); color: var(--muted); text-decoration: none;
+    font-size: 0.6875rem; letter-spacing: 0.1em;
+    transition: color 0.2s;
+  }
+  footer .links a:hover { color: var(--fg); }
+  footer .copy { font-family: var(--mono); font-size: 0.5625rem; color: var(--muted); margin-top: 1rem; letter-spacing: 0.1em; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (min-width: 700px) {
+    .bento-grid { grid-template-columns: 1fr 1fr; }
+    .bento-wide { grid-column: span 2; }
+    .hero { padding-top: 8rem; }
+    nav { padding: 1.25rem 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo"><img src="r-logo.png" alt="Rondas"><span>ondas</span></a>
+  <a href="#" class="btn-nav">Dividir mi primera cuenta</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-tag">// Bill splitting reimagined</div>
+  <h1>
+    <span class="strike">Siempre</span> te toca<br>
+    <span class="accent">sacar la cuenta?</span>
+  </h1>
+  <div class="hero-proof">
+    <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>&nbsp; Gratis en App Store &middot; Hecho en Colombia &#127464;&#127476;
+  </div>
+  <a href="#" class="hero-cta">Divid&iacute; mi primera cuenta &rarr;</a>
+</section>
+
+<section class="bento-section">
+  <div class="bento-grid">
+    <div class="bento-card ba-1 bento-wide">
+      <div class="label">01 // Escaneo IA</div>
+      <h3>Foto &rarr; Items</h3>
+      <p>Gemini extrae cada plato, bebida y precio del recibo con streaming en tiempo real. Sin escribir nada.</p>
+      <div class="corner">&#128247;</div>
+    </div>
+    <div class="bento-card ba-2">
+      <div class="label">02 // Split inteligente</div>
+      <h3>IVA + Impoconsumo + Propina</h3>
+      <p>Divide por &iacute;tem o partes iguales. Los impuestos colombianos se calculan sobre la base correcta.</p>
+    </div>
+    <div class="bento-card ba-3">
+      <div class="label">03 // WhatsApp</div>
+      <h3>Cada quien lo suyo</h3>
+      <p>Desglose personalizado directo al chat de cada persona. Un toque, listo.</p>
+      <div class="corner">&#128172;</div>
+    </div>
+    <div class="bento-card ba-4 bento-wide">
+      <div class="label">04 // Tags</div>
+      <h3>La IA categoriza, t&uacute; confirmas</h3>
+      <p>Restaurantes, viajes, regalos &mdash; tags auto-sugeridos por IA para organizar todos tus gastos.</p>
+      <div class="corner">&#127991;&#65039;</div>
+    </div>
+  </div>
+</section>
+
+<section class="bottom-cta">
+  <div class="hook">Deja de ser el <span class="accent">cajero</span> del grupo.</div>
+  <a href="#" class="hero-cta">Divid&iacute; mi primera cuenta &rarr;</a>
+</section>
+
+<footer>
+  <div class="links">
+    <a href="/privacy">Privacy Policy</a>
+    <a href="/terms">Terms of Service</a>
+    <a href="mailto:legal@rondas.co">legal@rondas.co</a>
+  </div>
+  <p class="copy">Rondas &copy; 2026</p>
+</footer>
+
+</body>
+</html>

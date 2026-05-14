@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: oklch(0.14 0.02 260);
+  --color-bg-warm: oklch(0.16 0.025 45);
+  --color-fg: oklch(0.92 0.01 260);
+  --color-muted: oklch(0.55 0.03 260);
+  --color-accent: oklch(0.72 0.15 210);
+  --color-warm: oklch(0.72 0.14 55);
+  --color-teal: oklch(0.70 0.14 175);
+  --color-rose: oklch(0.65 0.18 10);
+  --color-violet: oklch(0.60 0.16 290);
+  --font-display: 'Bitter', Georgia, serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+}
