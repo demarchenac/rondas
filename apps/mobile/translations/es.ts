@@ -23,7 +23,10 @@ export const es: typeof en = {
   auth_signInEmail: 'Iniciar sesión con Email',
   auth_signInApple: 'Iniciar sesión con Apple',
   auth_signInGoogle: 'Iniciar sesión con Google',
-  auth_terms: 'Al continuar, aceptas nuestros Términos de Servicio',
+  auth_termsPrefix: 'Al continuar, aceptas nuestros ',
+  auth_termsLink: 'Términos de Servicio',
+  auth_termsMiddle: ' y ',
+  auth_privacyLink: 'Política de Privacidad',
 
   // Setup
   setup_welcome: 'Bienvenido a Rondas',
@@ -159,6 +162,9 @@ export const es: typeof en = {
   settings_promoCodeRedeem: 'Canjear',
   settings_promoCodeStoreRedeem: 'Canjear código del App Store',
   settings_manageSubscription: 'Gestionar suscripción',
+  settings_legal: 'Legal',
+  settings_privacyPolicy: 'Política de Privacidad',
+  settings_termsOfService: 'Términos de Servicio',
   settings_version: 'Rondas v0.1.0',
   settings_madeIn: 'Hecho con amor en Colombia',
 

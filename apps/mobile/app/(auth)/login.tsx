@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Linking, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import * as Haptics from 'expo-haptics';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/lib/AuthContext';
 import { useT } from '@/lib/i18n';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 import { ICON_COLORS } from '@/constants/colors';
 
 const APPLE_OAUTH_PROVIDER = 'AppleOAuth';
@@ -22,6 +23,7 @@ export default function LoginScreen() {
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const t = useT();
+  const language = useSettingsStore((s) => s.language);
   const [error, setError] = useState<string | null>(null);
 
   const handleSignIn = async (provider?: string) => {
@@ -120,9 +122,22 @@ export default function LoginScreen() {
       </View>
 
       {/* Footer */}
-      <View className="items-center pb-4">
-        <Text className="text-xs text-muted-foreground">
-          {t.auth_terms}
+      <View className="items-center pb-4 px-8">
+        <Text className="text-xs text-muted-foreground text-center">
+          {t.auth_termsPrefix}
+          <Text
+            className="text-xs text-primary underline"
+            onPress={() => Linking.openURL(language === 'es' ? 'https://rondas.co/terms' : 'https://rondas.co/en/terms')}
+          >
+            {t.auth_termsLink}
+          </Text>
+          {t.auth_termsMiddle}
+          <Text
+            className="text-xs text-primary underline"
+            onPress={() => Linking.openURL(language === 'es' ? 'https://rondas.co/privacy' : 'https://rondas.co/en/privacy')}
+          >
+            {t.auth_privacyLink}
+          </Text>
         </Text>
       </View>
 

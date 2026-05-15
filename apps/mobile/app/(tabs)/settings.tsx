@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Switch, View, Platform } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, Switch, View, Platform } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -422,6 +422,27 @@ export default function SettingsScreen() {
               trackColor={{ false: '#263354', true: '#38bdf8' }}
               thumbColor="#fff"
             />
+          </SettingsRow>
+        </SettingsSection>
+
+        {/* Legal */}
+        <SettingsSection title={t.settings_legal}>
+          <SettingsRow
+            icon="doc.text.fill"
+            iconColor={iconColors.muted}
+            label={t.settings_privacyPolicy}
+            onPress={() => Linking.openURL(language === 'es' ? 'https://rondas.co/privacy' : 'https://rondas.co/en/privacy')}
+          >
+            <IconSymbol name="chevron.right" size={16} color={iconColors.mutedLight} />
+          </SettingsRow>
+          <SettingsRow
+            icon="doc.text.fill"
+            iconColor={iconColors.muted}
+            label={t.settings_termsOfService}
+            onPress={() => Linking.openURL(language === 'es' ? 'https://rondas.co/terms' : 'https://rondas.co/en/terms')}
+            last
+          >
+            <IconSymbol name="chevron.right" size={16} color={iconColors.mutedLight} />
           </SettingsRow>
         </SettingsSection>
 

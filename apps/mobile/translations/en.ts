@@ -21,7 +21,10 @@ export const en = {
   auth_signInEmail: 'Sign in with Email',
   auth_signInApple: 'Sign in with Apple',
   auth_signInGoogle: 'Sign in with Google',
-  auth_terms: 'By continuing, you agree to our Terms of Service',
+  auth_termsPrefix: 'By continuing, you agree to our ',
+  auth_termsLink: 'Terms of Service',
+  auth_termsMiddle: ' and ',
+  auth_privacyLink: 'Privacy Policy',
 
   // Setup
   setup_welcome: 'Welcome to Rondas',
@@ -157,6 +160,9 @@ export const en = {
   settings_promoCodeRedeem: 'Redeem',
   settings_promoCodeStoreRedeem: 'Redeem App Store Code',
   settings_manageSubscription: 'Manage subscription',
+  settings_legal: 'Legal',
+  settings_privacyPolicy: 'Privacy Policy',
+  settings_termsOfService: 'Terms of Service',
   settings_version: 'Rondas v0.1.0',
   settings_madeIn: 'Made with love in Colombia',
 
