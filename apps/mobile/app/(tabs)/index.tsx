@@ -1,9 +1,9 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
-import { Dimensions, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { useState, useCallback, useMemo } from 'react';
+import { Dimensions, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
-import { FlashList } from '@shopify/flash-list';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
@@ -18,7 +18,6 @@ import type { ResolvedBill, SortOption } from '@/lib/filters';
 import { defaultFilters } from '@/lib/filters';
 
 import { Text } from '@/components/ui/text';
-import { Button } from '@/components/ui/button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Image } from '@/lib/expo-image';
 import { ICON_COLORS } from '@/constants/colors';
@@ -70,14 +69,13 @@ export default function HomeScreen() {
 
   const removeBill = useMutation(api.bills.remove);
   const [refreshing, setRefreshing] = useState(false);
-  const { isPro, unlocked, showPaywall } = useProGate();
-  const historyCutoff = Date.now() - FREE_HISTORY_DAYS * 24 * 60 * 60 * 1000;
+  const { isPro, showPaywall } = useProGate();
+  const [historyCutoff] = useState(() => Date.now() - FREE_HISTORY_DAYS * 24 * 60 * 60 * 1000);
   const { country } = useSettingsStore();
   const { openNewBillSheet } = useNewBillAction();
   const glassAvailable = isGlassEffectAPIAvailable();
 
-  // Track animated IDs to prevent re-animation on FlashList recycle
-  const animatedIds = useRef(new Set<string>());
+  const isLoading = paginationStatus === 'LoadingFirstPage';
 
   const handleDeleteBill = useCallback((billId: Id<'bills'>) => {
     if (!user) return;
@@ -181,7 +179,7 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      {/* Top scroll edge — MaskedView fade without blur */}
+      {/* Top scroll edge — MaskedView fade */}
       <MaskedView
         style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top + headerHeight + 16, zIndex: 5 }}
         pointerEvents="none"
@@ -356,94 +354,83 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Bill List */}
-      {paginationStatus === 'LoadingFirstPage' ? (
-        <View className="flex-1 px-5" style={{ paddingTop: insets.top + headerHeight + 16 }}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Animated.View
-              key={i}
-              entering={FadeInDown.delay(i * 100).duration(300)}
-              className="py-1"
-            >
-              <BillCardSkeleton />
-            </Animated.View>
-          ))}
-        </View>
-      ) : bills.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <View className="mb-4 h-[72px] w-[72px] items-center justify-center rounded-full bg-primary/[0.08]">
-            <IconSymbol name="receipt" size={32} color={iconColors.primary} />
-          </View>
-          <Text className="text-lg font-bold text-foreground">{t.home_noBills}</Text>
-          <Text className="mt-1.5 text-center text-sm text-muted-foreground">
-            {t.home_noBillsHint}
-          </Text>
-          <Pressable
-            onPress={openNewBillSheet}
-            className="mt-5 flex-row items-center gap-2 rounded-full bg-primary px-5 py-2.5 active:opacity-80"
+      {/* Bill List — always mounted to avoid GlassView initial mount race */}
+      <FlashList<Bill>
+        data={isLoading ? [] : bills}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item, index }) => (
+          <Animated.View
+            entering={FadeInDown.delay(Math.min(index, 8) * 60).duration(350)}
+            style={{ paddingHorizontal: 20, paddingVertical: 3 }}
           >
-            <IconSymbol name="plus" size={16} color={iconColors.primaryForeground} />
-            <Text className="text-sm font-semibold text-primary-foreground">
-              {t.home_addFirstBill}
-            </Text>
-          </Pressable>
-        </View>
-      ) : (
-        <FlashList<Bill>
-          data={bills}
-          keyExtractor={(item) => item._id}
-          renderItem={({ item, index }) => {
-            const shouldAnimate = !animatedIds.current.has(item._id);
-            if (shouldAnimate) animatedIds.current.add(item._id);
-
-            return (
-              <Animated.View
-                entering={shouldAnimate ? FadeInDown.delay(Math.min(index, 8) * 60).duration(350) : undefined}
-                className="px-5 py-[3px]"
-              >
-                <SwipeableRow onDelete={() => handleDeleteBill(item._id)}>
-                  <BillCard
-                    bill={item}
-                    onPress={() => {
-                      const locked = !isPro && item._creationTime < historyCutoff;
-                      if (locked) {
-                        showPaywall();
-                        return;
-                      }
-                      router.push(`/bills/${item._id}` as Href);
-                    }}
-                    locked={!isPro && item._creationTime < historyCutoff}
-                    t={t}
-                  />
-                </SwipeableRow>
-              </Animated.View>
-            );
-          }}
-          contentContainerStyle={{ paddingTop: insets.top + headerHeight + 16, paddingBottom: 100, minHeight: Dimensions.get('window').height }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                setTimeout(() => setRefreshing(false), 800);
-              }}
-              tintColor={iconColors.primary}
-              colors={[iconColors.primary]}
-              progressViewOffset={insets.top + headerHeight + 20}
-            />
-          }
-          ListFooterComponent={
-            paginationStatus === 'CanLoadMore' ? (
-              <View className="items-center py-4">
-                <Button variant="outline" onPress={() => loadMore(20)}>
-                  <Text>{t.home_loadMore}</Text>
-                </Button>
+            <SwipeableRow onDelete={() => handleDeleteBill(item._id)} bgClassName={glassAvailable ? 'bg-transparent' : 'bg-background'}>
+              <BillCard
+                bill={item}
+                onPress={() => {
+                  const locked = !isPro && item._creationTime < historyCutoff;
+                  if (locked) {
+                    showPaywall();
+                    return;
+                  }
+                  router.push(`/bills/${item._id}` as Href);
+                }}
+                locked={!isPro && item._creationTime < historyCutoff}
+                t={t}
+              />
+            </SwipeableRow>
+          </Animated.View>
+        )}
+        contentContainerStyle={{ paddingTop: insets.top + headerHeight + 16, paddingBottom: 100, minHeight: Dimensions.get('window').height }}
+        showsVerticalScrollIndicator={false}
+        onEndReached={() => { if (paginationStatus === 'CanLoadMore') loadMore(20); }}
+        onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              setTimeout(() => setRefreshing(false), 800);
+            }}
+            tintColor={iconColors.primary}
+            colors={[iconColors.primary]}
+            progressViewOffset={insets.top + headerHeight + 20}
+          />
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <View className="px-5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Animated.View
+                  key={i}
+                  entering={FadeInDown.delay(i * 100).duration(300)}
+                  className="py-1"
+                >
+                  <BillCardSkeleton />
+                </Animated.View>
+              ))}
+            </View>
+          ) : (
+            <View className="flex-1 items-center justify-center px-8 pt-32">
+              <View className="mb-4 h-[72px] w-[72px] items-center justify-center rounded-full bg-primary/[0.08]">
+                <IconSymbol name="receipt" size={32} color={iconColors.primary} />
               </View>
-            ) : null
-          }
-        />
-      )}
+              <Text className="text-lg font-bold text-foreground">{t.home_noBills}</Text>
+              <Text className="mt-1.5 text-center text-sm text-muted-foreground">
+                {t.home_noBillsHint}
+              </Text>
+              <Pressable
+                onPress={openNewBillSheet}
+                className="mt-5 flex-row items-center gap-2 rounded-full bg-primary px-5 py-2.5 active:opacity-80"
+              >
+                <IconSymbol name="plus" size={16} color={iconColors.primaryForeground} />
+                <Text className="text-sm font-semibold text-primary-foreground">
+                  {t.home_addFirstBill}
+                </Text>
+              </Pressable>
+            </View>
+          )
+        }
+      />
 
       {/* Filter Sheet */}
       <FilterSheet

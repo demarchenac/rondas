@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Platform, Pressable, View } from 'react-native';
-// GlassView disabled — layoutSubviews timing bug in FlashList recycling.
-// See docs/dev-notes/2026-05-13-glassview-nativewind-fix.md
-// Patch didMoveToSuperview in GlassView.swift to fix, then re-enable.
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Path } from 'react-native-svg';
 import Animated, {
   Easing,
@@ -338,52 +336,69 @@ function BillCardIOS({
     setCardHeight(e.nativeEvent.layout.height);
   }, []);
 
+  const glassAvailable = isGlassEffectAPIAvailable();
+  const [glassReady, setGlassReady] = useState(false);
+  useEffect(() => {
+    if (glassAvailable && !glassReady) {
+      const id = setTimeout(() => setGlassReady(true), 500);
+      return () => clearTimeout(id);
+    }
+  }, [glassAvailable, glassReady]);
+  const useGlass = glassAvailable && glassReady && !isDraft;
+
+  const content = (
+    <CardContent
+      bill={bill}
+      stateStyle={stateStyle}
+      label={label}
+      isDraft={isDraft}
+      isUnresolved={isUnresolved}
+      displayTotal={displayTotal}
+      itemCount={itemCount}
+      contactCount={contactCount}
+      paidCount={paidCount}
+      progress={progress}
+      iconColors={iconColors}
+      t={t}
+      locked={locked}
+      isIOS
+    />
+  );
+
   return (
     <Pressable onPress={onPress} style={{ opacity: locked ? 0.5 : 1 }}>
-      <View style={{ marginBottom: 10 }}>
-        <View
+      {useGlass ? (
+        <GlassView
           onLayout={onCardLayout}
-          className={cn(
-            'overflow-hidden rounded-[20px] bg-card px-4 py-3',
-            isDraft && 'opacity-60',
-          )}
-          style={{
-            zIndex: 1,
-            shadowColor: stateStyle.color,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: isDraft ? 0 : isUnresolved ? 0.28 : 0.14,
-            shadowRadius: isUnresolved ? 12 : 8,
-            borderWidth: isDraft ? 0 : 1,
-            borderColor: isDraft ? 'transparent' : glow.glowMid,
-          }}
+          glassEffectStyle="regular"
+          tintColor={stateStyle.color + '03'}
+          style={{ borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, overflow: 'hidden' }}
         >
-          {/* Corner bezier glows */}
-          {!isDraft && (
-            <>
-              <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
-              <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
-            </>
-          )}
-          <View style={{ zIndex: 2 }}>
-            <CardContent
-              bill={bill}
-              stateStyle={stateStyle}
-              label={label}
-              isDraft={isDraft}
-              isUnresolved={isUnresolved}
-              displayTotal={displayTotal}
-              itemCount={itemCount}
-              contactCount={contactCount}
-              paidCount={paidCount}
-              progress={progress}
-              iconColors={iconColors}
-              t={t}
-              locked={locked}
-              isIOS
-            />
+          <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg="transparent" />
+          <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg="transparent" />
+          {content}
+        </GlassView>
+        ) : (
+          <View
+            onLayout={onCardLayout}
+            className={cn(
+              'overflow-hidden rounded-[20px] bg-card px-4 py-3',
+              isDraft && 'opacity-60',
+            )}
+            style={{
+              borderWidth: isDraft ? 0 : 1,
+              borderColor: isDraft ? 'transparent' : glow.glowMid,
+            }}
+          >
+            {!isDraft && (
+              <>
+                <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
+                <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
+              </>
+            )}
+            {content}
           </View>
-        </View>
-      </View>
+        )}
     </Pressable>
   );
 }
