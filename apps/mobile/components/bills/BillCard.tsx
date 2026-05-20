@@ -186,6 +186,7 @@ function CardContent({
   t,
   locked,
   isIOS,
+  useGlass = false,
 }: {
   bill: Bill;
   stateStyle: (typeof STATE_STYLES)[BillState];
@@ -201,6 +202,7 @@ function CardContent({
   t: Translations;
   locked: boolean;
   isIOS: boolean;
+  useGlass?: boolean;
 }) {
   const platformTag = bill.tags?.find((t) => t.isPlatform);
   const categorySlug = platformTag?.slug;
@@ -264,12 +266,12 @@ function CardContent({
                   imageUri={c.imageUri}
                   size="xs"
                   className={cn('border-2 border-card', i > 0 && '-ml-2')}
-                  bgClassName={stateStyle.bgClass}
-                  textClassName={stateStyle.textClass}
+                  bgClassName={useGlass ? stateStyle.dotClass : stateStyle.bgClass}
+                  textClassName={useGlass ? 'text-white' : stateStyle.textClass}
                 />
               ))}
               {contactCount > 3 && (
-                <View className="-ml-2 h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-card bg-muted-foreground/15">
+                <View className={cn('-ml-2 h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-card', useGlass ? 'bg-muted-foreground/40' : 'bg-muted-foreground/15')}>
                   <Text className="text-[9px] font-bold text-muted-foreground">
                     +{contactCount - 3}
                   </Text>
@@ -362,6 +364,7 @@ function BillCardIOS({
       t={t}
       locked={locked}
       isIOS
+      useGlass={useGlass}
     />
   );
 
