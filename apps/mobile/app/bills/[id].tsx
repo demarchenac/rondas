@@ -82,28 +82,18 @@ export default function BillDetailScreen() {
   const [phoneContacts, setPhoneContacts] = useState<(Contacts.Contact & { id: string })[]>([]);
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [singleAssignItemId, setSingleAssignItemId] = useState<string | null>(null);
-  const [numPeople, setNumPeople] = useState(2);
-  const [equalSplitMode, setEqualSplitMode] = useState(false);
+  const [numPeople, setNumPeople] = useState(() => bill?.numPeople ?? 2);
+  const [equalSplitMode, setEqualSplitMode] = useState(() => bill?.splitStrategy === 'equal');
   const [capturingIndex, setCapturingIndex] = useState<number | null>(null);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [previewAspect, setPreviewAspect] = useState(1);
   const [previewContactName, setPreviewContactName] = useState('');
   const [unitSheetTarget, setUnitSheetTarget] = useState<{ itemId: string; contactId: Id<'contacts'> } | null>(null);
-  const [initialized, setInitialized] = useState(false);
-  if (bill && !initialized) {
-    setInitialized(true);
-    if (bill.splitStrategy === 'equal') {
-      setEqualSplitMode(true);
-      if (bill.numPeople) setNumPeople(bill.numPeople);
-    }
-  }
 
   const swipeOpenRef = useRef(false);
   const billRef = useRef(bill);
   useEffect(() => { billRef.current = bill; }, [bill]);
   const infographicRefs = useRef<Record<number, ViewShotRef | null>>({});
-  const [animate, setAnimate] = useState(true);
-  if (animate && bill) setAnimate(false);
   const contactsCacheRef = useRef<{ data: (Contacts.Contact & { id: string })[]; fetchedAt: number } | null>(null);
   const contactsPermissionRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -810,7 +800,7 @@ export default function BillDetailScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header — floating above MaskedView */}
-      <Animated.View entering={animate ? FadeInDown.duration(300) : undefined} style={{ position: 'absolute', left: 0, right: 0, top: insets.top, zIndex: 10 }}>
+      <Animated.View entering={FadeInDown.duration(300)} style={{ position: 'absolute', left: 0, right: 0, top: insets.top, zIndex: 10 }}>
         <BillHeader
           billName={bill.name}
           state={bill.state}
@@ -869,7 +859,7 @@ export default function BillDetailScreen() {
 
       <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 80, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         {/* Metadata */}
-        <Animated.View entering={animate ? FadeInDown.delay(60).duration(300) : undefined}>
+        <Animated.View entering={FadeInDown.delay(60).duration(300)}>
           <BillMetadata
             category={bill.tags?.find((t) => t.isPlatform)?.slug}
             location={bill.location}
@@ -884,7 +874,7 @@ export default function BillDetailScreen() {
 
         {/* Equal Split View OR Sort bar + Items */}
         {equalSplitMode ? (
-          <Animated.View entering={animate ? FadeInDown.delay(120).duration(300) : undefined} className="px-5">
+          <Animated.View entering={FadeInDown.delay(120).duration(300)} className="px-5">
             <EqualSplitView
               items={bill.items}
               contacts={bill.contacts}
@@ -909,7 +899,7 @@ export default function BillDetailScreen() {
         ) : (
           <>
             {/* Sort bar + bulk edit */}
-            <Animated.View entering={animate ? FadeInDown.delay(120).duration(300) : undefined}>
+            <Animated.View entering={FadeInDown.delay(120).duration(300)}>
               <SortBar
                 sortStrategy={sortStrategy}
                 onSortChange={setSortStrategy}
@@ -924,7 +914,7 @@ export default function BillDetailScreen() {
               return (
                 <Animated.View
                   key={item.id ?? `legacy-${index}`}
-                  entering={animate ? FadeInDown.delay(Math.min(index, 8) * 60 + 180).duration(350) : undefined}
+                  entering={FadeInDown.delay(Math.min(index, 8) * 60 + 180).duration(350)}
                 >
                   <BillItemCard
                     item={item}
@@ -957,7 +947,7 @@ export default function BillDetailScreen() {
 
         {/* People summary */}
         {bill.contacts.length > 0 && (
-          <Animated.View entering={animate ? FadeInDown.delay(Math.min(sortedItems.length, 8) * 60 + 240).duration(350) : undefined}>
+          <Animated.View entering={FadeInDown.delay(Math.min(sortedItems.length, 8) * 60 + 240).duration(350)}>
             <PeopleSummary
               contacts={bill.contacts}
               billItems={bill.items}
@@ -974,7 +964,7 @@ export default function BillDetailScreen() {
         )}
 
         {/* Summary */}
-        <Animated.View entering={animate ? FadeInDown.delay(Math.min(sortedItems.length, 8) * 60 + 300).duration(350) : undefined}>
+        <Animated.View entering={FadeInDown.delay(Math.min(sortedItems.length, 8) * 60 + 300).duration(350)}>
           <BillSummaryCard
             base={base}
             computedTax={computedTax}
