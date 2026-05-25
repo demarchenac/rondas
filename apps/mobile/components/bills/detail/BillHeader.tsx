@@ -1,12 +1,14 @@
 import React from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Platform, Pressable, TextInput, View } from 'react-native';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+
 import { useBufferedInput } from '@/hooks/useBufferedInput';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
-import type { BillState } from '@/lib/billHelpers';
+import { STATE_STYLES, type BillState } from '@/lib/billHelpers';
 import type { Translations } from '@/lib/i18n';
 
 interface BillHeaderProps {
@@ -55,6 +57,10 @@ function BillHeader({
   const nameInput = useBufferedInput(billName, onUpdateName);
   const { alert, actionSheet } = useCustomAlert();
 
+  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
+
+  const stateStyle = STATE_STYLES[state];
+
   const handleOverflowPress = () => {
     const options: { label: string; action: () => void; destructive?: boolean }[] = [];
 
@@ -100,55 +106,106 @@ function BillHeader({
     );
   };
 
+  const backButton = useGlass ? (
+    <Pressable onPress={onBack} className="active:opacity-80">
+      <GlassView isInteractive style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}>
+        <IconSymbol name="chevron.left" size={18} color={iconColors.primary} />
+      </GlassView>
+    </Pressable>
+  ) : (
+    <Pressable onPress={onBack} className="pr-2 active:opacity-80">
+      <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
+    </Pressable>
+  );
+
+  const percentChip = hasContacts && !multiSelectMode ? (
+    useGlass ? (
+      <GlassView style={{ borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 }}>
+        <Text className={`text-xs font-semibold ${stateTextClass}`}>
+          {Math.round(completionPercent)}%
+        </Text>
+      </GlassView>
+    ) : (
+      <Text className={`text-xs font-semibold ${stateTextClass}`}>
+        {Math.round(completionPercent)}%
+      </Text>
+    )
+  ) : null;
+
+  const statusBadge = !multiSelectMode ? (
+    useGlass ? (
+      <GlassView style={{ borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateStyle.color }} />
+        <Text style={{ fontSize: 11, fontWeight: '600', color: stateStyle.color }}>
+          {stateLabel}
+        </Text>
+      </GlassView>
+    ) : (
+      <AnimatedBadge variant={state} label={stateLabel} />
+    )
+  ) : null;
+
+  const overflowButton = multiSelectMode ? (
+    <Pressable
+      onPress={onDoneEdit}
+      className="rounded-full bg-primary px-3.5 py-1.5 active:opacity-80"
+    >
+      <Text className="text-xs font-semibold text-primary-foreground">{t.done}</Text>
+    </Pressable>
+  ) : useGlass ? (
+    <Pressable onPress={handleOverflowPress} className="active:opacity-80">
+      <GlassView isInteractive style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}>
+        <IconSymbol name="ellipsis" size={16} color={iconColors.muted} />
+      </GlassView>
+    </Pressable>
+  ) : (
+    <Pressable
+      onPress={handleOverflowPress}
+      className="h-8 w-8 items-center justify-center rounded-full bg-muted/50 active:opacity-80"
+    >
+      <IconSymbol name="ellipsis" size={16} color={iconColors.muted} />
+    </Pressable>
+  );
+
   return (
-    <View className="px-7 pb-3 pt-3">
-      {/* Single row: Back + title + overflow/done + badge */}
+    <View className="px-5 pb-3 pt-3">
       <View className="flex-row items-center">
-        <Pressable onPress={onBack} className="pr-2 active:opacity-80">
-          <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
-        </Pressable>
+        {backButton}
         <TextInput
           value={nameInput.value}
           onChangeText={nameInput.onChangeText}
           onFocus={nameInput.onFocus}
           onBlur={nameInput.onBlur}
-          className="flex-1 text-lg font-bold text-foreground"
+          className="flex-1 text-lg font-bold text-foreground ml-2"
           style={{ padding: 0, margin: 0, lineHeight: 18, height: 22 }}
         />
         <View className="flex-row items-center gap-2 ml-2">
-          {hasContacts && !multiSelectMode && (
-            <Text className={`text-xs font-semibold ${stateTextClass}`}>
-              {Math.round(completionPercent)}%
-            </Text>
-          )}
-          {!multiSelectMode && <AnimatedBadge variant={state} label={stateLabel} />}
-          {multiSelectMode ? (
-            <Pressable
-              onPress={onDoneEdit}
-              className="rounded-full bg-primary px-3.5 py-1.5 active:opacity-80"
-            >
-              <Text className="text-xs font-semibold text-primary-foreground">{t.done}</Text>
-            </Pressable>
-          ) : (
-            <Pressable
-              onPress={handleOverflowPress}
-              className="h-8 w-8 items-center justify-center rounded-full bg-muted/50 active:opacity-80"
-            >
-              <IconSymbol name="ellipsis" size={16} color={iconColors.muted} />
-            </Pressable>
-          )}
+          {percentChip}
+          {statusBadge}
+          {overflowButton}
         </View>
       </View>
       {/* Progress bar */}
       {hasContacts && !multiSelectMode && (
-        <View className="mt-2 h-1 overflow-hidden rounded-full bg-muted flex-row">
-          {paidPercent > 0 && (
-            <View className="h-full rounded-full bg-emerald-500" style={{ width: `${paidPercent}%` }} />
-          )}
-          {unpaidPercent > 0 && (
-            <View className="h-full bg-amber-500" style={{ width: `${unpaidPercent}%` }} />
-          )}
-        </View>
+        useGlass ? (
+          <GlassView style={{ borderRadius: 4, height: 6, marginTop: 10, overflow: 'hidden', flexDirection: 'row' }}>
+            {paidPercent > 0 && (
+              <View style={{ height: '100%', backgroundColor: '#10b981', width: `${paidPercent}%`, borderRadius: 4 }} />
+            )}
+            {unpaidPercent > 0 && (
+              <View style={{ height: '100%', backgroundColor: '#f59e0b', width: `${unpaidPercent}%` }} />
+            )}
+          </GlassView>
+        ) : (
+          <View className="mt-2 h-1 overflow-hidden rounded-full bg-muted flex-row">
+            {paidPercent > 0 && (
+              <View className="h-full rounded-full bg-emerald-500" style={{ width: `${paidPercent}%` }} />
+            )}
+            {unpaidPercent > 0 && (
+              <View className="h-full bg-amber-500" style={{ width: `${unpaidPercent}%` }} />
+            )}
+          </View>
+        )
       )}
     </View>
   );

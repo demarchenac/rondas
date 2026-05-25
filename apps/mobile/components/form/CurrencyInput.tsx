@@ -3,6 +3,7 @@ import RNCurrencyInput from 'react-native-currency-input';
 import { Platform, type TextInputProps } from 'react-native';
 import { cn } from '@/lib/cn';
 
+
 interface CurrencyInputProps extends Omit<TextInputProps, 'value' | 'onChangeText'> {
   value: number;
   onChangeValue: (n: number) => void;

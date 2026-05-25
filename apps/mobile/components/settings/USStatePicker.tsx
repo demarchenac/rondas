@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Modal, Pressable, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+
 import { FlashList } from '@shopify/flash-list';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';

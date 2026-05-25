@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image as RNImage, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaskedView from '@react-native-masked-view/masked-view';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
@@ -807,11 +809,11 @@ export default function BillDetailScreen() {
   if (shouldAnimate.current) shouldAnimate.current = false;
 
   return (
-    <View className="flex-1 bg-background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+    <View className="flex-1 bg-background" style={{ paddingBottom: insets.bottom }}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header */}
-      <Animated.View entering={animate ? FadeInDown.duration(300) : undefined}>
+      {/* Header — floating above MaskedView */}
+      <Animated.View entering={animate ? FadeInDown.duration(300) : undefined} style={{ position: 'absolute', left: 0, right: 0, top: insets.top, zIndex: 10 }}>
         <BillHeader
           billName={bill.name}
           state={bill.state}
@@ -853,7 +855,22 @@ export default function BillDetailScreen() {
         />
       </Animated.View>
 
-      <ScrollView ref={scrollRef} className="flex-1" contentContainerClassName="pb-8" showsVerticalScrollIndicator={false}>
+      {/* Top scroll edge — fade content under header */}
+      <MaskedView
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top + 100, zIndex: 5 }}
+        pointerEvents="none"
+        maskElement={
+          <LinearGradient
+            colors={['rgba(0,0,0,1)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)']}
+            locations={[0, 0.65, 1]}
+            style={{ flex: 1 }}
+          />
+        }
+      >
+        <View className="flex-1 bg-background" />
+      </MaskedView>
+
+      <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 80, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         {/* Metadata */}
         <Animated.View entering={animate ? FadeInDown.delay(60).duration(300) : undefined}>
           <BillMetadata

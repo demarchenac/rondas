@@ -363,7 +363,7 @@ export default function HomeScreen() {
             entering={FadeInDown.delay(Math.min(index, 8) * 60).duration(350)}
             style={{ paddingHorizontal: 20, paddingVertical: 3 }}
           >
-            <SwipeableRow onDelete={() => handleDeleteBill(item._id)} bgClassName={glassAvailable ? 'bg-transparent' : 'bg-background'}>
+            <SwipeableRow onDelete={() => handleDeleteBill(item._id)}>
               <BillCard
                 bill={item}
                 onPress={() => {

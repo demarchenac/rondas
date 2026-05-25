@@ -18,6 +18,7 @@ import OfflineBanner from '@/components/OfflineBanner';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { CustomAlertProvider } from '@/components/ui/custom-alert';
+import { KeyboardToolbar } from '@/components/ui/KeyboardToolbar';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { useSubscriptionSync } from '@/hooks/useSubscriptionSync';
 import * as Sentry from '@sentry/react-native';
@@ -57,6 +58,7 @@ function RootLayoutNav() {
           <Stack.Screen name="auth" />
         </Stack>
         <StatusBar style={isDark ? 'light' : 'dark'} />
+        <KeyboardToolbar />
         <PortalHost />
       </ThemeProvider>
     </ConvexProvider>

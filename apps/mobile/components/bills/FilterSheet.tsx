@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Modal, Platform, View, Pressable, ScrollView, TextInput } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
