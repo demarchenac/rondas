@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image as RNImage, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
-import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
+import { type ViewShotRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -89,10 +89,9 @@ export default function BillDetailScreen() {
   const [previewAspect, setPreviewAspect] = useState(1);
   const [previewContactName, setPreviewContactName] = useState('');
   const [unitSheetTarget, setUnitSheetTarget] = useState<{ itemId: string; contactId: Id<'contacts'> } | null>(null);
-  // Sync equal split state from bill
-  const initializedRef = useRef(false);
-  if (bill && !initializedRef.current) {
-    initializedRef.current = true;
+  const [initialized, setInitialized] = useState(false);
+  if (bill && !initialized) {
+    setInitialized(true);
     if (bill.splitStrategy === 'equal') {
       setEqualSplitMode(true);
       if (bill.numPeople) setNumPeople(bill.numPeople);
@@ -101,9 +100,10 @@ export default function BillDetailScreen() {
 
   const swipeOpenRef = useRef(false);
   const billRef = useRef(bill);
-  billRef.current = bill;
+  useEffect(() => { billRef.current = bill; }, [bill]);
   const infographicRefs = useRef<Record<number, ViewShotRef | null>>({});
-  const shouldAnimate = useRef(true);
+  const [animate, setAnimate] = useState(true);
+  if (animate && bill) setAnimate(false);
   const contactsCacheRef = useRef<{ data: (Contacts.Contact & { id: string })[]; fetchedAt: number } | null>(null);
   const contactsPermissionRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -804,9 +804,6 @@ export default function BillDetailScreen() {
     paidPercent = assignedPercent * paidProportion;
     unpaidPercent = assignedPercent - paidPercent;
   }
-
-  const animate = shouldAnimate.current;
-  if (shouldAnimate.current) shouldAnimate.current = false;
 
   return (
     <View className="flex-1 bg-background" style={{ paddingBottom: insets.bottom }}>

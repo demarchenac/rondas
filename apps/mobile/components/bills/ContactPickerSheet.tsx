@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Platform, View, Pressable, TextInput } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -52,11 +52,12 @@ function ContactPickerSheet({
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
 
-  // Local search state — avoids re-rendering 660-line parent on every keystroke
   const [search, setSearch] = useState('');
-  useEffect(() => {
+  const [prevVisible, setPrevVisible] = useState(false);
+  if (visible !== prevVisible) {
+    setPrevVisible(visible);
     if (visible) setSearch('');
-  }, [visible]);
+  }
 
   const baseContacts = useMemo(() => {
     if (!excludePhones || excludePhones.size === 0) return phoneContacts;

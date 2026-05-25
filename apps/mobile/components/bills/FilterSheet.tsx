@@ -53,13 +53,14 @@ function FilterSheet({
 
   const [draft, setDraft] = useState<FilterState>(filters);
   const [contactSearch, setContactSearch] = useState('');
-
-  React.useEffect(() => {
+  const [prevVisible, setPrevVisible] = useState(false);
+  if (visible !== prevVisible) {
+    setPrevVisible(visible);
     if (visible) {
       setDraft(filters);
       setContactSearch('');
     }
-  }, [visible, filters]);
+  }
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch) return availableContacts;
