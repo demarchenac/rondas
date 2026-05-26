@@ -4,28 +4,17 @@ import Skeleton from '@/components/ui/Skeleton';
 
 function BillCardSkeleton() {
   return (
-    <View className="rounded-xl border-l-[3px] border-l-muted bg-card px-4 py-3.5">
-      {/* Top row: name + badge */}
+    <View className="rounded-[20px] bg-muted-foreground/[0.03] px-4 py-3" style={{ gap: 8 }}>
       <View className="flex-row items-center justify-between">
-        <Skeleton width="60%" height={18} />
-        <Skeleton width={60} height={20} borderRadius={10} />
+        <Skeleton width={128} height={16} borderRadius={6} />
+        <Skeleton width={80} height={24} borderRadius={12} />
       </View>
-      {/* Bottom row: amount + avatars */}
-      <View className="mt-2 flex-row items-end justify-between">
-        <View>
-          <Skeleton width={120} height={24} />
-          <Skeleton width={100} height={12} style={{ marginTop: 4 }} />
-        </View>
-        <View className="flex-row">
-          {[0, 1, 2].map((i) => (
-            <Skeleton
-              key={i}
-              width={26}
-              height={26}
-              borderRadius={13}
-              style={i > 0 ? { marginLeft: -8 } : undefined}
-            />
-          ))}
+      <Skeleton width={160} height={28} borderRadius={6} />
+      <View className="flex-row items-center justify-between">
+        <Skeleton width={96} height={12} borderRadius={6} />
+        <View className="flex-row items-center gap-1">
+          <Skeleton width={24} height={24} borderRadius={12} />
+          <Skeleton width={24} height={24} borderRadius={12} />
         </View>
       </View>
     </View>

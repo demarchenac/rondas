@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Pressable } from 'react-native';
+import { Platform, View, Pressable } from 'react-native';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -19,38 +20,55 @@ function BulkToolbar({ selectedItemIds, hasContactsOnSelection, onAssign, onUnas
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
 
+  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
+
   if (selectedItemIds.size === 0) return null;
 
   return (
-    <View className="border-t border-border/30 px-7 pb-2 pt-3">
-      <View className="flex-row gap-2">
-        {/* Assign contact */}
-        <Pressable
-          onPress={onAssign}
-          className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 py-3"
-        >
-          <IconSymbol name="person.crop.circle" size={16} color={iconColors.primary} />
-          <Text className="text-xs font-semibold text-primary">{t.bulk_assign}</Text>
+    <View style={{ backgroundColor: 'transparent', marginBottom: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Pressable onPress={onAssign} style={{ flex: 1, backgroundColor: 'transparent' }} className="active:opacity-80">
+          {useGlass ? (
+            <GlassView isInteractive tintColor={iconColors.primary + '0D'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
+              <IconSymbol name="person.crop.circle" size={16} color={iconColors.primary} />
+              <Text className="text-xs font-semibold text-primary">{t.bulk_assign}</Text>
+            </GlassView>
+          ) : (
+            <View className="flex-row items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 py-3">
+              <IconSymbol name="person.crop.circle" size={16} color={iconColors.primary} />
+              <Text className="text-xs font-semibold text-primary">{t.bulk_assign}</Text>
+            </View>
+          )}
         </Pressable>
 
-        {/* Remove contact — only if any selected item has contacts */}
         {hasContactsOnSelection && (
-          <Pressable
-            onPress={onUnassign}
-            className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-state-unresolved/20 bg-state-unresolved/10 py-3"
-          >
-            <IconSymbol name="person.crop.circle" size={16} color={iconColors.pro} />
-            <Text className="text-xs font-semibold text-state-unresolved">{t.bulk_unassign}</Text>
+          <Pressable onPress={onUnassign} style={{ flex: 1, backgroundColor: 'transparent' }} className="active:opacity-80">
+            {useGlass ? (
+              <GlassView isInteractive tintColor={iconColors.pro + '0D'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
+                <IconSymbol name="person.crop.circle" size={16} color={iconColors.pro} />
+                <Text className="text-xs font-semibold text-state-unresolved">{t.bulk_unassign}</Text>
+              </GlassView>
+            ) : (
+              <View className="flex-row items-center justify-center gap-1.5 rounded-xl border border-state-unresolved/20 bg-state-unresolved/10 py-3">
+                <IconSymbol name="person.crop.circle" size={16} color={iconColors.pro} />
+                <Text className="text-xs font-semibold text-state-unresolved">{t.bulk_unassign}</Text>
+              </View>
+            )}
           </Pressable>
         )}
 
-        {/* Delete items */}
-        <Pressable
-          onPress={onDelete}
-          className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-destructive/20 bg-destructive/10 py-3"
-        >
-          <IconSymbol name="xmark" size={14} color={iconColors.destructive} />
-          <Text className="text-xs font-semibold text-destructive">{t.bulk_delete}</Text>
+        <Pressable onPress={onDelete} style={{ flex: 1, backgroundColor: 'transparent' }} className="active:opacity-80">
+          {useGlass ? (
+            <GlassView isInteractive tintColor={iconColors.destructive + '0D'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
+              <IconSymbol name="xmark" size={14} color={iconColors.destructive} />
+              <Text className="text-xs font-semibold text-destructive">{t.bulk_delete}</Text>
+            </GlassView>
+          ) : (
+            <View className="flex-row items-center justify-center gap-1.5 rounded-xl border border-destructive/20 bg-destructive/10 py-3">
+              <IconSymbol name="xmark" size={14} color={iconColors.destructive} />
+              <Text className="text-xs font-semibold text-destructive">{t.bulk_delete}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
     </View>

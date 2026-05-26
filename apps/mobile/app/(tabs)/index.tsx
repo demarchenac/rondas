@@ -358,11 +358,8 @@ export default function HomeScreen() {
       <FlashList<Bill>
         data={isLoading ? [] : bills}
         keyExtractor={(item) => item._id}
-        renderItem={({ item, index }) => (
-          <Animated.View
-            entering={FadeInDown.delay(Math.min(index, 8) * 60).duration(350)}
-            style={{ paddingHorizontal: 20, paddingVertical: 3 }}
-          >
+        renderItem={({ item }) => (
+          <View style={{ paddingHorizontal: 20, paddingVertical: 3 }}>
             <SwipeableRow onDelete={() => handleDeleteBill(item._id)}>
               <BillCard
                 bill={item}
@@ -378,7 +375,7 @@ export default function HomeScreen() {
                 t={t}
               />
             </SwipeableRow>
-          </Animated.View>
+          </View>
         )}
         contentContainerStyle={{ paddingTop: insets.top + headerHeight + 16, paddingBottom: 100, minHeight: Dimensions.get('window').height }}
         showsVerticalScrollIndicator={false}
@@ -398,14 +395,16 @@ export default function HomeScreen() {
         }
         ListEmptyComponent={
           isLoading ? (
-            <View className="px-5">
+            <View>
               {Array.from({ length: 5 }).map((_, i) => (
                 <Animated.View
                   key={i}
                   entering={FadeInDown.delay(i * 100).duration(300)}
-                  className="py-1"
+                  style={{ paddingHorizontal: 20, paddingVertical: 3 }}
                 >
-                  <BillCardSkeleton />
+                  <View style={{ marginBottom: 10 }}>
+                    <BillCardSkeleton />
+                  </View>
                 </Animated.View>
               ))}
             </View>

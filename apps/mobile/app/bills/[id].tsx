@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image as RNImage, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { type ViewShotRef } from 'react-native-view-shot';
@@ -97,6 +98,16 @@ export default function BillDetailScreen() {
   const contactsCacheRef = useRef<{ data: (Contacts.Contact & { id: string })[]; fetchedAt: number } | null>(null);
   const contactsPermissionRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
+
+  const glassAvailable = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
+  const [glassReady, setGlassReady] = useState(false);
+  useEffect(() => {
+    if (glassAvailable && !glassReady) {
+      const id = setTimeout(() => setGlassReady(true), 500);
+      return () => clearTimeout(id);
+    }
+  }, [glassAvailable, glassReady]);
+  const useGlass = glassAvailable && glassReady;
 
   const excludePhones = useMemo(() => {
     if (!bill) return undefined;
@@ -796,7 +807,7 @@ export default function BillDetailScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background" style={{ paddingBottom: insets.bottom }}>
+    <View className="flex-1 bg-background">
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header — floating above MaskedView */}
@@ -857,7 +868,7 @@ export default function BillDetailScreen() {
         <View className="flex-1 bg-background" />
       </MaskedView>
 
-      <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 80, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 80, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
         {/* Metadata */}
         <Animated.View entering={FadeInDown.delay(60).duration(300)}>
           <BillMetadata
@@ -987,76 +998,65 @@ export default function BillDetailScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* Bottom fixed area */}
-      {Platform.OS === 'ios' ? (
-        <BlurView intensity={80} tint={colorScheme === 'dark' ? 'dark' : 'light'} className="border-t border-border/30">
-          {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
-            <View className="px-7 pb-2 pt-3">
-              <Pressable
-                onPress={() => setActiveDialog('share')}
-                className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 active:opacity-80"
-              >
+      {/* Bottom scroll edge — MaskedView fade above buttons */}
+      <MaskedView
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: insets.bottom + 140, zIndex: 5 }}
+        pointerEvents="none"
+        maskElement={
+          <LinearGradient
+            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,1)']}
+            locations={[0, 0.35, 1]}
+            style={{ flex: 1 }}
+          />
+        }
+      >
+        <View className="flex-1 bg-background" />
+      </MaskedView>
+
+      {/* Bottom fixed buttons — absolute positioned */}
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom, zIndex: 10, backgroundColor: 'transparent', paddingHorizontal: 28 }}>
+        {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
+          <Pressable onPress={() => setActiveDialog('share')} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
+            {useGlass ? (
+              <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
+                <IconSymbol name="person.2.fill" size={18} color={iconColors.primary} />
+                <Text className="text-[15px] font-semibold text-foreground">
+                  {t.share_button(bill.contacts.length)}
+                </Text>
+              </GlassView>
+            ) : (
+              <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4">
                 <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
                 <Text className="text-[15px] font-semibold text-primary-foreground">
                   {t.share_button(bill.contacts.length)}
                 </Text>
-              </Pressable>
-            </View>
-          )}
-          {multiSelectMode && selectedItemIds.size > 0 && (
-            <BulkToolbar
-              selectedItemIds={selectedItemIds}
-              hasContactsOnSelection={bill.contacts.some((c) => c.items.some((ref) => selectedItemIds.has(ref.itemId)))}
-              onAssign={handleMultiAssign}
-              onUnassign={handleBulkRemoveContact}
-              onDelete={handleBulkDelete}
-            />
-          )}
-          <View className="px-7 py-2">
-            <Pressable
-              onPress={handleAddItem}
-              className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3 active:opacity-80"
-            >
+              </View>
+            )}
+          </Pressable>
+        )}
+        {multiSelectMode && selectedItemIds.size > 0 && (
+          <BulkToolbar
+            selectedItemIds={selectedItemIds}
+            hasContactsOnSelection={bill.contacts.some((c) => c.items.some((ref) => selectedItemIds.has(ref.itemId)))}
+            onAssign={handleMultiAssign}
+            onUnassign={handleBulkRemoveContact}
+            onDelete={handleBulkDelete}
+          />
+        )}
+        <Pressable onPress={handleAddItem} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
+          {useGlass ? (
+            <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
               <IconSymbol name="plus" size={14} color={iconColors.primary} />
               <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
-            </Pressable>
-          </View>
-        </BlurView>
-      ) : (
-        <View className="border-t border-border/30">
-          {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
-            <View className="px-7 pb-2 pt-3">
-              <Pressable
-                onPress={() => setActiveDialog('share')}
-                className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 active:opacity-80"
-              >
-                <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
-                <Text className="text-[15px] font-semibold text-primary-foreground">
-                  {t.share_button(bill.contacts.length)}
-                </Text>
-              </Pressable>
-            </View>
-          )}
-          {multiSelectMode && selectedItemIds.size > 0 && (
-            <BulkToolbar
-              selectedItemIds={selectedItemIds}
-              hasContactsOnSelection={bill.contacts.some((c) => c.items.some((ref) => selectedItemIds.has(ref.itemId)))}
-              onAssign={handleMultiAssign}
-              onUnassign={handleBulkRemoveContact}
-              onDelete={handleBulkDelete}
-            />
-          )}
-          <View className="px-7 py-2">
-            <Pressable
-              onPress={handleAddItem}
-              className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3 active:opacity-80"
-            >
+            </GlassView>
+          ) : (
+            <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3">
               <IconSymbol name="plus" size={14} color={iconColors.primary} />
               <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
+            </View>
+          )}
+        </Pressable>
+      </View>
 
       {/* Dialogs & Sheets */}
       <BillShareSheet

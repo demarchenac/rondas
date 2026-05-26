@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Platform, Pressable, View } from 'react-native';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Path } from 'react-native-svg';
 import Animated, {
   Easing,
@@ -13,6 +14,7 @@ import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import Avatar from '@/components/ui/avatar';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
+import BillCardSkeleton from '@/components/bills/BillCardSkeleton';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import { relativeTime } from '@/lib/date';
@@ -119,9 +121,9 @@ function CornerGlow({
     }}>
       <Defs>
         <SvgGradient id={gradId} gradientUnits="userSpaceOnUse" {...gradProps}>
-          <Stop offset="0%" stopColor={color} stopOpacity={0.4} />
-          <Stop offset="20%" stopColor={color} stopOpacity={0.2} />
-          <Stop offset="45%" stopColor={color} stopOpacity={0.06} />
+          <Stop offset="0%" stopColor={color} stopOpacity={0.2} />
+          <Stop offset="20%" stopColor={color} stopOpacity={0.1} />
+          <Stop offset="45%" stopColor={color} stopOpacity={0.03} />
           <Stop offset="65%" stopColor={color} stopOpacity={0} />
           <Stop offset="100%" stopColor={color} stopOpacity={0} />
         </SvgGradient>
@@ -185,6 +187,7 @@ function CardContent({
   t,
   locked,
   isIOS,
+  useGlass = false,
 }: {
   bill: Bill;
   stateStyle: (typeof STATE_STYLES)[BillState];
@@ -200,6 +203,7 @@ function CardContent({
   t: Translations;
   locked: boolean;
   isIOS: boolean;
+  useGlass?: boolean;
 }) {
   const platformTag = bill.tags?.find((t) => t.isPlatform);
   const categorySlug = platformTag?.slug;
@@ -263,12 +267,12 @@ function CardContent({
                   imageUri={c.imageUri}
                   size="xs"
                   className={cn('border-2 border-card', i > 0 && '-ml-2')}
-                  bgClassName={stateStyle.bgClass}
-                  textClassName={stateStyle.textClass}
+                  bgClassName={useGlass ? stateStyle.dotClass : stateStyle.bgClass}
+                  textClassName={useGlass ? 'text-white' : stateStyle.textClass}
                 />
               ))}
               {contactCount > 3 && (
-                <View className="-ml-2 h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-card bg-muted-foreground/15">
+                <View className={cn('-ml-2 h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-card', useGlass ? 'bg-muted-foreground/40' : 'bg-muted-foreground/15')}>
                   <Text className="text-[9px] font-bold text-muted-foreground">
                     +{contactCount - 3}
                   </Text>
@@ -335,44 +339,91 @@ function BillCardIOS({
     setCardHeight(e.nativeEvent.layout.height);
   }, []);
 
+  const glassAvailable = isGlassEffectAPIAvailable();
+  const [glassReady, setGlassReady] = useState(false);
+  useEffect(() => {
+    if (glassAvailable && !isDraft && !glassReady) {
+      const id = setTimeout(() => setGlassReady(true), 500);
+      return () => clearTimeout(id);
+    }
+  }, [glassAvailable, isDraft, glassReady]);
+  const useGlass = glassAvailable && glassReady && !isDraft;
+
+  if (glassAvailable && !glassReady && !isDraft) {
+    return (
+      <View style={{ marginBottom: 10 }}>
+        <BillCardSkeleton />
+      </View>
+    );
+  }
+
   return (
     <Pressable onPress={onPress} style={{ opacity: locked ? 0.5 : 1 }}>
       <View style={{ marginBottom: 10 }}>
-        <View
-          onLayout={onCardLayout}
-          className={cn(
-            'overflow-hidden rounded-[20px] bg-card px-4 py-3',
-            isDraft && 'opacity-60',
-          )}
-          style={{
-            zIndex: 1,
-            borderWidth: isDraft ? 0 : 1,
-            borderColor: isDraft ? 'transparent' : glow.glowMid,
-          }}
-        >
-          {!isDraft && (
-            <>
-              <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
-              <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
-            </>
-          )}
-          <CardContent
-            bill={bill}
-            stateStyle={stateStyle}
-            label={label}
-            isDraft={isDraft}
-            isUnresolved={isUnresolved}
-            displayTotal={displayTotal}
-            itemCount={itemCount}
-            contactCount={contactCount}
-            paidCount={paidCount}
-            progress={progress}
-            iconColors={iconColors}
-            t={t}
-            locked={locked}
-            isIOS
-          />
-        </View>
+        {useGlass ? (
+          <GlassView
+            onLayout={onCardLayout}
+            glassEffectStyle="regular"
+            tintColor={stateStyle.color + '0D'}
+            style={{ borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, overflow: 'hidden' }}
+          >
+            <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg="transparent" />
+            <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg="transparent" />
+            <CardContent
+              bill={bill}
+              stateStyle={stateStyle}
+              label={label}
+              isDraft={isDraft}
+              isUnresolved={isUnresolved}
+              displayTotal={displayTotal}
+              itemCount={itemCount}
+              contactCount={contactCount}
+              paidCount={paidCount}
+              progress={progress}
+              iconColors={iconColors}
+              t={t}
+              locked={locked}
+              isIOS
+              useGlass
+            />
+          </GlassView>
+        ) : (
+          <View
+            onLayout={onCardLayout}
+            className={cn(
+              'overflow-hidden rounded-[20px] bg-card px-4 py-3',
+              isDraft && 'opacity-60',
+            )}
+            style={{
+              zIndex: 1,
+              borderWidth: isDraft ? 0 : 1,
+              borderColor: isDraft ? 'transparent' : glow.glowMid,
+            }}
+          >
+            {!isDraft && (
+              <>
+                <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
+                <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
+              </>
+            )}
+            <CardContent
+              bill={bill}
+              stateStyle={stateStyle}
+              label={label}
+              isDraft={isDraft}
+              isUnresolved={isUnresolved}
+              displayTotal={displayTotal}
+              itemCount={itemCount}
+              contactCount={contactCount}
+              paidCount={paidCount}
+              progress={progress}
+              iconColors={iconColors}
+              t={t}
+              locked={locked}
+              isIOS
+            />
+          </View>
+        )}
       </View>
     </Pressable>
   );

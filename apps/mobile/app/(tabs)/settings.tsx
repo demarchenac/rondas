@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, Switch, View, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaskedView from '@react-native-masked-view/masked-view';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -141,17 +143,32 @@ export default function SettingsScreen() {
   const handleIvaChange = useCallback((v: boolean) => { setIvaIncluded(v); syncConfig(); }, [setIvaIncluded, syncConfig]);
 
   return (
-    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      {/* Header */}
-      <View className="px-5 pb-2 pt-4">
+    <View className="flex-1 bg-background">
+      {/* Header — floating */}
+      <View className="absolute left-0 right-0 px-5 pb-2 pt-4" style={{ top: insets.top, zIndex: 10 }}>
         <Text className="text-3xl font-extrabold tracking-tight text-foreground">
           {t.settings_title}
         </Text>
       </View>
 
+      {/* Top scroll edge — MaskedView fade */}
+      <MaskedView
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top + 60, zIndex: 5 }}
+        pointerEvents="none"
+        maskElement={
+          <LinearGradient
+            colors={['rgba(0,0,0,1)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)']}
+            locations={[0, 0.65, 1]}
+            style={{ flex: 1 }}
+          />
+        }
+      >
+        <View className="flex-1 bg-background" />
+      </MaskedView>
+
       <ScrollView
         className="flex-1 px-5"
-        contentContainerClassName="gap-6 pb-12 pt-4"
+        contentContainerStyle={{ gap: 24, paddingBottom: 48, paddingTop: insets.top + 56 }}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}

@@ -23,7 +23,7 @@ function Skeleton({ width, height, borderRadius = 6, style }: SkeletonProps) {
     translateX.value = withRepeat(
       withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
       -1,
-      false,
+      true,
     );
   }, [translateX]);
 
@@ -33,7 +33,7 @@ function Skeleton({ width, height, borderRadius = 6, style }: SkeletonProps) {
 
   return (
     <View
-      className="overflow-hidden bg-muted"
+      className="overflow-hidden bg-muted-foreground/[0.05]"
       style={[{ width, height, borderRadius }, style]}
     >
       <Animated.View
@@ -43,7 +43,7 @@ function Skeleton({ width, height, borderRadius = 6, style }: SkeletonProps) {
         ]}
       >
         <LinearGradient
-          colors={['transparent', 'rgba(255,255,255,0.12)', 'transparent']}
+          colors={['transparent', 'rgba(255,255,255,0.06)', 'transparent']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={{ flex: 1 }}
