@@ -26,7 +26,7 @@ export const TipSelector = React.memo(function TipSelector({ value, onSelect }: 
         <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted">
           <IconSymbol name="percent" size={18} color={iconColors.pro} />
         </View>
-        <Text className="text-base text-foreground">{t.settings_tipPercentage}</Text>
+        <Text className="text-lg text-foreground">{t.settings_tipPercentage}</Text>
       </View>
       <View className="flex-row gap-2">
         {TIP_OPTIONS.map((pct) => (
@@ -42,7 +42,7 @@ export const TipSelector = React.memo(function TipSelector({ value, onSelect }: 
           >
             <Text
               className={cn(
-                'text-[13px] font-bold',
+                'text-sm font-bold',
                 value === pct ? 'text-primary' : 'text-muted-foreground',
               )}
             >

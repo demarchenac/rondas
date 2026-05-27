@@ -153,10 +153,10 @@ export default function PaywallScreen() {
           <View className="mb-4 h-16 w-16 items-center justify-center rounded-2xl bg-pro/15">
             <IconSymbol name="crown.fill" size={32} color={iconColors.pro} />
           </View>
-          <Text className="text-center text-2xl font-extrabold tracking-tight text-foreground">
+          <Text className="text-center text-3xl font-extrabold tracking-tight text-foreground">
             {t.paywall_title}
           </Text>
-          <Text className="mt-2 text-center text-sm text-muted-foreground">
+          <Text className="mt-2 text-center text-base text-muted-foreground">
             {t.paywall_subtitle}
           </Text>
         </View>
@@ -167,7 +167,7 @@ export default function PaywallScreen() {
               <View className="h-6 w-6 items-center justify-center rounded-full bg-primary/15">
                 <IconSymbol name="checkmark" size={12} color={iconColors.primary} />
               </View>
-              <Text className="flex-1 text-[15px] font-medium text-foreground">{label}</Text>
+              <Text className="flex-1 text-lg font-medium text-foreground">{label}</Text>
             </View>
           ))}
         </View>
@@ -176,11 +176,11 @@ export default function PaywallScreen() {
           {loadingOffering ? (
             <View className="items-center py-8">
               <ActivityIndicator color={iconColors.primary} />
-              <Text className="mt-3 text-sm text-muted-foreground">{t.paywall_loading}</Text>
+              <Text className="mt-3 text-base text-muted-foreground">{t.paywall_loading}</Text>
             </View>
           ) : !offering || (!monthlyPkg && !yearlyPkg) ? (
             <View className="rounded-2xl border border-border bg-muted/30 p-6">
-              <Text className="text-center text-sm text-muted-foreground">
+              <Text className="text-center text-base text-muted-foreground">
                 {t.paywall_unavailable}
               </Text>
             </View>
@@ -230,7 +230,7 @@ export default function PaywallScreen() {
               {purchasing ? (
                 <ActivityIndicator color={iconColors.primaryForeground} />
               ) : (
-                <Text className="text-base font-bold text-primary-foreground">
+                <Text className="text-lg font-bold text-primary-foreground">
                   {t.paywall_purchase}
                 </Text>
               )}
@@ -240,12 +240,12 @@ export default function PaywallScreen() {
 
         <View className="mt-6 gap-4 px-6">
           <Pressable onPress={handleRestore} className="items-center py-2">
-            <Text className="text-sm font-medium text-primary">{t.paywall_restore}</Text>
+            <Text className="text-base font-medium text-primary">{t.paywall_restore}</Text>
           </Pressable>
 
           {!showPromoInput ? (
             <Pressable onPress={() => setShowPromoInput(true)} className="items-center py-2">
-              <Text className="text-sm font-medium text-muted-foreground">{t.paywall_promoCode}</Text>
+              <Text className="text-base font-medium text-muted-foreground">{t.paywall_promoCode}</Text>
             </Pressable>
           ) : (
             <View className="gap-2">
@@ -269,7 +269,7 @@ export default function PaywallScreen() {
                   {redeeming ? (
                     <ActivityIndicator color={iconColors.primaryForeground} size="small" />
                   ) : (
-                    <Text className="text-sm font-semibold text-primary-foreground">
+                    <Text className="text-base font-semibold text-primary-foreground">
                       {t.settings_promoCodeRedeem}
                     </Text>
                   )}
@@ -277,7 +277,7 @@ export default function PaywallScreen() {
               </View>
               {Platform.OS === 'ios' && (
                 <Pressable onPress={handleStoreRedeem} className="items-center py-2">
-                  <Text className="text-sm font-medium text-muted-foreground">
+                  <Text className="text-base font-medium text-muted-foreground">
                     {t.settings_promoCodeStoreRedeem}
                   </Text>
                 </Pressable>
@@ -311,17 +311,17 @@ function PlanOption({ title, priceText, suffix, badge, selected, onPress }: Plan
     >
       <View className="flex-1 gap-1">
         <View className="flex-row items-center gap-2">
-          <Text className="text-base font-bold text-foreground">{title}</Text>
+          <Text className="text-lg font-bold text-foreground">{title}</Text>
           {badge && (
             <View className="rounded-full bg-pro/15 px-2 py-0.5">
-              <Text className="text-[10px] font-bold text-pro">{badge}</Text>
+              <Text className="text-sm font-bold text-pro">{badge}</Text>
             </View>
           )}
         </View>
       </View>
-      <Text className="text-base font-bold text-foreground">
+      <Text className="text-lg font-bold text-foreground">
         {priceText}
-        <Text className="text-sm font-medium text-muted-foreground">{suffix}</Text>
+        <Text className="text-base font-medium text-muted-foreground">{suffix}</Text>
       </Text>
     </Pressable>
   );

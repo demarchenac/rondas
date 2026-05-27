@@ -219,11 +219,11 @@ function RunningTotal({
       className="border-t border-white/[0.08] px-4 pt-3 pb-1"
     >
       <Animated.View style={animatedStyle} className="items-center">
-        <Text className="text-[20px] font-bold tabular-nums text-primary">
+        <Text className="text-[22px] font-bold tabular-nums text-primary">
           {formatCurrency(total, billCountry, decimalPlaces)}
         </Text>
       </Animated.View>
-      <Text className="mt-1 text-center text-[12px] text-muted-foreground">
+      <Text className="mt-1 text-center text-sm text-muted-foreground">
         {t.scan_itemsFound(pricedCount)}
       </Text>
     </Animated.View>
@@ -259,13 +259,13 @@ function StreamItem({
       className="flex-row justify-between py-1.5 pl-3 pr-0"
     >
       <Text
-        className={`flex-1 text-[13px] ${isModifier ? 'italic text-muted-foreground' : 'text-foreground'}`}
+        className={`flex-1 text-sm ${isModifier ? 'italic text-muted-foreground' : 'text-foreground'}`}
         numberOfLines={1}
       >
         {displayName}
       </Text>
       {!isModifier && (
-        <Text className={`ml-3 text-[13px] font-semibold ${item.subtotal < 0 ? 'text-emerald-500' : 'text-primary'}`}>
+        <Text className={`ml-3 text-sm font-semibold ${item.subtotal < 0 ? 'text-emerald-500' : 'text-primary'}`}>
           {formatCurrency(item.subtotal, billCountry, decimalPlaces)}
         </Text>
       )}
@@ -382,13 +382,13 @@ function ScanningOverlay({
             exiting={FadeOutUp.duration(200)}
             className="mt-5"
           >
-            <Text className="text-center text-[17px] font-bold text-foreground">
+            <Text className="text-center text-xl font-bold text-foreground">
               {statusLabel}
             </Text>
           </Animated.View>
         ) : (
           <View className="mt-5">
-            <Text className="text-center text-[17px] font-bold text-foreground">
+            <Text className="text-center text-xl font-bold text-foreground">
               {statusLabel}
             </Text>
           </View>

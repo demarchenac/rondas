@@ -35,8 +35,8 @@ function BillMetadata({
     // Country-only row
     return (
       <Pressable onPress={onCountryPress} className="mx-7 mb-3 flex-row items-center gap-1.5 active:opacity-80">
-        <Text className="text-xs">{billCountry === 'CO' ? '🇨🇴' : '🇺🇸'}</Text>
-        <Text className="text-xs text-muted-foreground">
+        <Text className="text-sm">{billCountry === 'CO' ? '🇨🇴' : '🇺🇸'}</Text>
+        <Text className="text-sm text-muted-foreground">
           {billCountry === 'CO' ? t.settings_countryColombia : t.settings_countryUSA}
         </Text>
         <IconSymbol name="chevron.right" size={10} color={iconColors.mutedLight} />
@@ -60,16 +60,16 @@ function BillMetadata({
           {category && (
             <>
               <IconSymbol name="fork.knife" size={11} color={iconColors.mutedLight} />
-              <Text className="text-xs text-muted-foreground">{getCategoryLabel(category, t)}</Text>
+              <Text className="text-sm text-muted-foreground">{getCategoryLabel(category, t)}</Text>
             </>
           )}
           {category && hasLocation && (
-            <Text className="text-xs text-muted-foreground/50">·</Text>
+            <Text className="text-sm text-muted-foreground/50">·</Text>
           )}
           {hasLocation && (
             <>
               <IconSymbol name="mappin" size={11} color={iconColors.mutedLight} />
-              <Text className="flex-1 text-xs text-muted-foreground" numberOfLines={1}>
+              <Text className="flex-1 text-sm text-muted-foreground" numberOfLines={1}>
                 {location!.address}
               </Text>
             </>
@@ -81,13 +81,13 @@ function BillMetadata({
         {hasTime && (
           <>
             <IconSymbol name="clock" size={11} color={iconColors.mutedLight} />
-            <Text className="text-xs text-muted-foreground">{timeText}</Text>
-            <Text className="text-xs text-muted-foreground/50">·</Text>
+            <Text className="text-sm text-muted-foreground">{timeText}</Text>
+            <Text className="text-sm text-muted-foreground/50">·</Text>
           </>
         )}
         <Pressable onPress={onCountryPress} className="flex-row items-center gap-1 active:opacity-80">
-          <Text className="text-xs">{billCountry === 'CO' ? '🇨🇴' : '🇺🇸'}</Text>
-          <Text className="text-xs text-muted-foreground">
+          <Text className="text-sm">{billCountry === 'CO' ? '🇨🇴' : '🇺🇸'}</Text>
+          <Text className="text-sm text-muted-foreground">
             {billCountry === 'CO' ? t.settings_countryColombia : t.settings_countryUSA}
           </Text>
           <IconSymbol name="chevron.right" size={10} color={iconColors.mutedLight} />

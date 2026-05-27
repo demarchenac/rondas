@@ -82,7 +82,7 @@ function LiquidGlassMenu({ items, visible, onClose, anchorBottom, anchorRight }:
                 {index > 0 && <View style={styles.separator} />}
                 <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); item.onPress(); onClose(); }} style={styles.item}>
                   {item.icon}
-                  <Text className="text-base font-medium text-white">{item.label}</Text>
+                  <Text className="text-lg font-medium text-white">{item.label}</Text>
                 </Pressable>
               </React.Fragment>
             ))}
@@ -111,7 +111,7 @@ function LiquidGlassMenu({ items, visible, onClose, anchorBottom, anchorRight }:
             {index > 0 && <View style={styles.separator} />}
             <Pressable onPress={() => handleItemPress(item)} style={styles.item}>
               {item.icon}
-              <Text className="text-base font-medium text-white">{item.label}</Text>
+              <Text className="text-lg font-medium text-white">{item.label}</Text>
             </Pressable>
           </Animated.View>
         ))}

@@ -118,12 +118,12 @@ function BillInfographic({
 
           {/* Header: Brand + Country badge */}
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-[13px] font-extrabold text-[#0a7ea4] tracking-[4px] uppercase">
+            <Text className="text-sm font-extrabold text-[#0a7ea4] tracking-[4px] uppercase">
               Rondas
             </Text>
             <View className="flex-row items-center gap-1 bg-[#f1f5f9] px-2 py-[3px] rounded-[6px]">
-              <Text className="text-xs">{flag}</Text>
-              <Text className="text-[9px] font-bold text-[#64748b] tracking-[0.5px]">
+              <Text className="text-sm">{flag}</Text>
+              <Text className="text-sm font-bold text-[#64748b] tracking-[0.5px]">
                 {country === 'CO' ? 'COP' : 'USD'}
               </Text>
             </View>
@@ -131,16 +131,16 @@ function BillInfographic({
 
           {/* Venue */}
           <View className="mb-1">
-            <Text className="text-xl font-extrabold text-[#0f172a]">
+            <Text className="text-2xl font-extrabold text-[#0f172a]">
               {billName}
             </Text>
             {location && !location.startsWith(billName) && (
-              <Text className="text-[10px] text-[#94a3b8] mt-[3px]" numberOfLines={2}>
+              <Text className="text-sm text-[#94a3b8] mt-[3px]" numberOfLines={2}>
                 {location}
               </Text>
             )}
             {dateStr && (
-              <Text className="text-[10px] text-[#94a3b8] mt-[2px]">
+              <Text className="text-sm text-[#94a3b8] mt-[2px]">
                 {dateStr}
               </Text>
             )}
@@ -154,21 +154,21 @@ function BillInfographic({
               <Image source={{ uri: contactImageUri }} className="w-8 h-8 rounded-full" />
             ) : (
               <View className="w-8 h-8 rounded-full bg-[#e0f2fe] items-center justify-center">
-                <Text className="text-[13px] font-bold text-[#0a7ea4]">
+                <Text className="text-sm font-bold text-[#0a7ea4]">
                   {contactName[0]?.toUpperCase() ?? '?'}
                 </Text>
               </View>
             )}
             <View>
-              <Text className="text-[8px] text-[#94a3b8] font-semibold tracking-[1.5px] uppercase">{t.infographic_billFor}</Text>
-              <Text className="text-sm font-bold text-[#0f172a]">{contactName}</Text>
+              <Text className="text-[11px] text-[#94a3b8] font-semibold tracking-[1.5px] uppercase">{t.infographic_billFor}</Text>
+              <Text className="text-base font-bold text-[#0f172a]">{contactName}</Text>
             </View>
           </View>
 
           {/* Column headers */}
           <View className="flex-row justify-between pb-[6px] border-b-[1.5px] border-b-[#e2e8f0]">
-            <Text className="text-[8px] font-bold text-[#94a3b8] tracking-[1.5px] uppercase">{t.infographic_item}</Text>
-            <Text className="text-[8px] font-bold text-[#94a3b8] tracking-[1.5px] uppercase">{t.infographic_amount}</Text>
+            <Text className="text-[11px] font-bold text-[#94a3b8] tracking-[1.5px] uppercase">{t.infographic_item}</Text>
+            <Text className="text-[11px] font-bold text-[#94a3b8] tracking-[1.5px] uppercase">{t.infographic_amount}</Text>
           </View>
 
           {/* Items */}
@@ -177,10 +177,10 @@ function BillInfographic({
               key={i}
               className="flex-row justify-between items-center py-[9px] border-b border-b-[#f1f5f9]"
             >
-              <Text className="text-[13px] text-[#334155] flex-1 mr-3" numberOfLines={1}>
+              <Text className="text-sm text-[#334155] flex-1 mr-3" numberOfLines={1}>
                 {item.name}
               </Text>
-              <Text className="text-[13px] font-bold text-[#0f172a]" style={{ fontVariant: ['tabular-nums'] }}>
+              <Text className="text-sm font-bold text-[#0f172a]" style={{ fontVariant: ['tabular-nums'] }}>
                 {formatCurrency(item.amount, country)}
               </Text>
             </View>
@@ -189,21 +189,21 @@ function BillInfographic({
           {/* Breakdown */}
           <View className="mt-2 gap-[2px]">
             <View className="flex-row justify-between py-1">
-              <Text className="text-[11px] text-[#94a3b8]">{t.bill_subtotal}</Text>
-              <Text className="text-[11px] text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase, country)}</Text>
+              <Text className="text-sm text-[#94a3b8]">{t.bill_subtotal}</Text>
+              <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase, country)}</Text>
             </View>
             <View className="flex-row justify-between py-1">
-              <Text className="text-[11px] text-[#94a3b8]">{translatedTaxLabel}</Text>
-              <Text className="text-[11px] text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTax, country)}</Text>
+              <Text className="text-sm text-[#94a3b8]">{translatedTaxLabel}</Text>
+              <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTax, country)}</Text>
             </View>
             <View className="flex-row justify-between py-1 border-t-[0.5px] border-t-[#e2e8f0] mt-[2px]">
-              <Text className="text-[11px] text-[#64748b] font-semibold">{t.bill_beforeTip}</Text>
-              <Text className="text-[11px] text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase + contactTax, country)}</Text>
+              <Text className="text-sm text-[#64748b] font-semibold">{t.bill_beforeTip}</Text>
+              <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase + contactTax, country)}</Text>
             </View>
             {tipPercent > 0 && (
               <View className="flex-row justify-between py-1">
-                <Text className="text-[11px] text-[#94a3b8]">{t.bill_tip(tipPercent)}</Text>
-                <Text className="text-[11px] text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTip, country)}</Text>
+                <Text className="text-sm text-[#94a3b8]">{t.bill_tip(tipPercent)}</Text>
+                <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTip, country)}</Text>
               </View>
             )}
           </View>
@@ -212,9 +212,9 @@ function BillInfographic({
 
           {/* Total */}
           <View className="flex-row justify-between items-baseline">
-            <Text className="text-sm font-extrabold text-[#0f172a] tracking-[1px] uppercase">{t.infographic_total}</Text>
+            <Text className="text-base font-extrabold text-[#0f172a] tracking-[1px] uppercase">{t.infographic_total}</Text>
             <Text
-              className="text-[22px] font-extrabold text-[#0a7ea4] shrink text-right"
+              className="text-[24px] font-extrabold text-[#0a7ea4] shrink text-right"
               style={{ fontVariant: ['tabular-nums'] }}
               adjustsFontSizeToFit
               numberOfLines={1}
@@ -228,8 +228,8 @@ function BillInfographic({
 
           {/* Footer */}
           <View className="items-center gap-1">
-            <Text className="text-[9px] text-[#94a3b8] italic">{t.infographic_tagline}</Text>
-            <Text className="text-[8px] text-[#cbd5e1]">rondas.app</Text>
+            <Text className="text-sm text-[#94a3b8] italic">{t.infographic_tagline}</Text>
+            <Text className="text-[11px] text-[#cbd5e1]">rondas.app</Text>
           </View>
         </View>
       </View>

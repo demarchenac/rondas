@@ -119,7 +119,7 @@ function SwipeableRow({ onDelete, onSwipeStart, bgClassName, children }: Swipeab
       >
         <Pressable onPress={handleDelete} className="items-center px-4 py-2">
           <IconSymbol name="xmark" size={18} color="#ffffff" />
-          <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
+          <Text className="mt-0.5 text-sm font-medium text-white">{t.delete}</Text>
         </Pressable>
       </Animated.View>
 

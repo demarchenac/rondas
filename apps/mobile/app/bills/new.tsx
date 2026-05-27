@@ -391,7 +391,7 @@ export default function NewBillScreen() {
         className="flex-1 items-center justify-center bg-background px-8"
         style={{ paddingTop: insets.top }}
       >
-        <Text className="text-lg font-semibold text-foreground">
+        <Text className="text-xl font-semibold text-foreground">
           {t.scan_noImage}
         </Text>
         <Button variant="outline" className="mt-4" onPress={() => router.back()}>
@@ -435,14 +435,14 @@ export default function NewBillScreen() {
                         size={16}
                         color={iconColors.destructive}
                       />
-                      <Text className="text-sm font-medium text-white">
+                      <Text className="text-base font-medium text-white">
                         {error.message}
                       </Text>
                     </View>
-                    <Text className="mt-1 text-center text-xs text-white/60">
+                    <Text className="mt-1 text-center text-sm text-white/60">
                       {error.hint}
                     </Text>
-                    <Text className="mt-1.5 text-center text-xs font-semibold text-primary">
+                    <Text className="mt-1.5 text-center text-sm font-semibold text-primary">
                       {error.type === 'not_a_receipt' ? t.scan_tapGoBack : t.scan_tapRetry}
                     </Text>
                   </Pressable>
@@ -462,7 +462,7 @@ export default function NewBillScreen() {
                       }}
                       className="mt-2 items-center border-t border-white/10 pt-2"
                     >
-                      <Text className="text-xs font-semibold text-muted-foreground">
+                      <Text className="text-sm font-semibold text-muted-foreground">
                         {t.scan_enterManually}
                       </Text>
                     </Pressable>
@@ -491,7 +491,7 @@ export default function NewBillScreen() {
                     }}
                   >
                     <IconSymbol name="doc.text.viewfinder" size={22} color={iconColors.primary} />
-                    <Text className="text-[17px] font-semibold text-white">
+                    <Text className="text-xl font-semibold text-white">
                       {t.scan_scanBill}
                     </Text>
                   </BlurView>
@@ -512,7 +512,7 @@ export default function NewBillScreen() {
                   }}
                   className="items-center py-4"
                 >
-                  <Text className="text-sm font-medium text-muted-foreground">
+                  <Text className="text-base font-medium text-muted-foreground">
                     {t.scan_enterManually}
                   </Text>
                 </Pressable>
@@ -533,7 +533,7 @@ export default function NewBillScreen() {
   const renderDeleteAction = () => (
     <Animated.View className="flex-1 items-end justify-center bg-destructive pr-6">
       <IconSymbol name="xmark" size={18} color={iconColors.primaryForeground} />
-      <Text className="mt-0.5 text-[10px] font-medium text-white">{t.delete}</Text>
+      <Text className="mt-0.5 text-sm font-medium text-white">{t.delete}</Text>
     </Animated.View>
   );
 
@@ -551,12 +551,12 @@ export default function NewBillScreen() {
       <View className="px-7 pb-2 pt-2">
         <View>
           <View className="flex-row items-center justify-between">
-            <Text className="text-2xl font-extrabold tracking-tight text-foreground">
+            <Text className="text-3xl font-extrabold tracking-tight text-foreground">
               {t.scan_reviewTitle}
             </Text>
               <View className="flex-row items-center gap-2.5">
                 <View className="rounded-full bg-primary/10 px-3 py-1">
-                  <Text className="text-xs font-bold text-primary">
+                  <Text className="text-sm font-bold text-primary">
                     {t.scan_itemCount(bill.items.length)}
                   </Text>
                 </View>
@@ -571,7 +571,7 @@ export default function NewBillScreen() {
           <Input
             value={bill.name}
             onChangeText={(text) => setBill({ ...bill, name: text })}
-            className="mt-0.5 h-auto border-0 bg-transparent px-0 py-0 text-sm text-muted-foreground shadow-none"
+            className="mt-0.5 h-auto border-0 bg-transparent px-0 py-0 text-base text-muted-foreground shadow-none"
             placeholder={t.scan_restaurantPlaceholder}
             placeholderTextColor={iconColors.mutedLight}
 
@@ -588,7 +588,7 @@ export default function NewBillScreen() {
         bottomOffset={80}
       >
         {/* Hint */}
-        <Text className="mb-1 px-7 text-xs text-muted-foreground">
+        <Text className="mb-1 px-7 text-sm text-muted-foreground">
           {t.scan_tapToEdit}
         </Text>
 
@@ -609,7 +609,7 @@ export default function NewBillScreen() {
                   <Input
                     value={item.name}
                     onChangeText={(v) => updateItem(index, 'name', v)}
-                    className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-[15px] font-semibold shadow-none"
+                    className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-lg font-semibold shadow-none"
                     placeholder={t.scan_itemName}
                     placeholderTextColor={iconColors.mutedLight}
                     autoFocus
@@ -618,32 +618,32 @@ export default function NewBillScreen() {
                     onPress={() => setEditingIndex(null)}
                     className="ml-3 rounded-full bg-destructive/15 px-3 py-1"
                   >
-                    <Text className="text-xs font-semibold text-destructive">{t.cancel}</Text>
+                    <Text className="text-sm font-semibold text-destructive">{t.cancel}</Text>
                   </Pressable>
                 </View>
                 <View className="flex-row gap-2.5">
                   <View className="flex-1">
-                    <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_qty}</Text>
+                    <Text className="mb-1 text-sm font-medium uppercase tracking-wider text-muted-foreground">{t.scan_qty}</Text>
                     <Input
                       value={String(item.quantity)}
                       onChangeText={(v) => updateItem(index, 'quantity', v)}
-                      className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
+                      className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-base font-medium shadow-none"
                       keyboardType="number-pad"
                     />
                   </View>
                   <View className="flex-[2]">
-                    <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
+                    <Text className="mb-1 text-sm font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
                     <Input
                       value={formatCurrency(item.unitPrice, country)}
                       onChangeText={(v) => updateItem(index, 'unitPrice', v)}
-                      className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-sm font-medium shadow-none"
+                      className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-base font-medium shadow-none"
                       keyboardType="number-pad"
                     />
                   </View>
                   <View className="flex-[2]">
-                    <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_subtotalLabel}</Text>
+                    <Text className="mb-1 text-sm font-medium uppercase tracking-wider text-muted-foreground">{t.scan_subtotalLabel}</Text>
                     <View className="h-9 items-end justify-center rounded-lg px-3 py-1">
-                      <Text className="text-sm font-bold text-primary">
+                      <Text className="text-base font-bold text-primary">
                         {formatCurrency(item.subtotal, country)}
                       </Text>
                     </View>
@@ -653,7 +653,7 @@ export default function NewBillScreen() {
                   onPress={() => setEditingIndex(null)}
                   className="mt-3 items-center rounded-lg bg-primary/10 py-2"
                 >
-                  <Text className="text-sm font-semibold text-primary">{t.done}</Text>
+                  <Text className="text-base font-semibold text-primary">{t.done}</Text>
                 </Pressable>
               </View>
             ) : (
@@ -665,16 +665,16 @@ export default function NewBillScreen() {
                 >
                   <View className="mr-3 flex-1">
                     <Text
-                      className="text-[15px] font-semibold leading-5 text-foreground"
+                      className="text-lg font-semibold leading-5 text-foreground"
                       numberOfLines={1}
                     >
                       {item.name || t.scan_unnamed}
                     </Text>
-                    <Text className="mt-0.5 text-xs text-muted-foreground">
+                    <Text className="mt-0.5 text-sm text-muted-foreground">
                       {item.quantity} × {formatCurrency(item.unitPrice, country)}
                     </Text>
                   </View>
-                  <Text className="mr-1.5 text-[15px] font-bold tabular-nums text-foreground">
+                  <Text className="mr-1.5 text-lg font-bold tabular-nums text-foreground">
                     {formatCurrency(item.subtotal, country)}
                   </Text>
                   <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
@@ -697,7 +697,7 @@ export default function NewBillScreen() {
           <View className="h-5 w-5 items-center justify-center rounded-full bg-primary/15">
             <IconSymbol name="plus" size={12} color={iconColors.primary} />
           </View>
-          <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
+          <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
         </Pressable>
 
         {/* Divider before summary */}
@@ -705,26 +705,26 @@ export default function NewBillScreen() {
 
         {/* Summary — flat rows, no card */}
         <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-muted-foreground">{t.scan_subtotal}</Text>
-          <Text className="text-sm font-semibold tabular-nums text-foreground">
+          <Text className="text-base text-muted-foreground">{t.scan_subtotal}</Text>
+          <Text className="text-base font-semibold tabular-nums text-foreground">
             {formatCurrency(bill.items.reduce((sum, i) => sum + i.subtotal, 0), country)}
           </Text>
         </View>
         <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-foreground">{t.scan_taxIva}</Text>
+          <Text className="text-base text-foreground">{t.scan_taxIva}</Text>
           <Input
             value={formatCurrency(bill.tax, country)}
             onChangeText={(v) => setBill({ ...bill, tax: parseCurrency(v, country) })}
-            className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
+            className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-base font-semibold tabular-nums shadow-none"
             keyboardType="number-pad"
           />
         </View>
         <View className="flex-row items-center justify-between px-7 py-3">
-          <Text className="text-sm text-foreground">{t.scan_tipPropina}</Text>
+          <Text className="text-base text-foreground">{t.scan_tipPropina}</Text>
           <Input
             value={bill.tip === 0 ? '' : formatCurrency(bill.tip, country)}
             onChangeText={(v) => setBill({ ...bill, tip: parseCurrency(v, country) })}
-            className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-sm font-semibold tabular-nums shadow-none"
+            className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-base font-semibold tabular-nums shadow-none"
             placeholder="$0"
             placeholderTextColor={iconColors.mutedLight}
             keyboardType="number-pad"
@@ -735,14 +735,14 @@ export default function NewBillScreen() {
         <View className="mx-7 h-px bg-border/40" />
         <View className="flex-row items-center justify-between px-7 py-4">
           <View>
-            <Text className="text-sm font-bold text-foreground">{t.scan_total}</Text>
+            <Text className="text-base font-bold text-foreground">{t.scan_total}</Text>
             {bill.total > 0 && bill.total !== calculatedTotal && (
-              <Text className="mt-0.5 text-[11px] text-muted-foreground">
+              <Text className="mt-0.5 text-sm text-muted-foreground">
                 Bill: {formatCurrency(bill.total, country)}
               </Text>
             )}
           </View>
-          <Text className="text-2xl font-extrabold tracking-tight text-primary">
+          <Text className="text-3xl font-extrabold tracking-tight text-primary">
             {formatCurrency(calculatedTotal, country)}
           </Text>
         </View>
@@ -751,8 +751,8 @@ export default function NewBillScreen() {
       {/* Confirm Button */}
       <View className="border-t border-border/30 px-7 pb-2 pt-2">
         <View className="mb-2 flex-row items-center justify-between">
-          <Text className="text-xs text-muted-foreground">{t.scan_total}</Text>
-          <Text className="text-base font-bold text-primary">{formatCurrency(calculatedTotal, country)}</Text>
+          <Text className="text-sm text-muted-foreground">{t.scan_total}</Text>
+          <Text className="text-lg font-bold text-primary">{formatCurrency(calculatedTotal, country)}</Text>
         </View>
         <Button
           variant="default"

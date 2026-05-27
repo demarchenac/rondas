@@ -42,7 +42,7 @@ function KeyboardDoneButton() {
           onPress={() => Keyboard.dismiss()}
           className="rounded-lg bg-primary/10 px-5 py-1.5"
         >
-          <Text className="text-sm font-semibold text-primary">{t.done}</Text>
+          <Text className="text-base font-semibold text-primary">{t.done}</Text>
         </Pressable>
       </View>
     </Animated.View>

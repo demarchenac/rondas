@@ -116,12 +116,12 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
               <TouchableWithoutFeedback>
                 <View className="mx-8 w-80 rounded-2xl border border-border bg-card p-6">
                   {alertConfig.title !== '' && (
-                    <Text className="mb-1 text-center text-lg font-bold text-foreground">
+                    <Text className="mb-1 text-center text-xl font-bold text-foreground">
                       {alertConfig.title}
                     </Text>
                   )}
                   {alertConfig.message && (
-                    <Text className="mb-4 text-center text-sm text-muted-foreground">
+                    <Text className="mb-4 text-center text-base text-muted-foreground">
                       {alertConfig.message}
                     </Text>
                   )}
@@ -140,7 +140,7 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
                         >
                           <Text
                             className={cn(
-                              'text-sm font-semibold',
+                              'text-base font-semibold',
                               btn.style === 'destructive' ? 'text-destructive' : 'text-primary-foreground',
                             )}
                           >
@@ -156,7 +156,7 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
                           onPress={() => handleAlertButton(btn)}
                           className="items-center rounded-xl bg-muted py-3 active:opacity-80"
                         >
-                          <Text className="text-sm font-semibold text-muted-foreground">
+                          <Text className="text-base font-semibold text-muted-foreground">
                             {btn.text}
                           </Text>
                         </Pressable>
@@ -192,7 +192,7 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
                       >
                         <Text
                           className={cn(
-                            'text-base font-medium',
+                            'text-lg font-medium',
                             isDestructive ? 'text-destructive' : 'text-primary',
                           )}
                         >
@@ -210,7 +210,7 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
                     className="mx-4 mb-4 items-center rounded-2xl border border-border bg-card py-4 active:bg-muted/50"
                     style={{ marginBottom: insets.bottom + 16 }}
                   >
-                    <Text className="text-base font-semibold text-muted-foreground">
+                    <Text className="text-lg font-semibold text-muted-foreground">
                       {sheetConfig.options[sheetConfig.cancelButtonIndex]}
                     </Text>
                   </Pressable>

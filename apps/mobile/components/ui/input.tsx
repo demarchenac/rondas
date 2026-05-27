@@ -12,7 +12,7 @@ function Input({
     <TextInput
 
       className={cn(
-        'w-full rounded-md border border-input bg-background px-3 text-base text-foreground',
+        'w-full rounded-md border border-input bg-background px-3 text-lg text-foreground',
         isAndroid ? 'py-2.5' : 'h-10 py-1',
         props.editable === false && 'opacity-50',
         className

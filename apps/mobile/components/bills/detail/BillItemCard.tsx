@@ -99,33 +99,33 @@ function BillItemEditForm({
               value={field.state.value}
               onChangeText={field.handleChange}
               onBlur={field.handleBlur}
-              className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-[15px] font-semibold shadow-none"
+              className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-lg font-semibold shadow-none"
               placeholder={t.scan_itemName}
               autoFocus
             />
           )}
         </form.Field>
         <Pressable onPress={onCancel} className="ml-3 rounded-full bg-destructive/15 px-3 py-1">
-          <Text className="text-xs font-semibold text-destructive">{t.cancel}</Text>
+          <Text className="text-sm font-semibold text-destructive">{t.cancel}</Text>
         </Pressable>
       </View>
       <View className="flex-row gap-2.5">
         <View className="flex-1">
-          <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_qty}</Text>
+          <Text className="mb-1 text-sm font-medium uppercase tracking-wider text-muted-foreground">{t.scan_qty}</Text>
           <form.Field name="quantity">
             {(field) => (
               <Input
                 value={field.state.value}
                 onChangeText={field.handleChange}
                 onBlur={field.handleBlur}
-                className={`rounded-lg border-0 bg-muted px-3 text-sm font-medium shadow-none ${Platform.OS === 'ios' ? 'h-9' : ''}`}
+                className={`rounded-lg border-0 bg-muted px-3 text-base font-medium shadow-none ${Platform.OS === 'ios' ? 'h-9' : ''}`}
                 keyboardType="number-pad"
               />
             )}
           </form.Field>
         </View>
         <View className="flex-[2]">
-          <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
+          <Text className="mb-1 text-sm font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
           <form.Field name="unitPrice">
             {(field) => (
               <CurrencyInput
@@ -134,15 +134,15 @@ function BillItemEditForm({
                 onBlur={field.handleBlur}
                 country={billCountry}
                 decimalPlaces={decimalPlaces}
-                className={`rounded-lg border-0 bg-muted px-3 text-sm font-medium shadow-none ${Platform.OS === 'ios' ? 'h-9' : ''}`}
+                className={`rounded-lg border-0 bg-muted px-3 text-base font-medium shadow-none ${Platform.OS === 'ios' ? 'h-9' : ''}`}
               />
             )}
           </form.Field>
         </View>
         <View className="flex-[2]">
-          <Text className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t.scan_subtotalLabel}</Text>
+          <Text className="mb-1 text-sm font-medium uppercase tracking-wider text-muted-foreground">{t.scan_subtotalLabel}</Text>
           <View className="h-9 items-end justify-center rounded-lg px-3 py-1">
-            <Text className="text-sm font-bold text-primary">
+            <Text className="text-base font-bold text-primary">
               {formatCurrency(subtotal, billCountry)}
             </Text>
           </View>
@@ -152,7 +152,7 @@ function BillItemEditForm({
         onPress={() => form.handleSubmit()}
         className="mt-3 items-center rounded-lg bg-primary/10 py-2"
       >
-        <Text className="text-sm font-semibold text-primary">{t.done}</Text>
+        <Text className="text-base font-semibold text-primary">{t.done}</Text>
       </Pressable>
     </View>
   );
@@ -224,24 +224,24 @@ function BillItemCard({
               )}
               <View className="mr-3 flex-1">
                 <View className="flex-row items-center gap-1">
-                  <Text className="shrink text-[15px] font-semibold leading-5 text-foreground" numberOfLines={1}>
+                  <Text className="shrink text-lg font-semibold leading-5 text-foreground" numberOfLines={1}>
                     {item.name}
                   </Text>
                   {!multiSelectMode && (
                     <IconSymbol name="pencil.line" size={11} color={iconColors.mutedLight} />
                   )}
                 </View>
-                <Text className="mt-0.5 text-xs text-muted-foreground">
+                <Text className="mt-0.5 text-sm text-muted-foreground">
                   {item.quantity} × {formatCurrency(item.unitPrice, billCountry, decimalPlaces)}
                 </Text>
                 {/* Assign hint */}
                 {!hasContacts && !multiSelectMode && item.subtotal >= 0 && (
-                  <Text className="mt-1.5 text-[11px] text-muted-foreground/40">{t.bill_tapToAssign}</Text>
+                  <Text className="mt-1.5 text-sm text-muted-foreground/40">{t.bill_tapToAssign}</Text>
                 )}
               </View>
               <View className="flex-row items-center gap-2">
                 <Text className={cn(
-                  'text-[15px] font-bold tabular-nums',
+                  'text-lg font-bold tabular-nums',
                   item.subtotal < 0 ? 'text-emerald-500' : 'text-foreground',
                 )}>
                   {formatCurrency(item.subtotal, billCountry, decimalPlaces)}
@@ -280,7 +280,7 @@ function BillItemCard({
                         <IconSymbol name="person.crop.circle" size={13} color={c.paid ? '#10b981' : iconColors.primary} />
                       )}
                       <Text className={cn(
-                        'text-[11px] font-medium',
+                        'text-sm font-medium',
                         c.paid ? 'text-emerald-500' : 'text-primary',
                       )}>
                         {c.isSelf ? t.self_label(c.name) : c.name}
@@ -291,7 +291,7 @@ function BillItemCard({
                           c.paid ? 'bg-emerald-500/20' : 'bg-primary/20',
                         )}>
                           <Text className={cn(
-                            'text-[9px] font-bold',
+                            'text-sm font-bold',
                             c.paid ? 'text-emerald-500' : 'text-primary',
                           )}>
                             x{units}

@@ -37,7 +37,7 @@ const SettingsRow = React.memo(function SettingsRow({
         <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted">
           <IconSymbol name={icon} size={18} color={iconColor} />
         </View>
-        <Text className="flex-1 text-base text-foreground">{label}</Text>
+        <Text className="flex-1 text-lg text-foreground">{label}</Text>
         {info && (
           <Pressable
             onPress={() => setShowInfo((v) => !v)}
@@ -55,7 +55,7 @@ const SettingsRow = React.memo(function SettingsRow({
       </Wrapper>
       {info && showInfo && (
         <View className="px-4 pb-3 pt-0">
-          <Text className="text-xs leading-5 text-muted-foreground">
+          <Text className="text-sm leading-5 text-muted-foreground">
             {info}
           </Text>
         </View>

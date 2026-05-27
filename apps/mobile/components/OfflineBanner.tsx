@@ -17,7 +17,7 @@ export default function OfflineBanner() {
   return (
     <View className="flex-row items-center justify-center gap-2 bg-destructive/15 px-4 py-2">
       <IconSymbol name="wifi.slash" size={14} color={iconColors.destructive} />
-      <Text className="text-xs font-medium text-destructive">{t.offline_banner}</Text>
+      <Text className="text-sm font-medium text-destructive">{t.offline_banner}</Text>
     </View>
   );
 }

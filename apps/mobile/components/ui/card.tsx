@@ -38,7 +38,7 @@ function CardDescription({
   className,
   ...props
 }: React.ComponentProps<typeof Text> & React.RefAttributes<Text>) {
-  return <Text className={cn('text-muted-foreground text-sm', className)} {...props} />;
+  return <Text className={cn('text-muted-foreground text-base', className)} {...props} />;
 }
 
 function CardContent({ className, ...props }: ViewProps & React.RefAttributes<View>) {

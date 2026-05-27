@@ -95,7 +95,7 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
               onPress={onShare}
               className="items-center justify-center rounded-2xl bg-primary py-4"
             >
-              <Text className="text-base font-bold text-primary-foreground">
+              <Text className="text-lg font-bold text-primary-foreground">
                 {t.share_share}
               </Text>
             </Pressable>

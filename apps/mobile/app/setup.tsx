@@ -86,10 +86,10 @@ export default function SetupScreen() {
           <View className="mb-2 h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
             <IconSymbol name="receipt" size={32} color={iconColors.primary} />
           </View>
-          <Text className="text-2xl font-extrabold tracking-tight text-foreground">
+          <Text className="text-3xl font-extrabold tracking-tight text-foreground">
             {t.setup_welcome}
           </Text>
-          <Text className="text-center text-sm text-muted-foreground">
+          <Text className="text-center text-base text-muted-foreground">
             {t.setup_subtitle}
           </Text>
         </View>

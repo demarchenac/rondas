@@ -26,10 +26,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       return (
         <View className="flex-1 items-center justify-center bg-background px-6">
-          <Text className="mb-2 text-xl font-bold text-foreground">
+          <Text className="mb-2 text-2xl font-bold text-foreground">
             Something went wrong
           </Text>
-          <Text className="mb-6 text-center text-sm text-muted-foreground">
+          <Text className="mb-6 text-center text-base text-muted-foreground">
             {this.state.error?.message ?? 'An unexpected error occurred.'}
           </Text>
           <Button onPress={() => this.setState({ hasError: false, error: null })}>

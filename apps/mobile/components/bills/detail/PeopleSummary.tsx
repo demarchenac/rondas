@@ -90,7 +90,7 @@ function PeopleSummary({
     <View className="mt-3">
       {/* Section header */}
       <View className="mb-2 flex-row items-center justify-between px-7">
-        <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Text className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           {t.people_title}
         </Text>
         <View
@@ -101,7 +101,7 @@ function PeopleSummary({
         >
           <Text
             className={cn(
-              'text-[11px] font-semibold',
+              'text-sm font-semibold',
               allPaid ? 'text-emerald-500' : 'text-amber-500',
             )}
           >
@@ -128,7 +128,7 @@ function PeopleSummary({
             {/* Row 1: Avatar + Name + Paid icon */}
             <View className="flex-row items-center gap-2">
               <Avatar name={c.name} imageUri={c.imageUri} size="sm" />
-              <Text className="flex-1 text-xs font-semibold text-foreground" numberOfLines={1}>
+              <Text className="flex-1 text-sm font-semibold text-foreground" numberOfLines={1}>
                 {c.isSelf ? t.self_label(c.name) : c.name}
               </Text>
               <IconSymbol
@@ -139,11 +139,11 @@ function PeopleSummary({
             </View>
             {/* Row 2: Amount · debt context */}
             <View className="mt-1 flex-row items-center gap-1">
-              <Text className="text-xs font-bold tabular-nums text-foreground">
+              <Text className="text-sm font-bold tabular-nums text-foreground">
                 {formatCurrency(c.total, billCountry, decimalPlaces)}
               </Text>
-              <Text className="text-[11px] text-muted-foreground">·</Text>
-              <Text className={cn('text-[11px]', c.paid ? 'text-emerald-500' : 'text-amber-500')}>
+              <Text className="text-sm text-muted-foreground">·</Text>
+              <Text className={cn('text-sm', c.paid ? 'text-emerald-500' : 'text-amber-500')}>
                 {c.paid
                   ? (paidCount < contacts.length ? t.people_isOwed(formatCurrency(c.total, billCountry, decimalPlaces)) : t.share_paid)
                   : t.people_owes(formatCurrency(c.total, billCountry, decimalPlaces))}

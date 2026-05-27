@@ -21,11 +21,11 @@ const avatarVariants = cva('items-center justify-center rounded-full bg-primary/
 const textVariants = cva('font-bold text-primary', {
   variants: {
     size: {
-      xs: 'text-[10px]',
-      sm: 'text-[10px]',
-      md: 'text-xs',
-      lg: 'text-sm',
-      xl: 'text-3xl',
+      xs: 'text-sm',
+      sm: 'text-sm',
+      md: 'text-sm',
+      lg: 'text-base',
+      xl: 'text-4xl',
     },
   },
   defaultVariants: { size: 'md' },

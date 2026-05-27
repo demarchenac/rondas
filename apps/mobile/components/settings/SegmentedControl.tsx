@@ -25,7 +25,7 @@ function SegmentedControl<T extends string>({
         >
           <Text
             className={cn(
-              'text-xs font-medium',
+              'text-sm font-medium',
               value === opt.value ? 'text-foreground' : 'text-muted-foreground',
             )}
           >

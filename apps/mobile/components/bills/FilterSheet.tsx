@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Pressable, ScrollView, TextInput } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaskedView from '@react-native-masked-view/masked-view';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from '@/lib/expo-image';
@@ -139,6 +141,7 @@ function FilterSheet({
       grabber
       grabberOptions={{ topMargin: 12 }}
       cornerRadius={20}
+      scrollable
       backgroundColor={colorScheme === 'dark' ? '#0f172a' : '#fafbfc'}
       onDidDismiss={handleDismiss}
     >
@@ -148,7 +151,7 @@ function FilterSheet({
           <Text className="text-2xl font-bold text-foreground">{t.filterSheet_title}</Text>
         </View>
 
-        <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+        <ScrollView className="flex-1" contentContainerClassName="px-7" contentContainerStyle={{ paddingBottom: insets.bottom + 100 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           {/* Sort */}
           <View className="mb-2 rounded-xl bg-muted/10 p-4">
             <View className="mb-2.5 flex-row items-center gap-2">
@@ -379,36 +382,54 @@ function FilterSheet({
           </View>
         </ScrollView>
 
-        {/* Footer */}
-        <View className="flex-row gap-3 border-t border-border/20 px-7 pb-8 pt-3">
-          <Pressable
-            onPress={() => {
-              onClear();
-              onClose();
-            }}
-            className="flex-1 items-center rounded-xl border border-border py-3.5"
-          >
-            <Text className="text-base font-semibold text-muted-foreground">
-              {t.filterSheet_resetDefaults}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              // Auto-swap if min > max
-              const applied = { ...draft };
-              if (applied.minAmount != null && applied.maxAmount != null && applied.minAmount > applied.maxAmount) {
-                const tmp = applied.minAmount;
-                applied.minAmount = applied.maxAmount;
-                applied.maxAmount = tmp;
-              }
-              onApply(applied);
-            }}
-            className="flex-[2] items-center rounded-xl bg-primary py-3.5"
-          >
-            <Text className="text-base font-bold text-primary-foreground">
-              {t.filterSheet_apply}{activeCount > 0 ? ` (${activeCount})` : ''}
-            </Text>
-          </Pressable>
+        {/* Bottom fade */}
+        <MaskedView
+          style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 60, height: 40, zIndex: 5 }}
+          pointerEvents="none"
+          maskElement={
+            <LinearGradient
+              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,1)']}
+              locations={[0, 0.35, 1]}
+              style={{ flex: 1 }}
+            />
+          }
+        >
+          <View className="flex-1 bg-background" />
+        </MaskedView>
+
+        {/* Footer — floating */}
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 10, backgroundColor: 'transparent', paddingHorizontal: 28, paddingBottom: insets.bottom > 0 ? insets.bottom : 16, paddingTop: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Pressable
+              onPress={() => {
+                onClear();
+                onClose();
+              }}
+              style={{ flex: 1 }}
+              className="items-center rounded-xl border border-border py-3.5 active:opacity-80"
+            >
+              <Text className="text-base font-semibold text-muted-foreground">
+                {t.filterSheet_resetDefaults}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                const applied = { ...draft };
+                if (applied.minAmount != null && applied.maxAmount != null && applied.minAmount > applied.maxAmount) {
+                  const tmp = applied.minAmount;
+                  applied.minAmount = applied.maxAmount;
+                  applied.maxAmount = tmp;
+                }
+                onApply(applied);
+              }}
+              style={{ flex: 2 }}
+              className="items-center rounded-xl bg-primary py-3.5 active:opacity-80"
+            >
+              <Text className="text-base font-bold text-primary-foreground">
+                {t.filterSheet_apply}{activeCount > 0 ? ` (${activeCount})` : ''}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </TrueSheet>

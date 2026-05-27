@@ -53,6 +53,7 @@ function USStatePicker({ visible, selected, onSelect, onClose }: USStatePickerPr
       grabber
       grabberOptions={{ topMargin: 12 }}
       cornerRadius={20}
+      scrollable
       backgroundColor={colorScheme === 'dark' ? '#0f172a' : '#fafbfc'}
       onDidDismiss={handleDismiss}
     >

@@ -52,7 +52,7 @@ export default function LoginScreen() {
           <Text className="text-4xl font-extrabold tracking-tight text-foreground">
             {t.auth_appName}
           </Text>
-          <Text className="text-center text-base text-muted-foreground">
+          <Text className="text-center text-lg text-muted-foreground">
             {t.auth_tagline}
           </Text>
         </View>
@@ -74,7 +74,7 @@ export default function LoginScreen() {
           {/* Divider */}
           <View className="flex-row items-center gap-3 py-1">
             <View className="h-px flex-1 bg-border" />
-            <Text className="text-xs text-muted-foreground">{t.or}</Text>
+            <Text className="text-sm text-muted-foreground">{t.or}</Text>
             <View className="h-px flex-1 bg-border" />
           </View>
 
@@ -114,7 +114,7 @@ export default function LoginScreen() {
         {/* Error message */}
         {error && (
           <View className="mt-4 w-full rounded-xl bg-destructive/10 px-4 py-3">
-            <Text className="text-center text-sm text-destructive">
+            <Text className="text-center text-base text-destructive">
               {error}
             </Text>
           </View>
@@ -123,17 +123,17 @@ export default function LoginScreen() {
 
       {/* Footer */}
       <View className="items-center pb-4 px-8">
-        <Text className="text-xs text-muted-foreground text-center">
+        <Text className="text-sm text-muted-foreground text-center">
           {t.auth_termsPrefix}
           <Text
-            className="text-xs text-primary underline"
+            className="text-sm text-primary underline"
             onPress={() => Linking.openURL(language === 'es' ? 'https://rondas.co/terms' : 'https://rondas.co/en/terms')}
           >
             {t.auth_termsLink}
           </Text>
           {t.auth_termsMiddle}
           <Text
-            className="text-xs text-primary underline"
+            className="text-sm text-primary underline"
             onPress={() => Linking.openURL(language === 'es' ? 'https://rondas.co/privacy' : 'https://rondas.co/en/privacy')}
           >
             {t.auth_privacyLink}
