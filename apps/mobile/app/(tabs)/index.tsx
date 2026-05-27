@@ -214,7 +214,7 @@ export default function HomeScreen() {
                   {user.profilePictureUrl ? (
                     <Image source={{ uri: user.profilePictureUrl }} style={{ width: 36, height: 36, borderRadius: 18 }} />
                   ) : (
-                    <Text className="text-base font-bold text-primary">
+                    <Text className="text-lg font-bold text-primary">
                       {(user.firstName?.[0] ?? user.email?.[0] ?? '?').toUpperCase()}
                     </Text>
                   )}
@@ -225,7 +225,7 @@ export default function HomeScreen() {
                     <Image source={{ uri: user.profilePictureUrl }} className="h-10 w-10 rounded-full" />
                   ) : (
                     <View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      <Text className="text-base font-bold text-primary">
+                      <Text className="text-lg font-bold text-primary">
                         {(user.firstName?.[0] ?? user.email?.[0] ?? '?').toUpperCase()}
                       </Text>
                     </View>
@@ -244,7 +244,7 @@ export default function HomeScreen() {
               <GlassView
                 style={{ flex: 1, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' }}
               >
-                <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
+                <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
                   {t.home_billCount(bills.length)}
                   {bills.length > 0 && (
                     <>
@@ -265,15 +265,15 @@ export default function HomeScreen() {
               </GlassView>
             ) : (
               <View className="flex-1">
-                <Text className="text-2xl font-extrabold tracking-tight text-foreground">
+                <Text className="text-3xl font-extrabold tracking-tight text-foreground">
                   {t.home_greeting(firstName)}
                 </Text>
                 <View className="mt-1 flex-row items-center gap-3">
-                  <Text className="text-xs text-muted-foreground">
+                  <Text className="text-sm text-muted-foreground">
                     {t.home_billCount(bills.length)}
                   </Text>
                   {bills.length > 0 && (
-                    <Text className="text-xs font-semibold text-foreground">
+                    <Text className="text-sm font-semibold text-foreground">
                       {formatCurrency(bills.reduce((sum, b) => {
                         const bc = (b.country as 'CO' | 'US') || 'CO';
                         const cat = (b.tags?.find((t) => t.isPlatform)?.slug as 'dining' | 'retail' | 'service') || 'dining';
@@ -300,7 +300,7 @@ export default function HomeScreen() {
                   <IconSymbol name="line.3.horizontal.decrease" size={18} color={iconColors.primary} />
                   {hasNonDefaultFilters && (
                     <View className="absolute -top-1 -right-1 h-5 w-5 items-center justify-center rounded-full bg-primary">
-                      <Text className="text-[9px] font-bold text-primary-foreground">{nonDefaultFilterCount}</Text>
+                      <Text className="text-sm font-bold text-primary-foreground">{nonDefaultFilterCount}</Text>
                     </View>
                   )}
                 </GlassView>
@@ -309,7 +309,7 @@ export default function HomeScreen() {
                   <IconSymbol name="line.3.horizontal.decrease" size={18} color={iconColors.muted} />
                   {hasNonDefaultFilters && (
                     <View className="absolute -top-1 -right-1 h-5 w-5 items-center justify-center rounded-full bg-primary">
-                      <Text className="text-[9px] font-bold text-primary-foreground">{nonDefaultFilterCount}</Text>
+                      <Text className="text-sm font-bold text-primary-foreground">{nonDefaultFilterCount}</Text>
                     </View>
                   )}
                 </View>
@@ -336,7 +336,7 @@ export default function HomeScreen() {
                         isInteractive
                         style={{ borderRadius: 16, paddingHorizontal: 14, paddingVertical: 6 }}
                       >
-                        <Text className="text-xs font-semibold text-foreground">{chip.label}</Text>
+                        <Text className="text-sm font-semibold text-foreground">{chip.label}</Text>
                       </GlassView>
                     </Pressable>
                   ) : (
@@ -413,8 +413,8 @@ export default function HomeScreen() {
               <View className="mb-4 h-[72px] w-[72px] items-center justify-center rounded-full bg-primary/[0.08]">
                 <IconSymbol name="receipt" size={32} color={iconColors.primary} />
               </View>
-              <Text className="text-lg font-bold text-foreground">{t.home_noBills}</Text>
-              <Text className="mt-1.5 text-center text-sm text-muted-foreground">
+              <Text className="text-xl font-bold text-foreground">{t.home_noBills}</Text>
+              <Text className="mt-1.5 text-center text-base text-muted-foreground">
                 {t.home_noBillsHint}
               </Text>
               <Pressable
@@ -422,7 +422,7 @@ export default function HomeScreen() {
                 className="mt-5 flex-row items-center gap-2 rounded-full bg-primary px-5 py-2.5 active:opacity-80"
               >
                 <IconSymbol name="plus" size={16} color={iconColors.primaryForeground} />
-                <Text className="text-sm font-semibold text-primary-foreground">
+                <Text className="text-base font-semibold text-primary-foreground">
                   {t.home_addFirstBill}
                 </Text>
               </Pressable>

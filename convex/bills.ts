@@ -540,14 +540,6 @@ export const updateContactUnits = mutation({
     const idx = contacts.findIndex((c) => c.contactId === args.contactId);
     if (idx < 0) throw new Error('Contact not found on this bill');
 
-    const othersUnits = contacts.reduce((sum, c, i) => {
-      if (i === idx) return sum;
-      const ref = c.items.find((r) => r.itemId === args.itemId);
-      return sum + (ref ? ref.units : 0);
-    }, 0);
-    const maxUnits = item.quantity - othersUnits;
-    if (args.units > maxUnits) throw new Error('Exceeds available units');
-
     contacts[idx] = {
       ...contacts[idx],
       items: contacts[idx].items.map((ref) =>

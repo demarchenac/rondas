@@ -146,7 +146,7 @@ export default function SettingsScreen() {
     <View className="flex-1 bg-background">
       {/* Header — floating */}
       <View className="absolute left-0 right-0 px-5 pb-2 pt-4" style={{ top: insets.top, zIndex: 10 }}>
-        <Text className="text-3xl font-extrabold tracking-tight text-foreground">
+        <Text className="text-4xl font-extrabold tracking-tight text-foreground">
           {t.settings_title}
         </Text>
       </View>
@@ -180,7 +180,7 @@ export default function SettingsScreen() {
               <Image source={{ uri: user.profilePictureUrl }} className="h-20 w-20 rounded-full" />
             ) : (
               <View className="h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                <Text className="text-3xl font-bold text-primary">
+                <Text className="text-4xl font-bold text-primary">
                   {user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?'}
                   {user?.lastName?.[0] ?? ''}
                 </Text>
@@ -193,12 +193,12 @@ export default function SettingsScreen() {
             )}
           </View>
           <View className="items-center gap-0.5">
-            <Text className="text-lg font-semibold text-foreground">
+            <Text className="text-xl font-semibold text-foreground">
               {user?.firstName && user?.lastName
                 ? `${user.firstName} ${user.lastName}`
                 : user?.email ?? 'User'}
             </Text>
-            <Text className="text-sm text-muted-foreground">
+            <Text className="text-base text-muted-foreground">
               {user?.email ?? ''}
             </Text>
           </View>
@@ -215,8 +215,8 @@ export default function SettingsScreen() {
                 <IconSymbol name="crown.fill" size={24} color={iconColors.pro} />
               </View>
               <View className="flex-1 gap-1">
-                <Text className="text-base font-bold text-foreground">{t.settings_proActive}</Text>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-lg font-bold text-foreground">{t.settings_proActive}</Text>
+                <Text className="text-base text-muted-foreground">
                   {t.settings_manageSubscription}
                 </Text>
               </View>
@@ -233,13 +233,13 @@ export default function SettingsScreen() {
                 <IconSymbol name="crown.fill" size={24} color={iconColors.pro} />
               </View>
               <View className="flex-1 gap-1">
-                <Text className="text-base font-bold text-foreground">{t.settings_upgradePro}</Text>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-lg font-bold text-foreground">{t.settings_upgradePro}</Text>
+                <Text className="text-base text-muted-foreground">
                   {t.settings_proDescription}
                 </Text>
               </View>
               <View className="rounded-full bg-pro px-3 py-1.5">
-                <Text className="text-xs font-bold text-white">{t.settings_proPrice(country)}</Text>
+                <Text className="text-sm font-bold text-white">{t.settings_proPrice(country)}</Text>
               </View>
             </View>
           </Pressable>
@@ -250,11 +250,11 @@ export default function SettingsScreen() {
           <View className="gap-2">
             {!showPromoInput ? (
               <Pressable onPress={() => setShowPromoInput(true)} className="items-center py-2">
-                <Text className="text-sm font-medium text-muted-foreground">{t.settings_promoCode}</Text>
+                <Text className="text-base font-medium text-muted-foreground">{t.settings_promoCode}</Text>
               </Pressable>
             ) : (
               <View className="gap-2 rounded-2xl border border-border bg-card p-4">
-                <Text className="text-sm font-semibold text-foreground">{t.promo_title}</Text>
+                <Text className="text-base font-semibold text-foreground">{t.promo_title}</Text>
                 <View className="flex-row gap-2">
                   <Input
                     value={promoCode}
@@ -275,7 +275,7 @@ export default function SettingsScreen() {
                     {redeeming ? (
                       <ActivityIndicator color={iconColors.primaryForeground} size="small" />
                     ) : (
-                      <Text className="text-sm font-semibold text-primary-foreground">
+                      <Text className="text-base font-semibold text-primary-foreground">
                         {t.settings_promoCodeRedeem}
                       </Text>
                     )}
@@ -283,7 +283,7 @@ export default function SettingsScreen() {
                 </View>
                 {Platform.OS === 'ios' && (
                   <Pressable onPress={handleStoreRedeem} className="items-center py-2">
-                    <Text className="text-xs font-medium text-muted-foreground">
+                    <Text className="text-sm font-medium text-muted-foreground">
                       {t.settings_promoCodeStoreRedeem}
                     </Text>
                   </Pressable>
@@ -336,7 +336,7 @@ export default function SettingsScreen() {
                 onPress={() => setStatePickerVisible(true)}
                 className="flex-row items-center gap-1 rounded-lg bg-muted-foreground/10 px-2.5 py-1"
               >
-                <Text className="text-[13px] font-semibold text-primary">
+                <Text className="text-sm font-semibold text-primary">
                   {US_STATE_RATES[usState]?.name ?? usState}
                 </Text>
                 <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
@@ -372,7 +372,7 @@ export default function SettingsScreen() {
                   trackColor={{ false: '#263354', true: '#38bdf8' }}
                   thumbColor="#fff"
                 />
-                <Text className="mt-0.5 text-[10px] text-muted-foreground">
+                <Text className="mt-0.5 text-sm text-muted-foreground">
                   {impoconsumoIncluded ? t.settings_taxIncludedHint : t.settings_taxSeparateHint}
                 </Text>
               </View>
@@ -390,7 +390,7 @@ export default function SettingsScreen() {
                   trackColor={{ false: '#263354', true: '#38bdf8' }}
                   thumbColor="#fff"
                 />
-                <Text className="mt-0.5 text-[10px] text-muted-foreground">
+                <Text className="mt-0.5 text-sm text-muted-foreground">
                   {ivaIncluded ? t.settings_taxIncludedHint : t.settings_taxSeparateHint}
                 </Text>
               </View>
@@ -478,13 +478,13 @@ export default function SettingsScreen() {
 
         {/* Footer */}
         <View className="items-center gap-1 pt-4">
-          <Text className="text-xs text-muted-foreground">{t.settings_version}</Text>
+          <Text className="text-sm text-muted-foreground">{t.settings_version}</Text>
           {Updates.updateId && (
-            <Text className="text-[10px] text-muted-foreground/60">
+            <Text className="text-sm text-muted-foreground/60">
               OTA: {Updates.updateId.slice(0, 8)}{Updates.createdAt ? ` · ${formatOtaDate(Updates.createdAt)}` : ''}
             </Text>
           )}
-          <Text className="text-xs text-muted-foreground">{t.settings_madeIn}</Text>
+          <Text className="text-sm text-muted-foreground">{t.settings_madeIn}</Text>
         </View>
       </ScrollView>
     </View>

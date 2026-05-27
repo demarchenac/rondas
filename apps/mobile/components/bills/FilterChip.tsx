@@ -16,7 +16,7 @@ const filterChipVariants = cva('flex-row items-center gap-1.5 rounded-full px-3.
   defaultVariants: { active: false },
 });
 
-const filterChipTextVariants = cva('text-xs font-semibold', {
+const filterChipTextVariants = cva('text-sm font-semibold', {
   variants: {
     active: {
       true: 'text-primary-foreground',
@@ -58,13 +58,13 @@ function FilterChip({ label, isActive, onPress, count, onDismiss, icon }: Filter
       {count !== undefined && count > 0 && (
         <View
           className={cn(
-            'min-w-[16px] h-4 rounded-full items-center justify-center px-1',
+            'min-w-[20px] h-5 rounded-full items-center justify-center px-1.5',
             isActive ? 'bg-white/25' : 'bg-muted-foreground/20',
           )}
         >
           <Text
             className={cn(
-              'text-[9px] font-bold',
+              'text-sm font-bold leading-tight',
               isActive ? 'text-white' : 'text-muted-foreground',
             )}
           >

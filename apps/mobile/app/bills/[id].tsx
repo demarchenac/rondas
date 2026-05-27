@@ -40,7 +40,7 @@ import EqualSplitView from '@/components/bills/detail/EqualSplitView';
 import TipDialog from '@/components/bills/TipDialog';
 import CountryDialog from '@/components/bills/CountryDialog';
 import BulkToolbar from '@/components/bills/BulkToolbar';
-import ContactPickerSheet, { SUGGESTED_PREFIX, SELF_PREFIX } from '@/components/bills/ContactPickerSheet';
+import ContactPickerSheet, { SUGGESTED_PREFIX, SELF_PREFIX, ANON_PREFIX } from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import BillShareSheet from '@/components/bills/BillShareSheet';
 import ContactUnitSheet from '@/components/bills/detail/ContactUnitSheet';
@@ -250,7 +250,11 @@ export default function BillDetailScreen() {
         let imageUri: string | undefined;
         let isSelf: boolean | undefined;
 
-        if (selectedId.startsWith(SELF_PREFIX)) {
+        if (selectedId.startsWith(ANON_PREFIX)) {
+          const anonNum = parseInt(selectedId.slice(ANON_PREFIX.length), 10);
+          const existingAnonCount = bill.contacts.filter((c) => !c.phone && !c.isSelf).length;
+          name = t.bill_persona(existingAnonCount + anonNum);
+        } else if (selectedId.startsWith(SELF_PREFIX)) {
           if (!selfContact) continue;
           name = selfContact.name;
           imageUri = selfContact.imageUri;
@@ -770,8 +774,8 @@ export default function BillDetailScreen() {
         <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-muted/50">
           <IconSymbol name="exclamationmark.triangle" size={32} color={iconColors.destructive} />
         </View>
-        <Text className="text-lg font-semibold text-foreground">{t.error_billNotFound}</Text>
-        <Text className="mt-2 text-center text-sm text-muted-foreground">{t.error_billNotFoundHint}</Text>
+        <Text className="text-xl font-semibold text-foreground">{t.error_billNotFound}</Text>
+        <Text className="mt-2 text-center text-base text-muted-foreground">{t.error_billNotFoundHint}</Text>
         <Button
           variant="outline"
           className="mt-6"
@@ -1020,14 +1024,14 @@ export default function BillDetailScreen() {
             {useGlass ? (
               <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
                 <IconSymbol name="person.2.fill" size={18} color={iconColors.primary} />
-                <Text className="text-[15px] font-semibold text-foreground">
+                <Text className="text-lg font-semibold text-foreground">
                   {t.share_button(bill.contacts.length)}
                 </Text>
               </GlassView>
             ) : (
               <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4">
                 <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
-                <Text className="text-[15px] font-semibold text-primary-foreground">
+                <Text className="text-lg font-semibold text-primary-foreground">
                   {t.share_button(bill.contacts.length)}
                 </Text>
               </View>
@@ -1047,12 +1051,12 @@ export default function BillDetailScreen() {
           {useGlass ? (
             <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
               <IconSymbol name="plus" size={14} color={iconColors.primary} />
-              <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
+              <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
             </GlassView>
           ) : (
             <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3">
               <IconSymbol name="plus" size={14} color={iconColors.primary} />
-              <Text className="text-sm font-semibold text-primary">{t.scan_addItem}</Text>
+              <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
             </View>
           )}
         </Pressable>
@@ -1085,6 +1089,7 @@ export default function BillDetailScreen() {
         phoneContacts={phoneContacts}
         suggestedContacts={suggestedContacts ?? undefined}
         selfContact={selfContact}
+        billContacts={bill.contacts.filter((c) => !c.isSelf).map((c) => ({ _id: c.contactId, _creationTime: 0, userId: userId!, name: c.name, phone: c.phone, imageUri: c.imageUri, referenceCount: 0, lastReferencedAt: 0 }))}
         selectedContactIds={selectedContactIds}
         excludePhones={excludePhones}
         excludeSelf={excludeSelf}
@@ -1121,11 +1126,6 @@ export default function BillDetailScreen() {
         if (!targetItem || !targetContact) return null;
         const ref = targetContact.items.find((i) => i.itemId === unitSheetTarget.itemId);
         if (!ref) return null;
-        const othersUnits = bill.contacts.reduce((sum, c) => {
-          if (c.contactId === unitSheetTarget.contactId) return sum;
-          const cRef = c.items.find((i) => i.itemId === unitSheetTarget.itemId);
-          return sum + (cRef ? cRef.units : 0);
-        }, 0);
         return (
           <ContactUnitSheet
             visible
@@ -1137,7 +1137,7 @@ export default function BillDetailScreen() {
             itemQuantity={targetItem.quantity}
             unitPrice={targetItem.unitPrice}
             currentUnits={ref.units}
-            maxUnits={targetItem.quantity - othersUnits}
+            maxUnits={99}
             billCountry={billCountry}
             bottomInset={insets.bottom}
             onUpdateUnits={handleUpdateUnits}

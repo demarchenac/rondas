@@ -284,6 +284,8 @@ export const es: typeof en = {
   contactPicker_recent: 'Recientes',
   contactPicker_allContacts: 'Todos los contactos',
   contactPicker_you: 'Tú',
+  contactPicker_addAnonymous: 'Agregar persona',
+  contactPicker_onBill: 'En esta factura',
   self_label: (name: string) => `${name} (Yo)`,
 
   // Unassign picker

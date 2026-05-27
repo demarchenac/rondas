@@ -1,10 +1,6 @@
-import React, { useCallback, useEffect } from 'react';
-import { ActivityIndicator, Modal, View, Pressable, ScrollView } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  FadeIn, FadeOut,
-  useSharedValue, useAnimatedStyle, withTiming, runOnJS,
-} from 'react-native-reanimated';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { ActivityIndicator, View, Pressable, ScrollView } from 'react-native';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Image } from '@/lib/expo-image';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 import { Text } from '@/components/ui/text';
@@ -21,9 +17,6 @@ import BillInfographic from './BillInfographic';
 import InfographicPreview from './InfographicPreview';
 import type { Id } from '@convex/_generated/dataModel';
 import type { ResolvedBill, ResolvedContact } from '@/lib/filters';
-
-const DISMISS_THRESHOLD = 80;
-const VELOCITY_THRESHOLD = 500;
 
 interface BillShareSheetProps {
   visible: boolean;
@@ -69,71 +62,28 @@ function BillShareSheet({
   const t = useT();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
-  const translateY = useSharedValue(1000);
+  const sheetRef = useRef<TrueSheet>(null);
 
   useEffect(() => {
-    if (visible) {
-      translateY.value = withTiming(0, { duration: 300 });
-    }
-  }, [visible, translateY]);
+    if (visible) sheetRef.current?.present();
+    else sheetRef.current?.dismiss();
+  }, [visible]);
 
-  const dismiss = useCallback(() => { onClose(); }, [onClose]);
-
-  const panGesture = Gesture.Pan()
-    .enabled(previewUri === null)
-    .onUpdate((e) => {
-      translateY.value = Math.max(0, e.translationY);
-    })
-    .onEnd((e) => {
-      if (e.translationY > DISMISS_THRESHOLD || e.velocityY > VELOCITY_THRESHOLD) {
-        const remaining = 1000 - e.translationY;
-        const speed = Math.max(e.velocityY, 800);
-        const duration = Math.min(Math.max((remaining / speed) * 1000, 150), 400);
-        translateY.value = withTiming(1000, { duration }, () => runOnJS(dismiss)());
-      } else {
-        translateY.value = withTiming(0, { duration: 200 });
-      }
-    });
-
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
+  const handleDismiss = useCallback(() => { onClose(); }, [onClose]);
 
   return (
-    <Modal
-      visible={visible}
-      animationType="none"
-      presentationStyle="overFullScreen"
-      transparent
-      onRequestClose={onClose}
+    <TrueSheet
+      ref={sheetRef}
+      name="bill-share"
+      detents={[0.7, 1]}
+      grabber
+      grabberOptions={{ topMargin: 12 }}
+      cornerRadius={20}
+      backgroundColor={colorScheme === 'dark' ? '#0f172a' : '#fafbfc'}
+      onDidDismiss={handleDismiss}
     >
-      <View className="flex-1">
-        {/* Backdrop */}
-        <Animated.View
-          entering={FadeIn.duration(200)}
-          exiting={FadeOut.duration(150)}
-          className="absolute inset-0"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-        >
-          <Pressable className="flex-1" onPress={onClose} />
-        </Animated.View>
-
-        {/* Sheet */}
-        <GestureDetector gesture={panGesture}>
-          <Animated.View
-            className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-background"
-            style={[{ top: 48, paddingBottom: bottomInset }, sheetStyle]}
-          >
-            {/* Header */}
-            <View className="items-center pb-2 pt-3">
-              <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-            </View>
-            <View className="flex-row items-center justify-between px-7 pb-4 pt-2">
-              <Text className="text-xl font-bold text-foreground">{t.share_title}</Text>
-              <Pressable onPress={onClose} className="rounded-full bg-muted p-2">
-                <IconSymbol name="xmark" size={14} color={iconColors.muted} />
-              </Pressable>
-            </View>
+      <View style={{ flex: 1, paddingBottom: bottomInset > 0 ? bottomInset : 16 }}>
+        <Text className="px-7 pt-4 pb-4 text-2xl font-bold text-foreground">{t.share_title}</Text>
 
             <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
               {bill.contacts.map((contact, ci) => {
@@ -173,21 +123,21 @@ function BillShareSheet({
                         <Image source={{ uri: contact.imageUri }} className="w-10 h-10 rounded-full" />
                       ) : (
                         <View className="w-10 h-10 rounded-full items-center justify-center bg-primary/10">
-                          <Text className="text-base font-bold" style={{ color: iconColors.primary }}>
+                          <Text className="text-lg font-bold" style={{ color: iconColors.primary }}>
                             {contact.name[0]?.toUpperCase() ?? '?'}
                           </Text>
                         </View>
                       )}
                       <View>
-                        <Text className="text-base font-semibold text-foreground">{contact.isSelf ? t.self_label(contact.name) : contact.name}</Text>
-                        <Text className="text-xs text-muted-foreground">
+                        <Text className="text-lg font-semibold text-foreground">{contact.isSelf ? t.self_label(contact.name) : contact.name}</Text>
+                        <Text className="text-sm text-muted-foreground">
                           {isEqualSplit
                             ? t.share_equalPerPerson(formatCurrency(contactTotal, billCountry), bill.contacts.length)
                             : t.share_itemCount(contact.items.length)}
                         </Text>
                       </View>
                     </View>
-                    <Text className="text-lg font-bold tabular-nums text-foreground">
+                    <Text className="text-xl font-bold tabular-nums text-foreground">
                       {formatCurrency(contactTotal, billCountry)}
                     </Text>
                   </View>
@@ -206,10 +156,10 @@ function BillShareSheet({
                           : Math.round(item.subtotal);
                         return (
                           <View key={ref.itemId} className="w-1/2 pr-2 mb-1">
-                            <Text className="text-xs text-foreground" numberOfLines={1}>
+                            <Text className="text-sm text-foreground" numberOfLines={1}>
                               {ref.units > 1 ? `${item.name} ×${ref.units}` : item.name}
                             </Text>
-                            <Text className="text-[11px] text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
+                            <Text className="text-sm text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
                           </View>
                         );
                       })}
@@ -218,20 +168,20 @@ function BillShareSheet({
 
                   {isEqualSplit && (
                     <View className="ml-[52px] mt-2">
-                      <Text className="text-xs text-muted-foreground">{t.share_equalSplit}</Text>
+                      <Text className="text-sm text-muted-foreground">{t.share_equalSplit}</Text>
                     </View>
                   )}
 
                   {!isEqualSplit && (
                     <View className="ml-[52px] mt-2 gap-1">
                       <View className="flex-row justify-between">
-                        <Text className="text-[11px] text-muted-foreground">{translatedTaxLabel}</Text>
-                        <Text className="text-[11px] text-muted-foreground">{formatCurrency(contactTax, billCountry)}</Text>
+                        <Text className="text-sm text-muted-foreground">{translatedTaxLabel}</Text>
+                        <Text className="text-sm text-muted-foreground">{formatCurrency(contactTax, billCountry)}</Text>
                       </View>
                       {tipPercent > 0 && (
                         <View className="flex-row justify-between">
-                          <Text className="text-[11px] text-muted-foreground">{t.bill_tip(tipPercent)}</Text>
-                          <Text className="text-[11px] text-muted-foreground">{formatCurrency(contactTip, billCountry)}</Text>
+                          <Text className="text-sm text-muted-foreground">{t.bill_tip(tipPercent)}</Text>
+                          <Text className="text-sm text-muted-foreground">{formatCurrency(contactTip, billCountry)}</Text>
                         </View>
                       )}
                     </View>
@@ -252,7 +202,7 @@ function BillShareSheet({
                         size={16}
                         color={contact.paid ? iconColors.success : iconColors.mutedLight}
                       />
-                      <Text className={cn('text-[13px] font-semibold', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
+                      <Text className={cn('text-sm font-semibold', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
                         {contact.paid ? t.share_paid : t.share_unpaid}
                       </Text>
                     </Pressable>
@@ -263,7 +213,7 @@ function BillShareSheet({
                         className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border bg-green-500/15 border-green-500/30"
                       >
                         <WhatsAppIcon size={16} color="#25d366" />
-                        <Text className="text-[13px] font-semibold text-green-500">{t.share_whatsapp}</Text>
+                        <Text className="text-sm font-semibold text-green-500">{t.share_whatsapp}</Text>
                       </Pressable>
                     )}
 
@@ -280,7 +230,7 @@ function BillShareSheet({
                       ) : (
                         <>
                           <Share2 size={14} color={iconColors.primary} />
-                          <Text className="text-[13px] font-semibold text-primary">{t.share_share}</Text>
+                          <Text className="text-sm font-semibold text-primary">{t.share_share}</Text>
                         </>
                       )}
                     </Pressable>
@@ -331,17 +281,15 @@ function BillShareSheet({
             </ScrollView>
 
             {/* Infographic preview overlay */}
-            <InfographicPreview
-              uri={previewUri}
-              imageAspect={previewAspect}
-              visible={previewUri !== null}
-              onShare={onConfirmShare}
-              onClose={onClosePreview}
-            />
-          </Animated.View>
-        </GestureDetector>
+        <InfographicPreview
+          uri={previewUri}
+          imageAspect={previewAspect}
+          visible={previewUri !== null}
+          onShare={onConfirmShare}
+          onClose={onClosePreview}
+        />
       </View>
-    </Modal>
+    </TrueSheet>
   );
 }
 

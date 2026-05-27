@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, Switch, TouchableWithoutFeedback, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, Switch, View } from 'react-native';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/cn';
 import CurrencyInput from '@/components/form/CurrencyInput';
 import { useT } from '@/lib/i18n';
+import { useColorScheme } from 'nativewind';
 
 interface TipDialogProps {
   visible: boolean;
@@ -35,104 +38,91 @@ function TipDialog({
   onClose,
 }: TipDialogProps) {
   const t = useT();
+  const { colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
+  const sheetRef = useRef<TrueSheet>(null);
   const [localCustomTip, setLocalCustomTip] = useState(customTip);
 
-  // Sync local state when dialog opens or customTip changes
   useEffect(() => {
-    if (visible) setLocalCustomTip(customTip);
+    if (visible) {
+      setLocalCustomTip(customTip);
+      sheetRef.current?.present();
+    } else {
+      sheetRef.current?.dismiss();
+    }
   }, [visible, customTip]);
 
+  const handleDismiss = useCallback(() => { onClose(); }, [onClose]);
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+    <TrueSheet
+      ref={sheetRef}
+      name="tip-dialog"
+      detents={['auto']}
+      grabber
+      grabberOptions={{ topMargin: 12 }}
+      cornerRadius={20}
+      backgroundColor={colorScheme === 'dark' ? '#0f172a' : '#fafbfc'}
+      onDidDismiss={handleDismiss}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View className="flex-1 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <TouchableWithoutFeedback>
-            <View className="mx-8 w-80 rounded-2xl border border-border bg-card p-6">
-              <Text className="mb-4 text-center text-lg font-bold text-foreground">{t.tipDialog_title}</Text>
+      <View style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }}>
+        <Text className="px-6 pt-4 pb-4 text-2xl font-bold text-foreground">{t.tipDialog_title}</Text>
 
-              {/* Percentage chips */}
-              <View className="flex-row flex-wrap gap-2">
-                {[0, 5, 10, 15, 18, 20].map((pct) => (
-                  <Pressable
-                    key={pct}
-                    onPress={() => {
-                      const newTip = Math.round(subtotal * (pct / 100));
-                      onSelectTip(pct, newTip);
-                    }}
-                    className={cn(
-                      'min-w-[70px] flex-1 items-center rounded-xl border-[1.5px] py-3',
-                      !useCustomTip && tipPercent === pct
-                        ? 'border-primary/35 bg-primary/15'
-                        : 'border-muted-foreground/12 bg-muted-foreground/[0.06]',
-                    )}
-                  >
-                    <Text
-                      className={cn(
-                        'text-[15px] font-bold',
-                        !useCustomTip && tipPercent === pct ? 'text-primary' : 'text-muted-foreground',
-                      )}
-                    >
-                      {pct}%
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              {/* Divider */}
-              <View className="my-4 h-px bg-border/30" />
-
-              {/* Custom tip toggle */}
-              <View className="flex-row items-center justify-between">
-                <Text className="text-sm font-medium text-foreground">{t.bill_customTip}</Text>
-                <Switch
-                  value={useCustomTip}
-                  onValueChange={(v) => onToggleCustomTip(v)}
-                  trackColor={{ true: iconColors.primary }}
-                  style={{ transform: [{ scale: 0.8 }] }}
-                />
-              </View>
-
-              {/* Custom tip input */}
-              {useCustomTip && (
-                <View className="mt-3">
-                  <CurrencyInput
-                    value={localCustomTip}
-                    onChangeValue={(n) => setLocalCustomTip(n ?? 0)}
-                    country={billCountry}
-                    decimalPlaces={decimalPlaces}
-                    className="h-11 rounded-xl border border-border bg-muted px-3 text-center text-base font-semibold tabular-nums shadow-none"
-                  />
-                  <Pressable
-                    onPress={() => {
-                      onSelectCustomTip(localCustomTip);
-                      onClose();
-                    }}
-                    className="mt-3 items-center rounded-xl bg-primary py-3"
-                  >
-                    <Text className="text-sm font-semibold text-primary-foreground">{t.confirm}</Text>
-                  </Pressable>
-                </View>
+        {/* Percentage chips */}
+        <View className="flex-row flex-wrap gap-2 px-6">
+          {[0, 5, 10, 15, 18, 20].map((pct) => (
+            <Pressable
+              key={pct}
+              onPress={() => {
+                const newTip = Math.round(subtotal * (pct / 100));
+                onSelectTip(pct, newTip);
+              }}
+              className={cn(
+                'min-w-[70px] flex-1 items-center rounded-xl border-[1.5px] py-3',
+                !useCustomTip && tipPercent === pct
+                  ? 'border-primary/35 bg-primary/15'
+                  : 'border-muted-foreground/12 bg-muted-foreground/[0.06]',
               )}
-
-              {/* Cancel */}
-              {!useCustomTip && (
-                <Pressable
-                  onPress={onClose}
-                  className="mt-4 items-center rounded-xl bg-muted py-3"
-                >
-                  <Text className="text-sm font-semibold text-muted-foreground">{t.cancel}</Text>
-                </Pressable>
-              )}
-            </View>
-          </TouchableWithoutFeedback>
+            >
+              <Text className={cn('text-lg font-bold', !useCustomTip && tipPercent === pct ? 'text-primary' : 'text-muted-foreground')}>
+                {pct}%
+              </Text>
+            </Pressable>
+          ))}
         </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+
+        <View className="mx-6 my-4 h-px bg-border/30" />
+
+        {/* Custom tip toggle */}
+        <View className="flex-row items-center justify-between px-6">
+          <Text className="text-base font-medium text-foreground">{t.bill_customTip}</Text>
+          <Switch
+            value={useCustomTip}
+            onValueChange={(v) => onToggleCustomTip(v)}
+            trackColor={{ true: iconColors.primary }}
+            style={{ transform: [{ scale: 0.8 }] }}
+          />
+        </View>
+
+        {useCustomTip && (
+          <View className="px-6 mt-3">
+            <CurrencyInput
+              value={localCustomTip}
+              onChangeValue={(n) => setLocalCustomTip(n ?? 0)}
+              country={billCountry}
+              decimalPlaces={decimalPlaces}
+              className="h-11 rounded-xl border border-border bg-muted px-3 text-center text-lg font-semibold tabular-nums shadow-none"
+            />
+            <Pressable
+              onPress={() => { onSelectCustomTip(localCustomTip); onClose(); }}
+              className="mt-3 items-center rounded-xl bg-primary py-3"
+            >
+              <Text className="text-base font-semibold text-primary-foreground">{t.confirm}</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+    </TrueSheet>
   );
 }
 

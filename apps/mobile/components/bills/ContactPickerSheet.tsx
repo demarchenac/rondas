@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, View, Pressable, TextInput } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, View, Pressable, TextInput } from 'react-native';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
@@ -15,6 +16,7 @@ import type { Doc } from '@convex/_generated/dataModel';
 
 export const SUGGESTED_PREFIX = 'suggested:';
 export const SELF_PREFIX = 'self:';
+export const ANON_PREFIX = 'anon:';
 
 type PhoneContact = Contacts.Contact & { id: string };
 
@@ -23,6 +25,7 @@ interface ContactPickerSheetProps {
   phoneContacts: PhoneContact[];
   suggestedContacts?: { frequent: Doc<'contacts'>[]; recent: Doc<'contacts'>[] };
   selfContact?: Doc<'contacts'> | null;
+  billContacts?: Doc<'contacts'>[];
   selectedContactIds: Set<string>;
   excludePhones?: Set<string>;
   excludeSelf?: boolean;
@@ -38,6 +41,7 @@ function ContactPickerSheet({
   phoneContacts,
   suggestedContacts,
   selfContact,
+  billContacts,
   selectedContactIds,
   excludePhones,
   excludeSelf,
@@ -51,13 +55,30 @@ function ContactPickerSheet({
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
+  const sheetRef = useRef<TrueSheet>(null);
+
+  useEffect(() => {
+    if (visible) sheetRef.current?.present();
+    else sheetRef.current?.dismiss();
+  }, [visible]);
+
+  const handleDismiss = useCallback(() => { onClose(); }, [onClose]);
 
   const [search, setSearch] = useState('');
+  const [anonCounter, setAnonCounter] = useState(0);
   const [prevVisible, setPrevVisible] = useState(false);
   if (visible !== prevVisible) {
     setPrevVisible(visible);
-    if (visible) setSearch('');
+    if (visible) { setSearch(''); setAnonCounter(0); }
   }
+
+  const handleAddAnonymous = useCallback(() => {
+    const next = anonCounter + 1;
+    setAnonCounter(next);
+    const key = `${ANON_PREFIX}${next}`;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onToggleContact(key);
+  }, [anonCounter, onToggleContact]);
 
   const baseContacts = useMemo(() => {
     if (!excludePhones || excludePhones.size === 0) return phoneContacts;
@@ -112,15 +133,15 @@ function ContactPickerSheet({
           <Image source={{ uri: c.imageUri }} className="w-9 h-9 rounded-full" />
         ) : (
           <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
-            <Text className="text-sm font-bold text-primary">
+            <Text className="text-base font-bold text-primary">
               {(c.name[0] ?? '?').toUpperCase()}
             </Text>
           </View>
         )}
         <View className="flex-1">
-          <Text className="text-sm font-medium text-foreground">{c.name}</Text>
+          <Text className="text-base font-medium text-foreground">{c.name}</Text>
           {c.phone && (
-            <Text className="text-xs text-muted-foreground">{c.phone}</Text>
+            <Text className="text-sm text-muted-foreground">{c.phone}</Text>
           )}
         </View>
       </Pressable>
@@ -144,17 +165,17 @@ function ContactPickerSheet({
           <Image source={{ uri: c.image.uri }} className="w-9 h-9 rounded-full" />
         ) : (
           <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
-            <Text className="text-sm font-bold text-primary">
+            <Text className="text-base font-bold text-primary">
               {(c.firstName?.[0] ?? '?').toUpperCase()}
             </Text>
           </View>
         )}
         <View className="flex-1">
-          <Text className="text-sm font-medium text-foreground">
+          <Text className="text-base font-medium text-foreground">
             {`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || 'Unknown'}
           </Text>
           {c.phoneNumbers?.[0]?.number && (
-            <Text className="text-xs text-muted-foreground">{c.phoneNumbers[0].number}</Text>
+            <Text className="text-sm text-muted-foreground">{c.phoneNumbers[0].number}</Text>
           )}
         </View>
       </Pressable>
@@ -183,53 +204,73 @@ function ContactPickerSheet({
           <Image source={{ uri: selfContact.imageUri }} className="w-9 h-9 rounded-full" />
         ) : (
           <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
-            <Text className="text-sm font-bold text-primary">
+            <Text className="text-base font-bold text-primary">
               {(selfContact.name[0] ?? '?').toUpperCase()}
             </Text>
           </View>
         )}
         <View className="flex-1">
-          <Text className="text-sm font-medium text-foreground">{t.self_label(selfContact.name)}</Text>
+          <Text className="text-base font-medium text-foreground">{t.self_label(selfContact.name)}</Text>
         </View>
       </Pressable>
     );
   }, [selfContact, selectedContactIds, onToggleContact, iconColors, atCapacity, t]);
 
   const listHeader = useMemo(() => {
-    const hasContent = showSelf || hasSuggested;
-    if (!hasContent) return null;
+    const shownIds = new Set<string>();
+
+    const billSection = billContacts?.filter((c) => {
+      if (excludePhones && c.phone && excludePhones.has(c.phone)) return false;
+      return true;
+    }) ?? [];
+    billSection.forEach((c) => shownIds.add(String(c._id)));
+
+    const frequentSection = (filteredSuggested?.frequent ?? []).filter((c) => !shownIds.has(String(c._id)));
+    frequentSection.forEach((c) => shownIds.add(String(c._id)));
+
+    const recentSection = (filteredSuggested?.recent ?? []).filter((c) => !shownIds.has(String(c._id)));
+    recentSection.forEach((c) => shownIds.add(String(c._id)));
+
     return (
       <View className="px-7">
         {showSelf && (
           <View className="mb-2">
-            <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Text className="mb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               {t.contactPicker_you}
             </Text>
             {renderSelfContact()}
           </View>
         )}
-        {hasSuggested && filteredSuggested!.frequent.length > 0 && (
+        {billSection.length > 0 && (
           <View className="mb-2">
-            <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Text className="mb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              {t.contactPicker_onBill}
+            </Text>
+            {billSection.map(renderSuggestedContact)}
+          </View>
+        )}
+        {!search && frequentSection.length > 0 && (
+          <View className="mb-2">
+            <Text className="mb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               {t.contactPicker_frequent}
             </Text>
-            {filteredSuggested!.frequent.map(renderSuggestedContact)}
+            {frequentSection.map(renderSuggestedContact)}
           </View>
         )}
-        {hasSuggested && filteredSuggested!.recent.length > 0 && (
+        {!search && recentSection.length > 0 && (
           <View className="mb-2">
-            <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Text className="mb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               {t.contactPicker_recent}
             </Text>
-            {filteredSuggested!.recent.map(renderSuggestedContact)}
+            {recentSection.map(renderSuggestedContact)}
           </View>
         )}
-        <Text className="mb-1 mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Text className="mb-1 mt-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           {t.contactPicker_allContacts}
         </Text>
       </View>
     );
-  }, [showSelf, hasSuggested, filteredSuggested, renderSelfContact, renderSuggestedContact, t]);
+  }, [showSelf, search, billContacts, filteredSuggested, excludePhones, renderSelfContact, renderSuggestedContact, t]);
 
   const listEmpty = useMemo(() => {
     if (phoneContacts.length === 0) {
@@ -243,22 +284,18 @@ function ContactPickerSheet({
   }, [phoneContacts.length, iconColors.primary]);
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
+    <TrueSheet
+      ref={sheetRef}
+      name="contact-picker"
+      detents={[0.7, 1]}
+      grabber
+      grabberOptions={{ topMargin: 12 }}
+      cornerRadius={20}
+      backgroundColor={colorScheme === 'dark' ? '#0f172a' : '#fafbfc'}
+      onDidDismiss={handleDismiss}
     >
-      <View className="flex-1 bg-background pt-3" style={{ paddingBottom: bottomInset, ...(Platform.OS === 'android' && { paddingTop: insets.top }) }}>
-        <View className="items-center pb-2">
-          <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-        </View>
-        <View className="flex-row items-center justify-between px-7 pb-3 pt-2">
-          <Text className="text-xl font-bold text-foreground">{t.contactPicker_title}</Text>
-          <Pressable onPress={onClose} className="rounded-full bg-muted p-2">
-            <IconSymbol name="xmark" size={14} color={iconColors.muted} />
-          </Pressable>
-        </View>
+      <View style={{ flex: 1, paddingBottom: bottomInset > 0 ? bottomInset : 16 }}>
+        <Text className="px-7 pt-4 pb-3 text-2xl font-bold text-foreground">{t.contactPicker_title}</Text>
 
         {/* Search — local state, no parent re-render */}
         <View className="px-7 pb-3">
@@ -267,9 +304,21 @@ function ContactPickerSheet({
             onChangeText={setSearch}
             placeholder={t.contactPicker_search}
             placeholderTextColor={iconColors.muted}
-            className="rounded-xl bg-muted-foreground/[0.08] px-4 py-2.5 text-[15px] text-foreground"
+            className="rounded-xl bg-muted-foreground/[0.08] px-4 py-2.5 text-lg text-foreground"
           />
         </View>
+
+        {/* Add anonymous person */}
+        <Pressable
+          onPress={handleAddAnonymous}
+          disabled={atCapacity}
+          className={`flex-row items-center gap-3 px-7 py-2.5 ${atCapacity ? 'opacity-40' : ''}`}
+        >
+          <View className="h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+            <IconSymbol name="person.badge.plus" size={18} color={iconColors.primary} />
+          </View>
+          <Text className="text-base font-medium text-primary">{t.contactPicker_addAnonymous}</Text>
+        </Pressable>
 
         {/* Virtualized contact list */}
         <FlashList
@@ -288,14 +337,14 @@ function ContactPickerSheet({
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }}
               className="items-center rounded-xl bg-primary py-4 active:opacity-80"
             >
-              <Text className="text-base font-semibold text-primary-foreground">
+              <Text className="text-lg font-semibold text-primary-foreground">
                 {t.contactPicker_assign(selectedContactIds.size)}
               </Text>
             </Pressable>
           </View>
         )}
       </View>
-    </Modal>
+    </TrueSheet>
   );
 }
 

@@ -149,12 +149,12 @@ function BillHeader({
   const percentChip = hasContacts && !multiSelectMode ? (
     useGlass ? (
       <GlassView style={{ borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 }}>
-          <Text className={`text-xs font-semibold ${stateTextClass}`}>
+          <Text className={`text-sm font-semibold ${stateTextClass}`}>
             {Math.round(completionPercent)}%
           </Text>
         </GlassView>
     ) : (
-      <Text className={`text-xs font-semibold ${stateTextClass}`}>
+      <Text className={`text-sm font-semibold ${stateTextClass}`}>
         {Math.round(completionPercent)}%
       </Text>
     )
@@ -164,7 +164,7 @@ function BillHeader({
     useGlass ? (
       <GlassView style={{ borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateStyle.color }} />
-          <Text style={{ fontSize: 11, fontWeight: '600', color: stateStyle.color }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: stateStyle.color }}>
             {stateLabel}
           </Text>
         </GlassView>
@@ -178,7 +178,7 @@ function BillHeader({
       onPress={onDoneEdit}
       className="rounded-full bg-primary px-3.5 py-1.5 active:opacity-80"
     >
-      <Text className="text-xs font-semibold text-primary-foreground">{t.done}</Text>
+      <Text className="text-sm font-semibold text-primary-foreground">{t.done}</Text>
     </Pressable>
   ) : useGlass ? (
     <Pressable onPress={handleOverflowPress} className="active:opacity-80">
@@ -208,7 +208,7 @@ function BillHeader({
           onChangeText={nameInput.onChangeText}
           onFocus={nameInput.onFocus}
           onBlur={nameInput.onBlur}
-          className="flex-1 text-lg font-bold text-foreground ml-2"
+          className="flex-1 text-xl font-bold text-foreground ml-2"
           style={{ padding: 0, margin: 0, lineHeight: 18, height: 22 }}
         />
         <View className="flex-row items-center gap-2 ml-2">

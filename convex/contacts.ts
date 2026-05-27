@@ -19,7 +19,17 @@ export async function getOrCreate(
     return getOrCreateSelf(ctx, userId, { name: contact.name, imageUri: contact.imageUri });
   }
 
-  if (!contact.phone) throw new Error('Phone is required for non-self contacts');
+  if (!contact.phone) {
+    return await ctx.db.insert('contacts', {
+      userId,
+      name: contact.name,
+      phone: undefined,
+      email: undefined,
+      imageUri: contact.imageUri,
+      referenceCount: 0,
+      lastReferencedAt: Date.now(),
+    });
+  }
 
   const existing = await ctx.db
     .query('contacts')

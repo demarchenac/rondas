@@ -160,7 +160,7 @@ function GlassBadge({ stateStyle, label }: { stateStyle: (typeof STATE_STYLES)[B
       )}
       <Text
         style={{
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: stateStyle.pulse ? '600' : '500',
           color: stateStyle.color,
           letterSpacing: 0.2,
@@ -224,7 +224,7 @@ function CardContent({
           {categoryIcon && (
             <IconSymbol name={categoryIcon} size={14} color={iconColors.muted} />
           )}
-          <Text className={cn('flex-1 font-bold text-sm', isDraft ? 'text-muted-foreground' : 'text-foreground')} numberOfLines={1}>
+          <Text className={cn('flex-1 font-bold text-base', isDraft ? 'text-muted-foreground' : 'text-foreground')} numberOfLines={1}>
             {bill.name}
           </Text>
           {isUnresolved && (
@@ -240,7 +240,7 @@ function CardContent({
 
       {/* Amount */}
       <Text
-        className={cn('mt-1 text-2xl font-extrabold tracking-tight', isDraft ? 'text-muted-foreground' : 'text-foreground')}
+        className={cn('mt-1 text-3xl font-extrabold tracking-tight', isDraft ? 'text-muted-foreground' : 'text-foreground')}
         style={{ fontVariant: ['tabular-nums'] }}
       >
         {formatCurrency(displayTotal, billCountry, bill.decimalPlaces)}
@@ -248,14 +248,14 @@ function CardContent({
 
       {/* Meta row: time + items + contacts */}
       <View className="mt-0.5 flex-row items-center justify-between">
-        <Text className="text-xs text-muted-foreground">
+        <Text className="text-sm text-muted-foreground">
           {relativeTime(bill._creationTime, t)} · {t.billCard_items(itemCount)}
         </Text>
 
         {contactCount > 0 && (
           <View className="flex-row items-center gap-2">
             {isUnresolved && (
-              <Text className="text-[10px] font-semibold text-amber-500">
+              <Text className="text-sm font-semibold text-amber-500">
                 {paidCount}/{contactCount}
               </Text>
             )}
@@ -273,7 +273,7 @@ function CardContent({
               ))}
               {contactCount > 3 && (
                 <View className={cn('-ml-2 h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-card', useGlass ? 'bg-muted-foreground/40' : 'bg-muted-foreground/15')}>
-                  <Text className="text-[9px] font-bold text-muted-foreground">
+                  <Text className="text-sm font-bold text-muted-foreground">
                     +{contactCount - 3}
                   </Text>
                 </View>

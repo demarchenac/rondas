@@ -1,6 +1,6 @@
-import React from 'react';
-import { Modal, Platform, View, Pressable, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { View, Pressable } from 'react-native';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -35,67 +35,78 @@ function UnassignPickerSheet({
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { alert } = useCustomAlert();
-  const insets = useSafeAreaInsets();
+  const sheetRef = useRef<TrueSheet>(null);
+
+  useEffect(() => {
+    if (visible) {
+      sheetRef.current?.present();
+    } else {
+      sheetRef.current?.dismiss();
+    }
+  }, [visible]);
+
+  const handleDismiss = useCallback(() => {
+    onClose();
+  }, [onClose]);
 
   const contactsOnSelected = contacts.filter((c) =>
     c.items.some((ref) => selectedItemIds.has(ref.itemId))
   );
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View className="flex-1 bg-background pt-3" style={{ paddingBottom: bottomInset, ...(Platform.OS === 'android' && { paddingTop: insets.top }) }}>
-        <View className="items-center pb-2">
-          <View className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-        </View>
-        <View className="flex-row items-center justify-between px-7 pb-3 pt-2">
-          <Text className="text-xl font-bold text-foreground">{t.unassignPicker_title}</Text>
-          <Pressable onPress={onClose} className="rounded-full bg-muted p-2">
-            <IconSymbol name="xmark" size={14} color={iconColors.muted} />
-          </Pressable>
-        </View>
+  const hasSelection = selectedContactIds.size > 0;
 
-        <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
-          {contactsOnSelected.map((c) => {
-            const isSelected = selectedContactIds.has(String(c.contactId));
-            const itemCount = c.items.filter((ref) => selectedItemIds.has(ref.itemId)).length;
-            return (
-              <Pressable
-                key={String(c.contactId)}
-                onPress={() => onToggleContact(String(c.contactId))}
-                className="flex-row items-center py-3 gap-3"
-              >
-                <IconSymbol
-                  name={isSelected ? 'checkmark.circle.fill' : 'circle'}
-                  size={22}
-                  color={isSelected ? iconColors.destructive : iconColors.muted}
-                />
-                {c.imageUri ? (
-                  <Image source={{ uri: c.imageUri }} className="w-9 h-9 rounded-full" />
-                ) : (
-                  <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
-                    <Text className="text-sm font-bold text-primary">
-                      {(c.name[0] ?? '?').toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <View className="flex-1">
-                  <Text className="text-sm font-medium text-foreground">{c.name}</Text>
-                  <Text className="text-xs text-muted-foreground">
-                    {t.unassignPicker_itemsOnSelection(itemCount)}
+  return (
+    <TrueSheet
+      ref={sheetRef}
+      name="unassign-picker"
+      detents={['auto']}
+      grabber
+      grabberOptions={{ topMargin: 12 }}
+      cornerRadius={20}
+      backgroundColor={colorScheme === 'dark' ? '#0f172a' : '#fafbfc'}
+      onDidDismiss={handleDismiss}
+    >
+      <View style={{ paddingBottom: bottomInset > 0 ? bottomInset : 16 }}>
+        <Text className="px-6 pt-4 pb-4 text-2xl font-bold text-foreground">
+          {t.unassignPicker_title}
+        </Text>
+
+        {contactsOnSelected.map((c, i) => {
+          const isSelected = selectedContactIds.has(String(c.contactId));
+          const itemCount = c.items.filter((ref) => selectedItemIds.has(ref.itemId)).length;
+          const isLast = i === contactsOnSelected.length - 1;
+          return (
+            <Pressable
+              key={String(c.contactId)}
+              onPress={() => onToggleContact(String(c.contactId))}
+              className="flex-row items-center gap-3 px-6 py-3"
+            >
+              <IconSymbol
+                name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+                size={24}
+                color={isSelected ? iconColors.destructive : iconColors.muted}
+              />
+              {c.imageUri ? (
+                <Image source={{ uri: c.imageUri }} className="w-10 h-10 rounded-full" />
+              ) : (
+                <View className="w-10 h-10 rounded-full items-center justify-center bg-primary/10">
+                  <Text className="text-lg font-bold text-primary">
+                    {(c.name[0] ?? '?').toUpperCase()}
                   </Text>
                 </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+              )}
+              <View className={`flex-1 ${!isLast ? 'border-b border-border/20 pb-3' : ''}`}>
+                <Text className="text-lg font-medium text-foreground">{c.name}</Text>
+                <Text className="text-base text-muted-foreground">
+                  {t.unassignPicker_itemsOnSelection(itemCount)}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
 
-        {selectedContactIds.size > 0 && (
-          <View className="border-t border-border/30 px-7 pb-2 pt-3">
+        {hasSelection && (
+          <View className="px-6 pt-3">
             <Pressable
               onPress={() => {
                 alert(
@@ -107,16 +118,16 @@ function UnassignPickerSheet({
                   ]
                 );
               }}
-              className="items-center py-4 rounded-xl border bg-destructive/15 border-destructive/30"
+              className="items-center py-4 rounded-2xl bg-destructive/10 active:opacity-80"
             >
-              <Text className="text-base font-semibold text-destructive">
+              <Text className="text-lg font-semibold text-destructive">
                 {t.unassignPicker_remove(selectedContactIds.size)}
               </Text>
             </Pressable>
           </View>
         )}
       </View>
-    </Modal>
+    </TrueSheet>
   );
 }
 

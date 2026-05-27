@@ -282,6 +282,8 @@ export const en = {
   contactPicker_recent: 'Recent',
   contactPicker_allContacts: 'All Contacts',
   contactPicker_you: 'You',
+  contactPicker_addAnonymous: 'Add person',
+  contactPicker_onBill: 'On this bill',
   self_label: (name: string) => `${name} (Me)`,
 
   // Unassign picker
