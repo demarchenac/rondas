@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image as RNImage, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
-import { type ViewShotRef } from 'react-native-view-shot';
-import * as Sharing from 'expo-sharing';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
@@ -24,10 +22,8 @@ import { api } from '@convex/_generated/api';
 import { useAuth } from '@/lib/AuthContext';
 
 import { useT } from '@/lib/i18n';
-import { toE164 } from '@/lib/phone';
 import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type ReceiptCategory } from '@/constants/taxes';
 import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel } from '@/lib/billHelpers';
-import { buildWhatsAppMessage } from '@/lib/whatsapp';
 
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import BillHeader from '@/components/bills/detail/BillHeader';
@@ -42,7 +38,6 @@ import CountryDialog from '@/components/bills/CountryDialog';
 import BulkToolbar from '@/components/bills/BulkToolbar';
 import ContactPickerSheet, { SUGGESTED_PREFIX, SELF_PREFIX, ANON_PREFIX } from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
-import BillShareSheet from '@/components/bills/BillShareSheet';
 import ContactUnitSheet from '@/components/bills/detail/ContactUnitSheet';
 
 const CONTACTS_CACHE_TTL = 5 * 60_000; // 5 minutes
@@ -85,16 +80,12 @@ export default function BillDetailScreen() {
   const [singleAssignItemId, setSingleAssignItemId] = useState<string | null>(null);
   const [numPeople, setNumPeople] = useState(() => bill?.numPeople ?? 2);
   const [equalSplitMode, setEqualSplitMode] = useState(() => bill?.splitStrategy === 'equal');
-  const [capturingIndex, setCapturingIndex] = useState<number | null>(null);
-  const [previewUri, setPreviewUri] = useState<string | null>(null);
-  const [previewAspect, setPreviewAspect] = useState(1);
-  const [previewContactName, setPreviewContactName] = useState('');
   const [unitSheetTarget, setUnitSheetTarget] = useState<{ itemId: string; contactId: Id<'contacts'> } | null>(null);
 
   const swipeOpenRef = useRef(false);
   const billRef = useRef(bill);
   useEffect(() => { billRef.current = bill; }, [bill]);
-  const infographicRefs = useRef<Record<number, ViewShotRef | null>>({});
+
   const contactsCacheRef = useRef<{ data: (Contacts.Contact & { id: string })[]; fetchedAt: number } | null>(null);
   const contactsPermissionRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -659,63 +650,6 @@ export default function BillDetailScreen() {
     }
   }, [selectedContactIds, bill, userId, suggestedContacts, selfContact, phoneContacts, id, numPeople, assignEqualSplit, t, alert]);
 
-  const handleSendWhatsApp = useCallback(async (contact: { name: string; phone?: string; items: { itemId: string; units: number }[]; amount: number }) => {
-    if (!bill || !contact.phone) {
-      alert(t.bill_noPhone, t.bill_noPhoneMessage);
-      return;
-    }
-    const billCountry = (bill.country as 'CO' | 'US') || 'CO';
-    const billCategory = (bill.tags?.find((t) => t.isPlatform)?.slug || 'dining') as ReceiptCategory;
-    const rawTaxConfig = getTaxConfig(billCountry, billCategory);
-    const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill.taxIncludedOverride ?? undefined);
-    const message = buildWhatsAppMessage({ bill, contact, taxConfig, t });
-    const url = `https://wa.me/${toE164(contact.phone)}?text=${encodeURIComponent(message)}`;
-    const canOpen = await Linking.canOpenURL(url);
-    if (!canOpen) {
-      alert(t.error, t.error_whatsappNotAvailable);
-      return;
-    }
-    Linking.openURL(url);
-  }, [bill, t, alert]);
-
-  const handleShareInfographic = useCallback(async (contact: { name: string; imageUri?: string; items: { itemId: string; units: number }[]; amount: number }, contactIndex: number) => {
-    if (!bill) return;
-    const ref = infographicRefs.current[contactIndex];
-    if (!ref?.capture) return;
-    setCapturingIndex(contactIndex);
-    try {
-      const uri = await ref.capture();
-      const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-        RNImage.getSize(uri, (w, h) => resolve({ width: w, height: h }), reject);
-      });
-      setPreviewAspect(width > 0 && height > 0 ? width / height : 0.55);
-      setPreviewUri(uri);
-      setPreviewContactName(contact.name);
-    } catch (err) {
-      console.error('[Share] Error:', err);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      alert(t.error, t.error_shareFailed);
-    } finally {
-      setCapturingIndex(null);
-    }
-  }, [bill, t, alert]);
-
-  const handleConfirmShare = useCallback(async () => {
-    if (!previewUri) return;
-    try {
-      await Sharing.shareAsync(previewUri, { mimeType: 'image/png', dialogTitle: previewContactName });
-    } catch (err) {
-      console.error('[Share] Error:', err);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      alert(t.error, t.error_shareFailed);
-    }
-  }, [previewUri, previewContactName, t, alert]);
-
-  const handleClosePreview = useCallback(() => {
-    setPreviewUri(null);
-    setPreviewContactName('');
-  }, []);
-
   // --- Derived data ---
 
   const sortedItems = useMemo(() => {
@@ -1020,7 +954,7 @@ export default function BillDetailScreen() {
       {/* Bottom fixed buttons — absolute positioned */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom, zIndex: 10, backgroundColor: 'transparent', paddingHorizontal: 28 }}>
         {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
-          <Pressable onPress={() => setActiveDialog('share')} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
+          <Pressable onPress={() => router.push(`/bills/share?id=${id}`)} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
             {useGlass ? (
               <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
                 <IconSymbol name="person.2.fill" size={18} color={iconColors.primary} />
@@ -1063,27 +997,6 @@ export default function BillDetailScreen() {
       </View>
 
       {/* Dialogs & Sheets */}
-      <BillShareSheet
-        visible={activeDialog === 'share'}
-        bill={bill}
-        billCountry={billCountry}
-        splitStrategy={bill.splitStrategy}
-        taxConfig={taxConfig}
-        tipPercent={tipPercent}
-        translatedTaxLabel={translatedTaxLabel}
-        bottomInset={insets.bottom}
-        infographicRefs={infographicRefs}
-        onTogglePaid={handleTogglePaid}
-        onSendWhatsApp={handleSendWhatsApp}
-        onShareInfographic={handleShareInfographic}
-        capturingIndex={capturingIndex}
-        previewUri={previewUri}
-        previewAspect={previewAspect}
-        onConfirmShare={handleConfirmShare}
-        onClosePreview={handleClosePreview}
-        onClose={() => setActiveDialog(null)}
-      />
-
       <ContactPickerSheet
         visible={activeDialog === 'contactPicker'}
         phoneContacts={phoneContacts}

@@ -54,6 +54,7 @@ function RootLayoutNav() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="setup" options={{ presentation: 'modal', gestureEnabled: false }} />
           <Stack.Screen name="bills/new" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="bills/share" options={{ presentation: 'formSheet' }} />
           <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
           <Stack.Screen name="auth" />
         </Stack>
