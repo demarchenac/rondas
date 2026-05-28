@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -70,6 +71,7 @@ function PeopleSummary({
       total: isEqualSplit ? c.amount : computeContactTotal(c, billItems, contacts, taxConfig, tipPercent, positiveTotal, discountTotal),
     }));
     return withTotals.sort((a, b) => {
+      if (a.paid !== b.paid) return a.paid ? 1 : -1;
       if (a.isSelf) return -1;
       if (b.isSelf) return 1;
       return a.name.localeCompare(b.name);
@@ -117,19 +119,23 @@ function PeopleSummary({
         contentContainerClassName="gap-2 px-7 pb-2"
       >
         {contactTotals.map((c) => (
+          <Animated.View key={String(c.contactId)} layout={LinearTransition}>
           <Pressable
-            key={String(c.contactId)}
             onPress={() => handleToggle(c.contactId)}
             className={cn(
-              'min-w-[140px] rounded-xl border-l-[3px] bg-card px-3.5 py-2 active:opacity-80',
+              'w-[140px] rounded-xl border-l-[3px] bg-card px-3.5 py-2 active:opacity-80',
               c.paid ? 'border-l-emerald-500' : 'border-l-amber-500',
             )}
           >
-            {/* Row 1: Avatar + Name + Paid icon */}
             <View className="flex-row items-center gap-2">
               <Avatar name={c.name} imageUri={c.imageUri} size="sm" />
               <Text className="flex-1 text-sm font-semibold text-foreground" numberOfLines={1}>
                 {c.isSelf ? t.self_label(c.name) : c.name}
+              </Text>
+            </View>
+            <View className="mt-1 flex-row items-center justify-between">
+              <Text className="text-sm font-bold tabular-nums text-foreground">
+                {formatCurrency(c.total, billCountry, decimalPlaces)}
               </Text>
               <IconSymbol
                 name={c.paid ? 'checkmark.circle.fill' : 'circle'}
@@ -137,19 +143,8 @@ function PeopleSummary({
                 color={c.paid ? '#10b981' : iconColors.mutedLight}
               />
             </View>
-            {/* Row 2: Amount · debt context */}
-            <View className="mt-1 flex-row items-center gap-1">
-              <Text className="text-sm font-bold tabular-nums text-foreground">
-                {formatCurrency(c.total, billCountry, decimalPlaces)}
-              </Text>
-              <Text className="text-sm text-muted-foreground">·</Text>
-              <Text className={cn('text-sm', c.paid ? 'text-emerald-500' : 'text-amber-500')}>
-                {c.paid
-                  ? (paidCount < contacts.length ? t.people_isOwed(formatCurrency(c.total, billCountry, decimalPlaces)) : t.share_paid)
-                  : t.people_owes(formatCurrency(c.total, billCountry, decimalPlaces))}
-              </Text>
-            </View>
           </Pressable>
+          </Animated.View>
         ))}
       </ScrollView>
     </View>

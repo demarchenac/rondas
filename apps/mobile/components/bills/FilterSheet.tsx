@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Pressable, ScrollView, TextInput } from 'react-native';
+import { Platform, View, Pressable, ScrollView, TextInput } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 
@@ -13,6 +14,7 @@ import { useColorScheme } from 'nativewind';
 import { ICON_COLORS } from '@/constants/colors';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
+import { formatPhone } from '@/lib/phone';
 import CurrencyInput from '@/components/form/CurrencyInput';
 import FilterChip from '@/components/bills/FilterChip';
 import type { Id, Doc } from '@convex/_generated/dataModel';
@@ -137,7 +139,7 @@ function FilterSheet({
     <TrueSheet
       ref={sheetRef}
       name="filter-sheet"
-      detents={[0.7, 1]}
+      detents={[1]}
       grabber
       grabberOptions={{ topMargin: 12 }}
       cornerRadius={20}
@@ -277,7 +279,7 @@ function FilterSheet({
                       <View className="flex-1">
                         <Text className="text-base font-medium text-foreground">{c.name}</Text>
                         {c.phone && (
-                          <Text className="text-sm text-muted-foreground">{c.phone}</Text>
+                          <Text className="text-sm text-muted-foreground">{formatPhone(c.phone)}</Text>
                         )}
                       </View>
                     </Pressable>
@@ -384,7 +386,7 @@ function FilterSheet({
 
         {/* Bottom fade */}
         <MaskedView
-          style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 60, height: 40, zIndex: 5 }}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: insets.bottom + 100, zIndex: 5 }}
           pointerEvents="none"
           maskElement={
             <LinearGradient
@@ -397,20 +399,27 @@ function FilterSheet({
           <View className="flex-1 bg-background" />
         </MaskedView>
 
-        {/* Footer — floating */}
+        {/* Footer — floating glass buttons */}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 10, backgroundColor: 'transparent', paddingHorizontal: 28, paddingBottom: insets.bottom > 0 ? insets.bottom : 16, paddingTop: 12 }}>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <Pressable
-              onPress={() => {
-                onClear();
-                onClose();
-              }}
-              style={{ flex: 1 }}
-              className="items-center rounded-xl border border-border py-3.5 active:opacity-80"
+              onPress={() => { onClear(); onClose(); }}
+              style={{ flex: 1, backgroundColor: 'transparent' }}
+              className="active:opacity-80"
             >
-              <Text className="text-base font-semibold text-muted-foreground">
-                {t.filterSheet_resetDefaults}
-              </Text>
+              {Platform.OS === 'ios' && isGlassEffectAPIAvailable() ? (
+                <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text className="text-base font-semibold text-muted-foreground">
+                    {t.filterSheet_resetDefaults}
+                  </Text>
+                </GlassView>
+              ) : (
+                <View className="items-center rounded-xl border border-border py-3.5">
+                  <Text className="text-base font-semibold text-muted-foreground">
+                    {t.filterSheet_resetDefaults}
+                  </Text>
+                </View>
+              )}
             </Pressable>
             <Pressable
               onPress={() => {
@@ -422,12 +431,22 @@ function FilterSheet({
                 }
                 onApply(applied);
               }}
-              style={{ flex: 2 }}
-              className="items-center rounded-xl bg-primary py-3.5 active:opacity-80"
+              style={{ flex: 2, backgroundColor: 'transparent' }}
+              className="active:opacity-80"
             >
-              <Text className="text-base font-bold text-primary-foreground">
-                {t.filterSheet_apply}{activeCount > 0 ? ` (${activeCount})` : ''}
-              </Text>
+              {Platform.OS === 'ios' && isGlassEffectAPIAvailable() ? (
+                <GlassView isInteractive tintColor={iconColors.primary + '0D'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text className="text-base font-bold text-primary">
+                    {t.filterSheet_apply}{activeCount > 0 ? ` (${activeCount})` : ''}
+                  </Text>
+                </GlassView>
+              ) : (
+                <View className="items-center rounded-xl bg-primary py-3.5">
+                  <Text className="text-base font-bold text-primary-foreground">
+                    {t.filterSheet_apply}{activeCount > 0 ? ` (${activeCount})` : ''}
+                  </Text>
+                </View>
+              )}
             </Pressable>
           </View>
         </View>

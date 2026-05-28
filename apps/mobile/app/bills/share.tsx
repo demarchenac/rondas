@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Image as RNImage, Linking, Pressable, ScrollView, View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { useQuery, useMutation } from 'convex/react';
@@ -21,10 +21,9 @@ import { useT } from '@/lib/i18n';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import { formatCurrency } from '@/lib/format';
 import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type ReceiptCategory } from '@/constants/taxes';
-import { useSettingsStore } from '@/stores/useSettingsStore';
 import { buildWhatsAppMessage } from '@/lib/whatsapp';
 import { toE164 } from '@/lib/phone';
-import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel } from '@/lib/billHelpers';
+import { getTaxLabel } from '@/lib/billHelpers';
 import { cn } from '@/lib/cn';
 import BillInfographic from '@/components/bills/BillInfographic';
 import InfographicPreview from '@/components/bills/InfographicPreview';
@@ -116,7 +115,6 @@ export default function ShareScreen() {
   if (!bill || !userId) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <Stack.Screen options={{ headerShown: false, presentation: 'formSheet' }} />
         <ActivityIndicator size="large" color={iconColors.primary} />
       </View>
     );
@@ -124,13 +122,12 @@ export default function ShareScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <Stack.Screen options={{ headerShown: false, presentation: 'formSheet' }} />
 
-      <View className="flex-row items-center justify-between px-7 pb-4 pt-6">
-        <Text className="text-2xl font-bold text-foreground">{t.share_title}</Text>
-        <Pressable onPress={() => router.back()} className="rounded-full bg-muted p-2">
-          <IconSymbol name="xmark" size={14} color={iconColors.muted} />
+      <View className="flex-row items-center gap-3 px-5 pb-4" style={{ paddingTop: insets.top + 12 }}>
+        <Pressable onPress={() => router.back()} className="active:opacity-80">
+          <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
         </Pressable>
+        <Text className="text-2xl font-bold text-foreground">{t.share_title}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
@@ -205,7 +202,7 @@ export default function ShareScreen() {
                     return (
                       <View key={ref.itemId} className="w-1/2 pr-2 mb-1">
                         <Text className="text-sm text-foreground" numberOfLines={1}>
-                          {ref.units > 1 ? `${item.name} ×${ref.units}` : item.name}
+                          {item.name} ({ref.units}/{totalUnits})
                         </Text>
                         <Text className="text-sm text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
                       </View>
@@ -292,7 +289,7 @@ export default function ShareScreen() {
                       const share = item && totalUnits > 0
                         ? Math.round((ref.units / totalUnits) * item.subtotal)
                         : item?.subtotal ?? 0;
-                      return { name: item?.name ?? '', amount: share };
+                      return { name: item?.name ?? '', amount: share, units: ref.units, totalUnits };
                     })}
                     taxConfig={taxConfig}
                     tipPercent={tipPercent}

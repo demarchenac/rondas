@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
@@ -277,7 +276,6 @@ export default function BillDetailScreen() {
       setActiveDialog(null);
       setSingleAssignItemId(null);
       setSelectedItemIds(new Set());
-      setMultiSelectMode(false);
     } catch (err) {
       console.error('[Bill] assignContactToItems failed:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -299,7 +297,6 @@ export default function BillDetailScreen() {
             const remaining = bill.items.filter((billItem) => !selectedItemIds.has(billItem.id!));
             updateBill({ id: id as Id<'bills'>, userId, items: remaining });
             setSelectedItemIds(new Set());
-            setMultiSelectMode(false);
           },
         },
       ]
@@ -309,7 +306,6 @@ export default function BillDetailScreen() {
   const handleAddItem = useCallback(async () => {
     if (!bill || !userId) return;
     if (multiSelectMode) {
-      setMultiSelectMode(false);
       setSelectedItemIds(new Set());
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -347,7 +343,6 @@ export default function BillDetailScreen() {
               });
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               setSelectedItemIds(new Set());
-              setMultiSelectMode(false);
             } catch (err) {
               console.error('[Bill] removeContactsBatch failed:', err);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -373,7 +368,6 @@ export default function BillDetailScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setActiveDialog(null);
       setSelectedItemIds(new Set());
-      setMultiSelectMode(false);
     } catch (err) {
       console.error('[Bill] removeContactsBatch failed:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

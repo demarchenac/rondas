@@ -42,15 +42,19 @@ function TipDialog({
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);
   const [localCustomTip, setLocalCustomTip] = useState(customTip);
+  const [prevVisible, setPrevVisible] = useState(false);
+  if (visible !== prevVisible) {
+    setPrevVisible(visible);
+    if (visible) setLocalCustomTip(customTip);
+  }
 
   useEffect(() => {
     if (visible) {
-      setLocalCustomTip(customTip);
       sheetRef.current?.present();
     } else {
       sheetRef.current?.dismiss();
     }
-  }, [visible, customTip]);
+  }, [visible]);
 
   const handleDismiss = useCallback(() => { onClose(); }, [onClose]);
 
@@ -111,7 +115,7 @@ function TipDialog({
               onChangeValue={(n) => setLocalCustomTip(n ?? 0)}
               country={billCountry}
               decimalPlaces={decimalPlaces}
-              className="h-11 rounded-xl border border-border bg-muted px-3 text-center text-lg font-semibold tabular-nums shadow-none"
+              className="h-11 rounded-xl border border-border bg-muted px-3 text-center text-lg font-semibold tabular-nums"
             />
             <Pressable
               onPress={() => { onSelectCustomTip(localCustomTip); onClose(); }}

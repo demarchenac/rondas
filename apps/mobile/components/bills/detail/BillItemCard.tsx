@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import { Image } from '@/lib/expo-image';
 import SwipeableRow from '@/components/bills/SwipeableRow';
 import { useForm } from '@tanstack/react-form';
@@ -36,7 +37,7 @@ interface BillItemCardProps {
   item: BillItem;
   index: number;
   billCountry: string;
-  stateStyle: { borderClass: string };
+  stateStyle: { borderClass: string; color: string };
   assignedContacts: AssignedContact[];
   isEditing: boolean;
   isDeleting: boolean;
@@ -54,6 +55,63 @@ interface BillItemCardProps {
   onContactPress: (itemId: string, contactId: Id<'contacts'>) => void;
   decimalPlaces?: number;
   onToggleSelection: (itemId: string) => void;
+}
+
+const PAID_COLORS = { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', text: '#10b981', badge: 'rgba(16,185,129,0.2)' };
+
+function getUnpaidColors(primary: string) {
+  return { bg: `${primary}1A`, border: `${primary}33`, text: primary, badge: `${primary}33` };
+}
+
+
+function ContactChip({ contact, units, itemId, iconColors, t, onPress }: {
+  contact: AssignedContact;
+  units: number;
+  itemId: string;
+  iconColors: Record<string, string>;
+  t: Translations;
+  onPress: (itemId: string, contactId: Id<'contacts'>) => void;
+}) {
+  const unpaidColors = getUnpaidColors(iconColors.primary);
+  const colors = contact.paid ? PAID_COLORS : unpaidColors;
+  const chipWidth = useSharedValue(0);
+  const fillWidth = useSharedValue(0);
+  const [fillBg, setFillBg] = useState<string | null>(null);
+  const [prevPaid, setPrevPaid] = useState(contact.paid);
+  if (contact.paid !== prevPaid) {
+    setPrevPaid(contact.paid);
+    setFillBg(contact.paid ? PAID_COLORS.bg : unpaidColors.bg);
+    fillWidth.value = 0;
+    fillWidth.value = withTiming(chipWidth.value, { duration: 400, easing: Easing.in(Easing.ease) });
+  }
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: fillWidth.value,
+  }));
+
+  return (
+    <Pressable onPress={() => onPress(itemId, contact.contactId)}>
+      <View
+        onLayout={(e) => { chipWidth.value = e.nativeEvent.layout.width; }}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderRadius: 9999, borderColor: colors.border, backgroundColor: colors.bg, overflow: 'hidden' }}
+      >
+        {fillBg && <Animated.View style={[{ position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: fillBg, borderRadius: 9999 }, fillStyle]} />}
+        {contact.imageUri ? (
+          <Image source={{ uri: contact.imageUri }} style={{ width: 16, height: 16, borderRadius: 8 }} />
+        ) : (
+          <IconSymbol name="person.crop.circle" size={13} color={colors.text} />
+        )}
+        <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>
+          {contact.isSelf ? t.self_label(contact.name) : contact.name}
+        </Text>
+        {units > 1 && (
+          <View style={{ backgroundColor: colors.badge, borderRadius: 9999, paddingHorizontal: 6, paddingVertical: 2 }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }}>x{units}</Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
 }
 
 function BillItemEditForm({
@@ -183,7 +241,30 @@ function BillItemCard({
 }: BillItemCardProps) {
   const itemId = item.id!;
   const hasContacts = assignedContacts.length > 0;
-  const borderClass = hasContacts ? stateStyle.borderClass : 'border-l-muted-foreground/20';
+  const allPaid = hasContacts && assignedContacts.every((c) => c.paid);
+  const targetColor = !hasContacts
+    ? 'rgba(148,163,184,0.2)'
+    : allPaid
+      ? '#10b981'
+      : stateStyle.color;
+
+  const displayColor = useSharedValue(targetColor);
+  const borderW = useSharedValue(3);
+  const [prevTargetColor, setPrevTargetColor] = useState(targetColor);
+  if (targetColor !== prevTargetColor) {
+    setPrevTargetColor(targetColor);
+    borderW.value = withTiming(0, { duration: 300 }, (finished) => {
+      if (finished) {
+        displayColor.value = targetColor;
+        borderW.value = withTiming(3, { duration: 300 });
+      }
+    });
+  }
+
+  const borderStyle = useAnimatedStyle(() => ({
+    width: borderW.value,
+    backgroundColor: displayColor.value,
+  }));
 
   return (
     <SwipeableItem isDeleting={isDeleting}>
@@ -205,11 +286,19 @@ function BillItemCard({
           /* Display mode */
           <Pressable
             onPress={() => multiSelectMode ? onToggleSelection(itemId) : onPress(itemId)}
-            className={cn(
-              'mx-7 mb-2.5 rounded-xl border-l-[3px] bg-card px-4 py-3 active:opacity-80',
-              borderClass,
-            )}
+            className="mx-7 mb-2.5 overflow-hidden rounded-xl bg-card pr-4 py-3 active:opacity-80"
+            style={{ paddingLeft: 19 }}
           >
+            <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, overflow: 'hidden' }}>
+              <Animated.View
+                style={[{
+                  position: 'absolute',
+                  right: 0, top: 0, bottom: 0,
+                  borderTopLeftRadius: 12,
+                  borderBottomLeftRadius: 12,
+                }, borderStyle]}
+              />
+            </View>
             {/* Top row: name/qty + price/button */}
             <View className="flex-row items-start">
               {/* Checkbox in multi-select mode */}
@@ -264,41 +353,15 @@ function BillItemCard({
                   const ref = c.items.find((i) => i.itemId === item.id);
                   const units = ref?.units ?? 1;
                   return (
-                    <Pressable
+                    <ContactChip
                       key={String(c.contactId)}
-                      onPress={() => item.id && onContactPress(item.id, c.contactId)}
-                      className={cn(
-                        'flex-row items-center gap-1.5 rounded-full border px-2.5 py-1',
-                        c.paid
-                          ? 'border-emerald-500/20 bg-emerald-500/10'
-                          : 'border-primary/20 bg-primary/10',
-                      )}
-                    >
-                      {c.imageUri ? (
-                        <Image source={{ uri: c.imageUri }} className="w-4 h-4 rounded-full" />
-                      ) : (
-                        <IconSymbol name="person.crop.circle" size={13} color={c.paid ? '#10b981' : iconColors.primary} />
-                      )}
-                      <Text className={cn(
-                        'text-sm font-medium',
-                        c.paid ? 'text-emerald-500' : 'text-primary',
-                      )}>
-                        {c.isSelf ? t.self_label(c.name) : c.name}
-                      </Text>
-                      {units > 1 && (
-                        <View className={cn(
-                          'rounded-full px-1.5 py-0.5',
-                          c.paid ? 'bg-emerald-500/20' : 'bg-primary/20',
-                        )}>
-                          <Text className={cn(
-                            'text-sm font-bold',
-                            c.paid ? 'text-emerald-500' : 'text-primary',
-                          )}>
-                            x{units}
-                          </Text>
-                        </View>
-                      )}
-                    </Pressable>
+                      contact={c}
+                      units={units}
+                      itemId={itemId}
+                      iconColors={iconColors}
+                      t={t}
+                      onPress={onContactPress}
+                    />
                   );
                 })}
               </View>

@@ -75,7 +75,7 @@ function BillInfographic({
   billName: string;
   contactName: string;
   contactImageUri?: string;
-  items: { name: string; amount: number }[];
+  items: { name: string; amount: number; units?: number; totalUnits?: number }[];
   taxConfig: TaxConfig;
   tipPercent: number;
   location?: string;
@@ -178,7 +178,7 @@ function BillInfographic({
               className="flex-row justify-between items-center py-[9px] border-b border-b-[#f1f5f9]"
             >
               <Text className="text-sm text-[#334155] flex-1 mr-3" numberOfLines={1}>
-                {item.name}
+                {item.name}{item.units && item.totalUnits ? ` (${item.units}/${item.totalUnits})` : ''}
               </Text>
               <Text className="text-sm font-bold text-[#0f172a]" style={{ fontVariant: ['tabular-nums'] }}>
                 {formatCurrency(item.amount, country)}

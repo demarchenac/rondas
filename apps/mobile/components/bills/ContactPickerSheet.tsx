@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, View, Pressable, TextInput } from 'react-native';
+import { ActivityIndicator, Platform, View, Pressable, TextInput } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaskedView from '@react-native-masked-view/masked-view';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
@@ -11,6 +14,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
 import { useColorScheme } from 'nativewind';
 import { ICON_COLORS } from '@/constants/colors';
+import { formatPhone } from '@/lib/phone';
 import type * as Contacts from 'expo-contacts';
 import type { Doc } from '@convex/_generated/dataModel';
 
@@ -55,6 +59,7 @@ function ContactPickerSheet({
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
+  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
   const sheetRef = useRef<TrueSheet>(null);
 
   useEffect(() => {
@@ -107,11 +112,6 @@ function ContactPickerSheet({
     };
   }, [suggestedContacts, excludePhones]);
 
-  const hasSuggested =
-    !search &&
-    filteredSuggested &&
-    (filteredSuggested.frequent.length > 0 || filteredSuggested.recent.length > 0);
-
   const atCapacity = maxSelectable !== undefined && selectedContactIds.size >= maxSelectable;
 
   const renderSuggestedContact = useCallback((c: Doc<'contacts'>) => {
@@ -141,7 +141,7 @@ function ContactPickerSheet({
         <View className="flex-1">
           <Text className="text-base font-medium text-foreground">{c.name}</Text>
           {c.phone && (
-            <Text className="text-sm text-muted-foreground">{c.phone}</Text>
+            <Text className="text-sm text-muted-foreground">{formatPhone(c.phone)}</Text>
           )}
         </View>
       </Pressable>
@@ -175,7 +175,7 @@ function ContactPickerSheet({
             {`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || 'Unknown'}
           </Text>
           {c.phoneNumbers?.[0]?.number && (
-            <Text className="text-sm text-muted-foreground">{c.phoneNumbers[0].number}</Text>
+            <Text className="text-sm text-muted-foreground">{formatPhone(c.phoneNumbers[0].number)}</Text>
           )}
         </View>
       </Pressable>
@@ -287,7 +287,7 @@ function ContactPickerSheet({
     <TrueSheet
       ref={sheetRef}
       name="contact-picker"
-      detents={[0.7, 1]}
+      detents={[1]}
       grabber
       grabberOptions={{ topMargin: 12 }}
       cornerRadius={20}
@@ -295,52 +295,117 @@ function ContactPickerSheet({
       backgroundColor={colorScheme === 'dark' ? '#0f172a' : '#fafbfc'}
       onDidDismiss={handleDismiss}
     >
-      <View style={{ flex: 1, paddingBottom: bottomInset > 0 ? bottomInset : 16 }}>
-        <Text className="px-7 pt-4 pb-3 text-2xl font-bold text-foreground">{t.contactPicker_title}</Text>
-
-        {/* Search — local state, no parent re-render */}
-        <View className="px-7 pb-3">
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder={t.contactPicker_search}
-            placeholderTextColor={iconColors.muted}
-            className="rounded-xl bg-muted-foreground/[0.08] px-4 py-2.5 text-lg text-foreground"
-          />
-        </View>
-
-        {/* Add anonymous person */}
-        <Pressable
-          onPress={handleAddAnonymous}
-          disabled={atCapacity}
-          className={`flex-row items-center gap-3 px-7 py-2.5 ${atCapacity ? 'opacity-40' : ''}`}
-        >
-          <View className="h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-            <IconSymbol name="person.badge.plus" size={18} color={iconColors.primary} />
-          </View>
-          <Text className="text-base font-medium text-primary">{t.contactPicker_addAnonymous}</Text>
-        </Pressable>
-
-        {/* Virtualized contact list */}
+      <View style={{ flex: 1 }}>
+        {/* Virtualized contact list — full height */}
         <FlashList
           data={filteredContacts}
           renderItem={renderContactRow}
           keyExtractor={(c) => c.id}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={listEmpty}
-          contentContainerClassName="pb-8"
+          contentContainerStyle={{ paddingTop: 160, paddingBottom: insets.bottom + 140 }}
           keyboardShouldPersistTaps="handled"
         />
 
+        {/* Floating header */}
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: 'transparent', paddingHorizontal: 28 }}>
+          <Text className="pt-7 pb-3 text-2xl font-bold text-foreground">{t.contactPicker_title}</Text>
+
+          {/* Glass search input */}
+          {useGlass ? (
+            <GlassView tintColor={iconColors.primary + '0D'} style={{ borderRadius: 12, marginBottom: 8 }}>
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder={t.contactPicker_search}
+                placeholderTextColor={iconColors.muted}
+                style={{ paddingHorizontal: 16, paddingVertical: 10, fontSize: 17, color: colorScheme === 'dark' ? '#fff' : '#000' }}
+              />
+            </GlassView>
+          ) : (
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder={t.contactPicker_search}
+              placeholderTextColor={iconColors.muted}
+              className="mb-2 rounded-xl bg-muted-foreground/[0.08] px-4 py-2.5 text-lg text-foreground"
+            />
+          )}
+
+          {/* Glass add anonymous button */}
+          <Pressable
+            onPress={handleAddAnonymous}
+            disabled={atCapacity}
+            style={{ backgroundColor: 'transparent', opacity: atCapacity ? 0.4 : 1, alignSelf: 'flex-start' }}
+            className="active:opacity-80"
+          >
+            {useGlass ? (
+              <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <IconSymbol name="person.badge.plus" size={18} color={iconColors.primary} />
+                <Text className="text-base font-medium text-primary">{t.contactPicker_addAnonymous}</Text>
+              </GlassView>
+            ) : (
+              <View className="flex-row items-center gap-3 py-2.5">
+                <View className="h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                  <IconSymbol name="person.badge.plus" size={18} color={iconColors.primary} />
+                </View>
+                <Text className="text-base font-medium text-primary">{t.contactPicker_addAnonymous}</Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
+
+        {/* Top fade */}
+        <MaskedView
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 180, zIndex: 5 }}
+          pointerEvents="none"
+          maskElement={
+            <LinearGradient
+              colors={['rgba(0,0,0,1)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)']}
+              locations={[0, 0.65, 1]}
+              style={{ flex: 1 }}
+            />
+          }
+        >
+          <View className="flex-1 bg-background" />
+        </MaskedView>
+
+        {/* Bottom fade */}
+        <MaskedView
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: insets.bottom + 140, zIndex: 5 }}
+          pointerEvents="none"
+          maskElement={
+            <LinearGradient
+              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,1)']}
+              locations={[0, 0.3, 1]}
+              style={{ flex: 1 }}
+            />
+          }
+        >
+          <View className="flex-1 bg-background" />
+        </MaskedView>
+
+        {/* Footer — floating glass confirm button */}
         {selectedContactIds.size > 0 && (
-          <View className="border-t border-border/30 px-7 pb-2 pt-3">
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 48, zIndex: 10, backgroundColor: 'transparent', paddingHorizontal: 28 }}>
             <Pressable
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }}
-              className="items-center rounded-xl bg-primary py-4 active:opacity-80"
+              style={{ backgroundColor: 'transparent' }}
+              className="active:opacity-80"
             >
-              <Text className="text-lg font-semibold text-primary-foreground">
-                {t.contactPicker_assign(selectedContactIds.size)}
-              </Text>
+              {useGlass ? (
+                <GlassView isInteractive tintColor={iconColors.primary + '0D'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text className="text-lg font-bold text-primary">
+                    {t.contactPicker_assign(selectedContactIds.size)}
+                  </Text>
+                </GlassView>
+              ) : (
+                <View className="items-center rounded-xl bg-primary py-3.5">
+                  <Text className="text-lg font-bold text-primary-foreground">
+                    {t.contactPicker_assign(selectedContactIds.size)}
+                  </Text>
+                </View>
+              )}
             </Pressable>
           </View>
         )}

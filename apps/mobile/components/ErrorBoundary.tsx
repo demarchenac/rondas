@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Share, ScrollView, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 
@@ -25,13 +25,29 @@ export class ErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <View className="flex-1 items-center justify-center bg-background px-6">
+        <View className="flex-1 bg-background px-6 pt-16">
           <Text className="mb-2 text-2xl font-bold text-foreground">
             Something went wrong
           </Text>
-          <Text className="mb-6 text-center text-base text-muted-foreground">
+          <Text className="mb-4 text-base text-muted-foreground">
             {this.state.error?.message ?? 'An unexpected error occurred.'}
           </Text>
+          {this.state.error?.stack && (
+            <View className="mb-4">
+              <ScrollView className="max-h-[400px] rounded-lg bg-muted/30 p-3">
+                <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'monospace' }} selectable>
+                  {this.state.error.stack}
+                </Text>
+              </ScrollView>
+              <Button
+                variant="outline"
+                className="mt-2"
+                onPress={() => Share.share({ message: `${this.state.error?.message}\n\n${this.state.error?.stack}` })}
+              >
+                <Text>Share Stack Trace</Text>
+              </Button>
+            </View>
+          )}
           <Button onPress={() => this.setState({ hasError: false, error: null })}>
             <Text>Try Again</Text>
           </Button>

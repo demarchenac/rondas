@@ -11,6 +11,7 @@ import { useCustomAlert } from '@/components/ui/custom-alert';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
 import { STATE_STYLES, type BillState } from '@/lib/billHelpers';
 import type { Translations } from '@/lib/i18n';
+import ProgressBar from '@/components/ui/ProgressBar';
 
 function HeaderSkeleton({ hasProgressBar }: { hasProgressBar: boolean }) {
   return (
@@ -174,11 +175,16 @@ function BillHeader({
   ) : null;
 
   const overflowButton = multiSelectMode ? (
-    <Pressable
-      onPress={onDoneEdit}
-      className="rounded-full bg-primary px-3.5 py-1.5 active:opacity-80"
-    >
-      <Text className="text-sm font-semibold text-primary-foreground">{t.done}</Text>
+    <Pressable onPress={onDoneEdit} className="active:opacity-80">
+      {useGlass ? (
+        <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 18, paddingHorizontal: 14, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}>
+          <Text className="text-sm font-semibold text-primary">{t.done}</Text>
+        </GlassView>
+      ) : (
+        <View className="rounded-full bg-primary px-3.5 py-1.5">
+          <Text className="text-sm font-semibold text-primary-foreground">{t.done}</Text>
+        </View>
+      )}
     </Pressable>
   ) : useGlass ? (
     <Pressable onPress={handleOverflowPress} className="active:opacity-80">
@@ -220,23 +226,11 @@ function BillHeader({
       {/* Progress bar */}
       {hasContacts && !multiSelectMode && (
         useGlass ? (
-          <GlassView style={{ borderRadius: 4, height: 6, overflow: 'hidden', flexDirection: 'row', marginTop: 10 }}>
-            {paidPercent > 0 && (
-              <View style={{ height: '100%', backgroundColor: '#10b981', width: `${paidPercent}%`, borderRadius: 4 }} />
-            )}
-            {unpaidPercent > 0 && (
-              <View style={{ height: '100%', backgroundColor: '#f59e0b', width: `${unpaidPercent}%` }} />
-            )}
+          <GlassView style={{ borderRadius: 4, height: 6, overflow: 'hidden', marginTop: 10 }}>
+            <ProgressBar paidPercent={paidPercent} unpaidPercent={unpaidPercent} height={6} radius={4} style={{ backgroundColor: 'transparent' }} />
           </GlassView>
         ) : (
-          <View className="mt-2 h-1 overflow-hidden rounded-full bg-muted flex-row">
-            {paidPercent > 0 && (
-              <View className="h-full rounded-full bg-emerald-500" style={{ width: `${paidPercent}%` }} />
-            )}
-            {unpaidPercent > 0 && (
-              <View className="h-full bg-amber-500" style={{ width: `${unpaidPercent}%` }} />
-            )}
-          </View>
+          <ProgressBar paidPercent={paidPercent} unpaidPercent={unpaidPercent} height={4} radius={9999} style={{ marginTop: 8 }} />
         )
       )}
     </View>

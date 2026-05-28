@@ -6,9 +6,12 @@ import Animated, {
   FadeIn, FadeOut,
   useSharedValue, useAnimatedStyle, withTiming, runOnJS,
 } from 'react-native-reanimated';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import { useColorScheme } from 'nativewind';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { useT } from '@/lib/i18n';
+import { ICON_COLORS } from '@/constants/colors';
 
 const CHROME_HEIGHT = 12 + 16 + 56 + 16;
 const DISMISS_THRESHOLD = 80;
@@ -25,9 +28,12 @@ interface InfographicPreviewProps {
 function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: InfographicPreviewProps) {
   const t = useT();
   const insets = useSafeAreaInsets();
+  const { colorScheme } = useColorScheme();
+  const iconColors = ICON_COLORS[colorScheme ?? 'light'];
+  const useGlass = isGlassEffectAPIAvailable();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const imageWidth = screenWidth - 64;
-  const translateY = useSharedValue(screenHeight);
+  const translateY = useSharedValue(0);
 
   const dismiss = useCallback(() => { onClose(); }, [onClose]);
 
@@ -54,9 +60,6 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
 
   const imageHeight = imageWidth / imageAspect;
   const contentHeight = Math.min(imageHeight + CHROME_HEIGHT + insets.bottom + 16, screenHeight * 0.9);
-
-  // Trigger enter animation on mount
-  translateY.value = withTiming(0, { duration: 200 });
 
   return (
     <View className="absolute inset-0" style={{ zIndex: 100 }}>
@@ -91,13 +94,16 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
           </ScrollView>
 
           <View className="px-6 pt-3">
-            <Pressable
-              onPress={onShare}
-              className="items-center justify-center rounded-2xl bg-primary py-4"
-            >
-              <Text className="text-lg font-bold text-primary-foreground">
-                {t.share_share}
-              </Text>
+            <Pressable onPress={onShare} className="active:opacity-80">
+              {useGlass ? (
+                <GlassView isInteractive tintColor={iconColors.primary + '0D'} style={{ borderRadius: 16, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text className="text-lg font-bold text-primary">{t.share_share}</Text>
+                </GlassView>
+              ) : (
+                <View className="items-center justify-center rounded-2xl bg-primary py-4">
+                  <Text className="text-lg font-bold text-primary-foreground">{t.share_share}</Text>
+                </View>
+              )}
             </Pressable>
           </View>
         </Animated.View>

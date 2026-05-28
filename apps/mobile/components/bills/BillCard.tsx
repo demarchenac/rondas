@@ -24,6 +24,7 @@ import { ICON_COLORS } from '@/constants/colors';
 import { useColorScheme } from 'nativewind';
 import { buildGlowTheme, type ColorMode } from '@/lib/stateTheme';
 import type { Translations } from '@/lib/i18n';
+import ProgressBar from '@/components/ui/ProgressBar';
 
 type Bill = ResolvedBill;
 
@@ -284,16 +285,13 @@ function CardContent({
       </View>
 
       {/* Progress bar for unresolved bills */}
-      {isUnresolved && itemCount > 0 && (
-        <View className="mt-2">
-          <View className="h-[3px] overflow-hidden rounded-sm bg-muted-foreground/15">
-            <View
-              className={cn('h-full rounded-sm', stateStyle.progressClass)}
-              style={{ width: `${Math.round(progress * 100)}%` }}
-            />
-          </View>
-        </View>
-      )}
+      {isUnresolved && itemCount > 0 && (() => {
+        const totalPercent = Math.round(progress * 100);
+        const paidProportion = contactCount > 0 ? paidCount / contactCount : 0;
+        const paidPct = Math.round(totalPercent * paidProportion);
+        const unpaidPct = totalPercent - paidPct;
+        return <ProgressBar paidPercent={paidPct} unpaidPercent={unpaidPct} style={{ marginTop: 8 }} />;
+      })()}
     </>
   );
 }
