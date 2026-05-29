@@ -243,7 +243,7 @@ export default function ShareScreen() {
         disabled={!isSelectable}
       >
         <View className="flex-row items-start justify-between">
-          <View className="flex-row items-center gap-3">
+          <View className="flex-1 flex-row items-center gap-3">
             {groupSelectMode && !isLocked && (
               <IconSymbol
                 name={isSelected ? 'checkmark.circle.fill' : 'circle'}
@@ -260,107 +260,105 @@ export default function ShareScreen() {
                 </Text>
               </View>
             )}
-            <View>
+            <View className="flex-1">
               <Text className="text-lg font-semibold text-foreground">{contact.isSelf ? t.self_label(contact.name) : contact.name}</Text>
               <Text className="text-sm text-muted-foreground">
                 {isEqualSplit
                   ? t.share_equalPerPerson(formatCurrency(contactTotal, billCountry), bill.contacts.length)
                   : t.share_itemCount(contact.items.length)}
               </Text>
+
+              {!isEqualSplit && (
+                <View className="flex-row flex-wrap">
+                  {contact.items.map((ref) => {
+                    const item = bill.items.find((i) => i.id === ref.itemId);
+                    if (!item) return null;
+                    const totalUnits = bill.contacts.reduce((u, c) => {
+                      const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
+                      return u + (cRef ? cRef.units : 0);
+                    }, 0);
+                    const share = totalUnits > 0
+                      ? Math.round((ref.units / totalUnits) * item.subtotal)
+                      : Math.round(item.subtotal);
+                    return (
+                      <View key={ref.itemId} className="w-1/2 pr-2 mb-1">
+                        <Text className="text-sm text-foreground" numberOfLines={1}>
+                          {item.name} ({ref.units}/{totalUnits})
+                        </Text>
+                        <Text className="text-sm text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {isEqualSplit && (
+                <Text className="mt-1 text-sm text-muted-foreground">{t.share_equalSplit}</Text>
+              )}
+
+              {!isEqualSplit && (
+                <View className="mt-1 flex-row items-center gap-3">
+                  {contactTax > 0 && (
+                    <Text className="text-sm text-muted-foreground">
+                      {translatedTaxLabel}: {formatCurrency(contactTax, billCountry)}
+                    </Text>
+                  )}
+                  {contactTip > 0 && (
+                    <Text className="text-sm text-muted-foreground">
+                      {t.scan_tipPropina}: {formatCurrency(contactTip, billCountry)}
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {!groupSelectMode && (
+                <View className="mt-2 flex-row items-center gap-2">
+                  <Pressable
+                    onPress={() => handleTogglePaid(contact.contactId)}
+                    className={cn(
+                      'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
+                      contact.paid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
+                    )}
+                  >
+                    <IconSymbol
+                      name={contact.paid ? 'checkmark.circle.fill' : 'circle'}
+                      size={14}
+                      color={contact.paid ? '#10b981' : iconColors.muted}
+                    />
+                    <Text className={cn('text-sm font-medium', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
+                      {contact.paid ? t.share_paid : t.share_unpaid}
+                    </Text>
+                  </Pressable>
+
+                  {contact.phone && (
+                    <Pressable
+                      onPress={() => handleSendWhatsApp(contact)}
+                      className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
+                    >
+                      <WhatsAppIcon size={14} />
+                      <Text className="text-sm font-medium text-[#25D366]">{t.share_whatsapp}</Text>
+                    </Pressable>
+                  )}
+
+                  <Pressable
+                    onPress={() => handleShareInfographic(ci, contact.name)}
+                    className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
+                  >
+                    {capturingIndex === ci ? (
+                      <ActivityIndicator size="small" color={iconColors.muted} />
+                    ) : (
+                      <Share2 size={13} color={iconColors.muted} />
+                    )}
+                    <Text className="text-sm font-medium text-muted-foreground">{t.share_share}</Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           </View>
           <Text className="text-xl font-bold tabular-nums text-foreground">
             {formatCurrency(contactTotal, billCountry)}
           </Text>
         </View>
-
-        {!isEqualSplit && (
-          <View className="ml-[52px] flex-row flex-wrap">
-            {contact.items.map((ref) => {
-              const item = bill.items.find((i) => i.id === ref.itemId);
-              if (!item) return null;
-              const totalUnits = bill.contacts.reduce((u, c) => {
-                const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
-                return u + (cRef ? cRef.units : 0);
-              }, 0);
-              const share = totalUnits > 0
-                ? Math.round((ref.units / totalUnits) * item.subtotal)
-                : Math.round(item.subtotal);
-              return (
-                <View key={ref.itemId} className="w-1/2 pr-2 mb-1">
-                  <Text className="text-sm text-foreground" numberOfLines={1}>
-                    {item.name} ({ref.units}/{totalUnits})
-                  </Text>
-                  <Text className="text-sm text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
-                </View>
-              );
-            })}
-          </View>
-        )}
-
-        {isEqualSplit && (
-          <View className="ml-[52px] mt-2">
-            <Text className="text-sm text-muted-foreground">{t.share_equalSplit}</Text>
-          </View>
-        )}
-
-        {!isEqualSplit && (
-          <View className="ml-[52px] mt-2 flex-row items-center gap-3">
-            {contactTax > 0 && (
-              <Text className="text-sm text-muted-foreground">
-                {translatedTaxLabel}: {formatCurrency(contactTax, billCountry)}
-              </Text>
-            )}
-            {contactTip > 0 && (
-              <Text className="text-sm text-muted-foreground">
-                {t.scan_tipPropina}: {formatCurrency(contactTip, billCountry)}
-              </Text>
-            )}
-          </View>
-        )}
-
-        {!groupSelectMode && (
-          <View className="ml-[52px] mt-3 flex-row items-center gap-2">
-            <Pressable
-              onPress={() => handleTogglePaid(contact.contactId)}
-              className={cn(
-                'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
-                contact.paid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
-              )}
-            >
-              <IconSymbol
-                name={contact.paid ? 'checkmark.circle.fill' : 'circle'}
-                size={14}
-                color={contact.paid ? '#10b981' : iconColors.muted}
-              />
-              <Text className={cn('text-sm font-medium', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
-                {contact.paid ? t.share_paid : t.share_unpaid}
-              </Text>
-            </Pressable>
-
-            {contact.phone && (
-              <Pressable
-                onPress={() => handleSendWhatsApp(contact)}
-                className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
-              >
-                <WhatsAppIcon size={14} />
-                <Text className="text-sm font-medium text-[#25D366]">{t.share_whatsapp}</Text>
-              </Pressable>
-            )}
-
-            <Pressable
-              onPress={() => handleShareInfographic(ci, contact.name)}
-              className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
-            >
-              {capturingIndex === ci ? (
-                <ActivityIndicator size="small" color={iconColors.muted} />
-              ) : (
-                <Share2 size={13} color={iconColors.muted} />
-              )}
-              <Text className="text-sm font-medium text-muted-foreground">{t.share_share}</Text>
-            </Pressable>
-          </View>
-        )}
 
         {/* Offscreen infographic */}
         <View style={{ position: 'absolute', left: -9999 }}>
@@ -482,7 +480,7 @@ export default function ShareScreen() {
                 return (
                   <View key={String(member.contactId)} className={cn(mi < members.length - 1 && 'mb-4')}>
                     <View className="flex-row items-start justify-between">
-                      <View className="flex-row items-center gap-3">
+                      <View className="flex-1 flex-row items-center gap-3">
                         {member.imageUri ? (
                           <Image source={{ uri: member.imageUri }} className="w-10 h-10 rounded-full" />
                         ) : (
@@ -492,94 +490,94 @@ export default function ShareScreen() {
                             </Text>
                           </View>
                         )}
-                        <View>
+                        <View className="flex-1">
                           <Text className="text-lg font-semibold text-foreground">
                             {member.isSelf ? t.self_label(member.name) : member.name}
                           </Text>
                           <Text className="text-sm text-muted-foreground">
                             {isEqualSplit ? t.share_equalSplit : t.share_itemCount(member.items.length)}
                           </Text>
+
+                          {!isEqualSplit && (
+                            <View className="flex-row flex-wrap">
+                              {member.items.map((ref) => {
+                                const item = bill.items.find((i) => i.id === ref.itemId);
+                                if (!item) return null;
+                                const totalUnits = bill.contacts.reduce((u, c) => {
+                                  const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
+                                  return u + (cRef ? cRef.units : 0);
+                                }, 0);
+                                const share = totalUnits > 0
+                                  ? Math.round((ref.units / totalUnits) * item.subtotal)
+                                  : Math.round(item.subtotal);
+                                return (
+                                  <View key={ref.itemId} className="w-1/2 pr-2 mb-1">
+                                    <Text className="text-sm text-foreground" numberOfLines={1}>
+                                      {item.name} ({ref.units}/{totalUnits})
+                                    </Text>
+                                    <Text className="text-sm text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
+                                  </View>
+                                );
+                              })}
+                            </View>
+                          )}
+
+                          {!isEqualSplit && (
+                            <View className="mt-1 flex-row items-center gap-3">
+                              {mTax > 0 && (
+                                <Text className="text-sm text-muted-foreground">
+                                  {translatedTaxLabel}: {formatCurrency(mTax, billCountry)}
+                                </Text>
+                              )}
+                              {mTip > 0 && (
+                                <Text className="text-sm text-muted-foreground">
+                                  {t.scan_tipPropina}: {formatCurrency(mTip, billCountry)}
+                                </Text>
+                              )}
+                            </View>
+                          )}
+
+                          <View className="mt-2 flex-row items-center gap-2">
+                            <Pressable
+                              onPress={() => handleTogglePaid(member.contactId)}
+                              className={cn(
+                                'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
+                                member.paid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
+                              )}
+                            >
+                              <IconSymbol
+                                name={member.paid ? 'checkmark.circle.fill' : 'circle'}
+                                size={14}
+                                color={member.paid ? '#10b981' : iconColors.muted}
+                              />
+                              <Text className={cn('text-sm font-medium', member.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
+                                {member.paid ? t.share_paid : t.share_unpaid}
+                              </Text>
+                            </Pressable>
+
+                            {member.phone && (
+                              <Pressable
+                                onPress={() => handleSendWhatsApp(member)}
+                                className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
+                              >
+                                <WhatsAppIcon size={14} />
+                                <Text className="text-sm font-medium text-[#25D366]">{t.share_whatsapp}</Text>
+                              </Pressable>
+                            )}
+
+                            <Pressable
+                              onPress={() => handleShareInfographic(bill.contacts.indexOf(member), member.name)}
+                              className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
+                            >
+                              <Share2 size={13} color={iconColors.muted} />
+                              <Text className="text-sm font-medium text-muted-foreground">{t.share_share}</Text>
+                            </Pressable>
+                          </View>
                         </View>
                       </View>
                       <Text className="text-xl font-bold tabular-nums text-foreground">
                         {formatCurrency(mTotal, billCountry)}
                       </Text>
-                    </View>
-
-                    {!isEqualSplit && (
-                      <View className="ml-[52px] flex-row flex-wrap">
-                        {member.items.map((ref) => {
-                          const item = bill.items.find((i) => i.id === ref.itemId);
-                          if (!item) return null;
-                          const totalUnits = bill.contacts.reduce((u, c) => {
-                            const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
-                            return u + (cRef ? cRef.units : 0);
-                          }, 0);
-                          const share = totalUnits > 0
-                            ? Math.round((ref.units / totalUnits) * item.subtotal)
-                            : Math.round(item.subtotal);
-                          return (
-                            <View key={ref.itemId} className="w-1/2 pr-2 mb-1">
-                              <Text className="text-sm text-foreground" numberOfLines={1}>
-                                {item.name} ({ref.units}/{totalUnits})
-                              </Text>
-                              <Text className="text-sm text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
-
-                    {!isEqualSplit && (
-                      <View className="ml-[52px] mt-2 flex-row items-center gap-3">
-                        {mTax > 0 && (
-                          <Text className="text-sm text-muted-foreground">
-                            {translatedTaxLabel}: {formatCurrency(mTax, billCountry)}
-                          </Text>
-                        )}
-                        {mTip > 0 && (
-                          <Text className="text-sm text-muted-foreground">
-                            {t.scan_tipPropina}: {formatCurrency(mTip, billCountry)}
-                          </Text>
-                        )}
-                      </View>
-                    )}
-
-                    <View className="ml-[52px] mt-3 flex-row items-center gap-2">
-                      <Pressable
-                        onPress={() => handleTogglePaid(member.contactId)}
-                        className={cn(
-                          'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
-                          member.paid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
-                        )}
-                      >
-                        <IconSymbol
-                          name={member.paid ? 'checkmark.circle.fill' : 'circle'}
-                          size={14}
-                          color={member.paid ? '#10b981' : iconColors.muted}
-                        />
-                        <Text className={cn('text-sm font-medium', member.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
-                          {member.paid ? t.share_paid : t.share_unpaid}
-                        </Text>
-                      </Pressable>
-
-                      {member.phone && (
-                        <Pressable
-                          onPress={() => handleSendWhatsApp(member)}
-                          className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
-                        >
-                          <WhatsAppIcon size={14} />
-                          <Text className="text-sm font-medium text-[#25D366]">{t.share_whatsapp}</Text>
-                        </Pressable>
-                      )}
-
-                      <Pressable
-                        onPress={() => handleShareInfographic(bill.contacts.indexOf(member), member.name)}
-                        className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
-                      >
-                        <Share2 size={13} color={iconColors.muted} />
-                        <Text className="text-sm font-medium text-muted-foreground">{t.share_share}</Text>
-                      </Pressable>
                     </View>
                   </View>
                 );
