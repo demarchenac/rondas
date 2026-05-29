@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -213,13 +213,22 @@ function PeopleSummary({
 
   const confirmGroup = useCallback(() => {
     const selectedIds = Array.from(selectedForGroup) as Id<'contacts'>[];
-    if (selectedIds.length < 2) return;
+    const expandedGroupIdList = Array.from(expandedGroupIds);
+    const isEditing = expandedGroupIdList.length > 0;
+
+    if (selectedIds.length < 2) {
+      if (!isEditing) return;
+      const updatedGroups = contactGroups.filter((g) => !expandedGroupIdList.includes(g.id));
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onUpdateGroups(updatedGroups);
+      cancelSelectMode();
+      return;
+    }
 
     const members = selectedIds
       .map((id) => contactTotalMap.get(String(id)))
       .filter((m): m is NonNullable<typeof m> => m != null);
 
-    const expandedGroupIdList = Array.from(expandedGroupIds);
     let updatedGroups = contactGroups.filter((g) => !expandedGroupIdList.includes(g.id));
 
     const newGroup: ContactGroup = {
@@ -233,20 +242,6 @@ function PeopleSummary({
     onUpdateGroups(updatedGroups);
     cancelSelectMode();
   }, [selectedForGroup, expandedGroupIds, contactGroups, contactTotalMap, t, onUpdateGroups, cancelSelectMode]);
-
-  const handleUngroup = useCallback((groupId: string) => {
-    Alert.alert(t.people_ungroup, t.people_ungroupConfirm, [
-      { text: t.cancel, style: 'cancel' },
-      {
-        text: t.people_ungroup,
-        style: 'destructive',
-        onPress: () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onUpdateGroups(contactGroups.filter((g) => g.id !== groupId));
-        },
-      },
-    ]);
-  }, [contactGroups, onUpdateGroups, t]);
 
   const handleNameEdit = useCallback((groupId: string, name: string) => {
     setEditingNameGroupId(groupId);
@@ -385,22 +380,6 @@ function PeopleSummary({
                   g.allMembersPaid ? 'border-l-emerald-500' : 'border-l-amber-500',
                 )}
               >
-                {/* Ungroup button — top right */}
-                <Pressable
-                  onPress={() => handleUngroup(g.id)}
-                  style={{ position: 'absolute', top: 4, right: 4, zIndex: 10, backgroundColor: 'transparent' }}
-                  hitSlop={8}
-                >
-                  {useGlass ? (
-                    <GlassView isInteractive tintColor={'#ef4444' + '1A'} style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
-                      <IconSymbol name="xmark" size={8} color="#ef4444" />
-                    </GlassView>
-                  ) : (
-                    <View className="h-5 w-5 items-center justify-center rounded-full bg-destructive/10">
-                      <IconSymbol name="xmark" size={8} color="#ef4444" />
-                    </View>
-                  )}
-                </Pressable>
                 {/* Stacked avatars */}
                 <View className="flex-row items-center gap-2">
                   <View className="flex-row">
@@ -537,25 +516,42 @@ function PeopleSummary({
           </ScrollView>
 
           {/* Confirm toolbar */}
-          <View className="mt-2 flex-row items-center gap-2 px-7">
-            <Pressable
-              onPress={confirmGroup}
-              disabled={selectedForGroup.size < 2}
-              style={{ flex: 1, backgroundColor: 'transparent' }}
-            >
-              {useGlass && selectedForGroup.size >= 2 ? (
-                <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text className="text-sm font-semibold text-primary">{t.people_groupCount(selectedForGroup.size)}</Text>
-                </GlassView>
-              ) : (
-                <View className={cn('items-center rounded-xl py-2.5', selectedForGroup.size >= 2 ? 'bg-primary' : 'bg-muted')}>
-                  <Text className={cn('text-sm font-semibold', selectedForGroup.size >= 2 ? 'text-primary-foreground' : 'text-muted-foreground')}>
-                    {t.people_groupCount(selectedForGroup.size)}
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-          </View>
+          {(() => {
+            const canGroup = selectedForGroup.size >= 2;
+            const isEditing = expandedGroupIds.size > 0;
+            const showUngroup = isEditing && !canGroup;
+            return (
+              <View className="mt-2 flex-row items-center gap-2 px-7">
+                <Pressable
+                  onPress={confirmGroup}
+                  disabled={!canGroup && !showUngroup}
+                  style={{ flex: 1, backgroundColor: 'transparent' }}
+                >
+                  {showUngroup ? (
+                    useGlass ? (
+                      <GlassView isInteractive tintColor={'#ef4444' + '1A'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
+                      </GlassView>
+                    ) : (
+                      <View className="items-center rounded-xl bg-destructive/10 py-2.5">
+                        <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
+                      </View>
+                    )
+                  ) : useGlass && canGroup ? (
+                    <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text className="text-sm font-semibold text-primary">{t.people_groupCount(selectedForGroup.size)}</Text>
+                    </GlassView>
+                  ) : (
+                    <View className={cn('items-center rounded-xl py-2.5', canGroup ? 'bg-primary' : 'bg-muted')}>
+                      <Text className={cn('text-sm font-semibold', canGroup ? 'text-primary-foreground' : 'text-muted-foreground')}>
+                        {t.people_groupCount(selectedForGroup.size)}
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              </View>
+            );
+          })()}
         </>
       )}
     </View>

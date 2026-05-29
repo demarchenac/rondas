@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image as RNImage, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image as RNImage, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -180,27 +180,6 @@ export default function ShareScreen() {
     setSelectedForGroup(new Set());
     setEditingGroupId(null);
   }, [bill, userId, selectedForGroup, editingGroupId, contactGroups, updateContactGroupsMut, id, t, alert]);
-
-  const handleUngroupFromShare = useCallback((groupId: string) => {
-    if (!userId) return;
-    Alert.alert(t.people_ungroup, t.people_ungroupConfirm, [
-      { text: t.cancel, style: 'cancel' },
-      {
-        text: t.people_ungroup,
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const updated = contactGroups.filter((g) => g.id !== groupId);
-            await updateContactGroupsMut({ id: id as Id<'bills'>, userId, groups: updated as any });
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          } catch {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            alert(t.error, t.error_mutationFailed);
-          }
-        },
-      },
-    ]);
-  }, [userId, contactGroups, updateContactGroupsMut, id, t, alert]);
 
   const handleShareInfographic = useCallback(async (contactIndex: number, contactName: string) => {
     const ref = infographicRefs.current[contactIndex];
@@ -471,7 +450,7 @@ export default function ShareScreen() {
           const tintBg = GROUP_TINTS_BG[gi % GROUP_TINTS_BG.length];
 
           return (
-            <Pressable key={group.id} onLongPress={() => handleUngroupFromShare(group.id)} className={cn('-mx-7 mb-4 px-7 py-4', tintBg)}>
+            <View key={group.id} className={cn('-mx-7 mb-4 px-7 py-4', tintBg)}>
               {/* Group label + edit button */}
               <View className="mb-3 flex-row items-center gap-2">
                 <Pressable
@@ -491,20 +470,6 @@ export default function ShareScreen() {
                   ) : (
                     <View className="h-[26px] w-[26px] items-center justify-center rounded-full bg-primary/10">
                       <IconSymbol name="pencil" size={12} color={iconColors.primary} />
-                    </View>
-                  )}
-                </Pressable>
-                <Pressable
-                  onPress={() => handleUngroupFromShare(group.id)}
-                  style={{ backgroundColor: 'transparent' }}
-                >
-                  {useGlass ? (
-                    <GlassView isInteractive tintColor={'#ef4444' + '1A'} style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }}>
-                      <IconSymbol name="xmark" size={10} color="#ef4444" />
-                    </GlassView>
-                  ) : (
-                    <View className="h-[26px] w-[26px] items-center justify-center rounded-full bg-destructive/10">
-                      <IconSymbol name="xmark" size={10} color="#ef4444" />
                     </View>
                   )}
                 </Pressable>
@@ -641,33 +606,47 @@ export default function ShareScreen() {
                   </Text>
                 </View>
               </View>
-            </Pressable>
+            </View>
           );
         })}
       </ScrollView>
 
       {/* Group confirm toolbar */}
-      {groupSelectMode && (
-        <View className="px-7 pb-4">
-          <Pressable
-            onPress={confirmGroupFromShare}
-            disabled={selectedForGroup.size < 2}
-            style={{ backgroundColor: 'transparent' }}
-          >
-            {useGlass && selectedForGroup.size >= 2 ? (
-              <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
-                <Text className="text-sm font-semibold text-primary">{t.people_groupCount(selectedForGroup.size)}</Text>
-              </GlassView>
-            ) : (
-              <View className={cn('items-center rounded-xl py-3.5', selectedForGroup.size >= 2 ? 'bg-primary' : 'bg-muted')}>
-                <Text className={cn('text-sm font-semibold', selectedForGroup.size >= 2 ? 'text-primary-foreground' : 'text-muted-foreground')}>
-                  {t.people_groupCount(selectedForGroup.size)}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        </View>
-      )}
+      {groupSelectMode && (() => {
+        const canGroup = selectedForGroup.size >= 2;
+        const showUngroup = editingGroupId && !canGroup;
+        return (
+          <View className="px-7 pb-4">
+            <Pressable
+              onPress={confirmGroupFromShare}
+              disabled={!canGroup && !showUngroup}
+              style={{ backgroundColor: 'transparent' }}
+            >
+              {showUngroup ? (
+                useGlass ? (
+                  <GlassView isInteractive tintColor={'#ef4444' + '1A'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
+                  </GlassView>
+                ) : (
+                  <View className="items-center rounded-xl bg-destructive/10 py-3.5">
+                    <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
+                  </View>
+                )
+              ) : useGlass && canGroup ? (
+                <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text className="text-sm font-semibold text-primary">{t.people_groupCount(selectedForGroup.size)}</Text>
+                </GlassView>
+              ) : (
+                <View className={cn('items-center rounded-xl py-3.5', canGroup ? 'bg-primary' : 'bg-muted')}>
+                  <Text className={cn('text-sm font-semibold', canGroup ? 'text-primary-foreground' : 'text-muted-foreground')}>
+                    {t.people_groupCount(selectedForGroup.size)}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          </View>
+        );
+      })()}
 
       <InfographicPreview
         uri={previewUri}
