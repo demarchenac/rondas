@@ -500,7 +500,7 @@ export default function ShareScreen() {
         {/* Ungrouped contacts */}
         {ungroupedContacts.map((contact, ci) => renderContactRow(contact, ci))}
 
-        {/* Group rows — individual members inside colored card */}
+        {/* Grouped contacts — inline rows with tinted background */}
         {contactGroups.map((group, gi) => {
           const members = group.contactIds
             .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
@@ -511,47 +511,45 @@ export default function ShareScreen() {
           const groupTotal = memberTotals.reduce((sum, mt) => sum + mt.total, 0);
           const groupTax = memberTotals.reduce((sum, mt) => sum + mt.tax, 0);
           const groupTip = memberTotals.reduce((sum, mt) => sum + mt.tip, 0);
-          const allPaid = members.every((m) => m.paid);
           const tintBg = GROUP_TINTS_BG[gi % GROUP_TINTS_BG.length];
-          const hasPhoneMembers = members.some((m) => m.phone);
 
           return (
-            <Pressable key={group.id} onLongPress={() => handleUngroupFromShare(group.id)} className={cn('mb-4 rounded-2xl px-3 pt-3 pb-4', tintBg)}>
-              {/* Group header */}
-              <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.name}</Text>
+            <Pressable key={group.id} onLongPress={() => handleUngroupFromShare(group.id)} className={cn('-mx-7 mb-4 px-7 py-4', tintBg)}>
+              {/* Group label */}
+              <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.name}</Text>
 
-              {/* Individual member rows */}
-              {members.map((member) => {
-                const { total: mTotal } = computeContactTotal(member);
+              {/* Individual member rows — same layout as ungrouped */}
+              {members.map((member, mi) => {
+                const { total: mTotal, tax: mTax, tip: mTip } = computeContactTotal(member);
                 return (
-                  <View key={String(member.contactId)} className="mb-3">
+                  <View key={String(member.contactId)} className={cn(mi < members.length - 1 && 'mb-4')}>
                     <View className="flex-row items-center justify-between">
                       <View className="flex-row items-center gap-3">
                         {member.imageUri ? (
-                          <Image source={{ uri: member.imageUri }} className="w-9 h-9 rounded-full" />
+                          <Image source={{ uri: member.imageUri }} className="w-10 h-10 rounded-full" />
                         ) : (
-                          <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
-                            <Text className="text-base font-bold" style={{ color: iconColors.primary }}>
+                          <View className="w-10 h-10 rounded-full items-center justify-center bg-primary/10">
+                            <Text className="text-lg font-bold" style={{ color: iconColors.primary }}>
                               {member.name[0]?.toUpperCase() ?? '?'}
                             </Text>
                           </View>
                         )}
                         <View>
-                          <Text className="text-base font-semibold text-foreground">
+                          <Text className="text-lg font-semibold text-foreground">
                             {member.isSelf ? t.self_label(member.name) : member.name}
                           </Text>
-                          <Text className="text-xs text-muted-foreground">
+                          <Text className="text-sm text-muted-foreground">
                             {isEqualSplit ? t.share_equalSplit : t.share_itemCount(member.items.length)}
                           </Text>
                         </View>
                       </View>
-                      <Text className="text-base font-bold tabular-nums text-foreground">
+                      <Text className="text-xl font-bold tabular-nums text-foreground">
                         {formatCurrency(mTotal, billCountry)}
                       </Text>
                     </View>
 
                     {!isEqualSplit && (
-                      <View className="ml-12 mt-1.5 flex-row flex-wrap">
+                      <View className="ml-[52px] mt-2 flex-row flex-wrap">
                         {member.items.map((ref) => {
                           const item = bill.items.find((i) => i.id === ref.itemId);
                           if (!item) return null;
@@ -563,69 +561,92 @@ export default function ShareScreen() {
                             ? Math.round((ref.units / totalUnits) * item.subtotal)
                             : Math.round(item.subtotal);
                           return (
-                            <View key={ref.itemId} className="w-1/2 pr-2 mb-0.5">
-                              <Text className="text-xs text-foreground" numberOfLines={1}>
+                            <View key={ref.itemId} className="w-1/2 pr-2 mb-1">
+                              <Text className="text-sm text-foreground" numberOfLines={1}>
                                 {item.name} ({ref.units}/{totalUnits})
                               </Text>
-                              <Text className="text-xs text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
+                              <Text className="text-sm text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
                             </View>
                           );
                         })}
                       </View>
                     )}
+
+                    {!isEqualSplit && (
+                      <View className="ml-[52px] mt-2 flex-row items-center gap-3">
+                        {mTax > 0 && (
+                          <Text className="text-sm text-muted-foreground">
+                            {translatedTaxLabel}: {formatCurrency(mTax, billCountry)}
+                          </Text>
+                        )}
+                        {mTip > 0 && (
+                          <Text className="text-sm text-muted-foreground">
+                            {t.scan_tipPropina}: {formatCurrency(mTip, billCountry)}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+
+                    <View className="ml-[52px] mt-3 flex-row items-center gap-2">
+                      <Pressable
+                        onPress={() => handleTogglePaid(member.contactId)}
+                        className={cn(
+                          'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
+                          member.paid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
+                        )}
+                      >
+                        <IconSymbol
+                          name={member.paid ? 'checkmark.circle.fill' : 'circle'}
+                          size={14}
+                          color={member.paid ? '#10b981' : iconColors.muted}
+                        />
+                        <Text className={cn('text-sm font-medium', member.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
+                          {member.paid ? t.share_paid : t.share_unpaid}
+                        </Text>
+                      </Pressable>
+
+                      {member.phone && (
+                        <Pressable
+                          onPress={() => handleSendWhatsApp(member)}
+                          className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
+                        >
+                          <WhatsAppIcon size={14} />
+                          <Text className="text-sm font-medium text-[#25D366]">{t.share_whatsapp}</Text>
+                        </Pressable>
+                      )}
+
+                      <Pressable
+                        onPress={() => handleShareInfographic(bill.contacts.indexOf(member), member.name)}
+                        className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
+                      >
+                        <Share2 size={13} color={iconColors.muted} />
+                        <Text className="text-sm font-medium text-muted-foreground">{t.share_share}</Text>
+                      </Pressable>
+                    </View>
                   </View>
                 );
               })}
 
-              {/* Group summary */}
-              <View className="mt-1 border-t border-foreground/10 pt-2">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-3">
-                    {groupTax > 0 && (
-                      <Text className="text-xs text-muted-foreground">
-                        {translatedTaxLabel}: {formatCurrency(groupTax, billCountry)}
-                      </Text>
-                    )}
-                    {groupTip > 0 && (
-                      <Text className="text-xs text-muted-foreground">
-                        {t.scan_tipPropina}: {formatCurrency(groupTip, billCountry)}
-                      </Text>
-                    )}
-                  </View>
-                  <Text className="text-lg font-bold tabular-nums text-foreground">
+              {/* Group total row */}
+              <View className="mt-4 border-t border-foreground/10 pt-3">
+                <View className="flex-row items-center gap-3">
+                  {groupTax > 0 && (
+                    <Text className="text-sm text-muted-foreground">
+                      {translatedTaxLabel}: {formatCurrency(groupTax, billCountry)}
+                    </Text>
+                  )}
+                  {groupTip > 0 && (
+                    <Text className="text-sm text-muted-foreground">
+                      {t.scan_tipPropina}: {formatCurrency(groupTip, billCountry)}
+                    </Text>
+                  )}
+                </View>
+                <View className="mt-1 flex-row items-center justify-between">
+                  <Text className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t.bill_total}</Text>
+                  <Text className="text-xl font-bold tabular-nums text-foreground">
                     {formatCurrency(groupTotal, billCountry)}
                   </Text>
                 </View>
-              </View>
-
-              {/* Group actions */}
-              <View className="mt-3 flex-row items-center gap-2">
-                <Pressable
-                  onPress={() => handleToggleGroupPaid(group.id)}
-                  className={cn(
-                    'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
-                    allPaid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
-                  )}
-                >
-                  <IconSymbol
-                    name={allPaid ? 'checkmark.circle.fill' : 'circle'}
-                    size={14}
-                    color={allPaid ? '#10b981' : iconColors.muted}
-                  />
-                  <Text className={cn('text-sm font-medium', allPaid ? 'text-emerald-500' : 'text-muted-foreground')}>
-                    {allPaid ? t.share_paid : t.share_unpaid}
-                  </Text>
-                </Pressable>
-
-                {hasPhoneMembers && (
-                  <Pressable
-                    onPress={() => handleOpenMemberPicker(group.id)}
-                    className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
-                  >
-                    <WhatsAppIcon size={14} />
-                    <Text className="text-sm font-medium text-[#25D366]">{t.share_whatsapp}</Text>
-                  </Pressable>
-                )}
               </View>
             </Pressable>
           );
@@ -656,7 +677,7 @@ export default function ShareScreen() {
       )}
 
       {/* Member picker sheet for group WhatsApp */}
-      <TrueSheet ref={memberPickerRef} name="member-picker" detents={['auto']} cornerRadius={20}>
+      <TrueSheet ref={memberPickerRef} name="member-picker" detents={['auto']} cornerRadius={20} backgroundColor={colorScheme === 'dark' ? '#0f172a' : '#fafbfc'}>
         <View className="px-7 pb-8 pt-4">
           <Text className="mb-4 text-lg font-bold text-foreground">{t.people_selectMembers}</Text>
           {memberPickerGroupId && contactGroups.find((g) => g.id === memberPickerGroupId)?.contactIds.map((cid) => {
