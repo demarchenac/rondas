@@ -13,8 +13,8 @@
     "build:production": "eas build --profile production --platform ios --auto-submit --non-interactive --no-wait",
     "submit:preview": "APP_VARIANT=preview eas submit --profile preview --platform ios --non-interactive --no-wait",
     "submit:production": "eas submit --profile production --platform ios --non-interactive --no-wait",
-    "ota:preview": "APP_VARIANT=preview eas update --channel preview --environment preview --non-interactive",
-    "ota:production": "eas update --channel production --environment production --non-interactive"
+    "ota:preview": "APP_VARIANT=preview eas update --channel preview --environment preview --non-interactive --auto",
+    "ota:production": "eas update --channel production --environment production --non-interactive --auto"
   },
   "dependencies": {
     "@babel/traverse--for-generate-function-map": "npm:@babel/traverse@^7.29.0",

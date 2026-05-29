@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image as RNImage, Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Image as RNImage, Linking, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { useQuery, useMutation } from 'convex/react';
 import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
+import { randomUUID } from 'expo-crypto';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 
@@ -51,6 +52,7 @@ export default function ShareScreen() {
   const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
   const togglePaid = useMutation(api.bills.togglePaymentStatus);
   const toggleGroupPaidMut = useMutation(api.bills.toggleGroupPaymentStatus);
+  const updateContactGroupsMut = useMutation(api.bills.updateContactGroups);
 
   const infographicRefs = useRef<Record<number, ViewShotRef | null>>({});
   const [capturingIndex, setCapturingIndex] = useState<number | null>(null);
@@ -61,6 +63,9 @@ export default function ShareScreen() {
   const memberPickerRef = useRef<TrueSheet>(null);
   const [memberPickerGroupId, setMemberPickerGroupId] = useState<string | null>(null);
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
+
+  const [groupSelectMode, setGroupSelectMode] = useState(false);
+  const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
 
   const billCountry = (bill?.country as 'CO' | 'US') || 'CO';
   const billCategory = (bill?.tags?.find((t) => t.isPlatform)?.slug || 'dining') as ReceiptCategory;
@@ -191,6 +196,63 @@ export default function ShareScreen() {
     setMemberPickerGroupId(null);
   }, [bill, memberPickerGroupId, contactGroups, selectedMemberIds, computeContactTotal, t]);
 
+  const toggleGroupSelection = useCallback((contactId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedForGroup((prev) => {
+      const next = new Set(prev);
+      if (next.has(contactId)) next.delete(contactId);
+      else next.add(contactId);
+      return next;
+    });
+  }, []);
+
+  const confirmGroupFromShare = useCallback(async () => {
+    if (!bill || !userId) return;
+    const selectedIds = Array.from(selectedForGroup) as Id<'contacts'>[];
+    if (selectedIds.length < 2) return;
+
+    const members = selectedIds
+      .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
+      .filter((c): c is NonNullable<typeof c> => c != null);
+
+    const names = members.map((m) => m.isSelf ? t.self_label(m.name) : m.name);
+    const groupName = names.length <= 2 ? names.join(', ') : `${names[0]}, ${names[1]} +${names.length - 2}`;
+
+    const newGroup = { id: randomUUID(), contactIds: selectedIds, name: groupName };
+    const updated = [...contactGroups, newGroup];
+
+    try {
+      await updateContactGroupsMut({ id: id as Id<'bills'>, userId, groups: updated as any });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      alert(t.error, t.error_mutationFailed);
+    }
+    setGroupSelectMode(false);
+    setSelectedForGroup(new Set());
+  }, [bill, userId, selectedForGroup, contactGroups, updateContactGroupsMut, id, t, alert]);
+
+  const handleUngroupFromShare = useCallback((groupId: string) => {
+    if (!userId) return;
+    Alert.alert(t.people_ungroup, t.people_ungroupConfirm, [
+      { text: t.cancel, style: 'cancel' },
+      {
+        text: t.people_ungroup,
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const updated = contactGroups.filter((g) => g.id !== groupId);
+            await updateContactGroupsMut({ id: id as Id<'bills'>, userId, groups: updated as any });
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          } catch {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            alert(t.error, t.error_mutationFailed);
+          }
+        },
+      },
+    ]);
+  }, [userId, contactGroups, updateContactGroupsMut, id, t, alert]);
+
   const handleShareInfographic = useCallback(async (contactIndex: number, contactName: string) => {
     const ref = infographicRefs.current[contactIndex];
     if (!ref?.capture) return;
@@ -233,15 +295,29 @@ export default function ShareScreen() {
 
   const renderContactRow = (contact: typeof bill.contacts[0], ci: number) => {
     const { total: contactTotal, tax: contactTax, tip: contactTip } = computeContactTotal(contact);
+    const isInGroup = groupedContactIds.has(String(contact.contactId));
+    const isSelected = selectedForGroup.has(String(contact.contactId));
 
     return (
-      <View key={ci} className="mb-4">
+      <Pressable
+        key={ci}
+        className="mb-4"
+        onPress={groupSelectMode && !isInGroup ? () => toggleGroupSelection(String(contact.contactId)) : undefined}
+        disabled={!groupSelectMode || isInGroup}
+      >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
+            {groupSelectMode && !isInGroup && (
+              <IconSymbol
+                name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+                size={22}
+                color={isSelected ? iconColors.primary : iconColors.mutedLight}
+              />
+            )}
             {contact.imageUri ? (
-              <Image source={{ uri: contact.imageUri }} className="w-10 h-10 rounded-full" />
+              <Image source={{ uri: contact.imageUri }} className="w-10 h-10 rounded-full" style={groupSelectMode && isInGroup ? { opacity: 0.4 } : undefined} />
             ) : (
-              <View className="w-10 h-10 rounded-full items-center justify-center bg-primary/10">
+              <View className="w-10 h-10 rounded-full items-center justify-center bg-primary/10" style={groupSelectMode && isInGroup ? { opacity: 0.4 } : undefined}>
                 <Text className="text-lg font-bold" style={{ color: iconColors.primary }}>
                   {contact.name[0]?.toUpperCase() ?? '?'}
                 </Text>
@@ -306,46 +382,48 @@ export default function ShareScreen() {
           </View>
         )}
 
-        <View className="ml-[52px] mt-3 flex-row items-center gap-2">
-          <Pressable
-            onPress={() => handleTogglePaid(contact.contactId)}
-            className={cn(
-              'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
-              contact.paid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
-            )}
-          >
-            <IconSymbol
-              name={contact.paid ? 'checkmark.circle.fill' : 'circle'}
-              size={14}
-              color={contact.paid ? '#10b981' : iconColors.muted}
-            />
-            <Text className={cn('text-sm font-medium', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
-              {contact.paid ? t.share_paid : t.share_unpaid}
-            </Text>
-          </Pressable>
-
-          {contact.phone && (
+        {!groupSelectMode && (
+          <View className="ml-[52px] mt-3 flex-row items-center gap-2">
             <Pressable
-              onPress={() => handleSendWhatsApp(contact)}
-              className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
+              onPress={() => handleTogglePaid(contact.contactId)}
+              className={cn(
+                'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
+                contact.paid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
+              )}
             >
-              <WhatsAppIcon size={14} />
-              <Text className="text-sm font-medium text-[#25D366]">{t.share_whatsapp}</Text>
+              <IconSymbol
+                name={contact.paid ? 'checkmark.circle.fill' : 'circle'}
+                size={14}
+                color={contact.paid ? '#10b981' : iconColors.muted}
+              />
+              <Text className={cn('text-sm font-medium', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
+                {contact.paid ? t.share_paid : t.share_unpaid}
+              </Text>
             </Pressable>
-          )}
 
-          <Pressable
-            onPress={() => handleShareInfographic(ci, contact.name)}
-            className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
-          >
-            {capturingIndex === ci ? (
-              <ActivityIndicator size="small" color={iconColors.muted} />
-            ) : (
-              <Share2 size={13} color={iconColors.muted} />
+            {contact.phone && (
+              <Pressable
+                onPress={() => handleSendWhatsApp(contact)}
+                className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
+              >
+                <WhatsAppIcon size={14} />
+                <Text className="text-sm font-medium text-[#25D366]">{t.share_whatsapp}</Text>
+              </Pressable>
             )}
-            <Text className="text-sm font-medium text-muted-foreground">{t.share_share}</Text>
-          </Pressable>
-        </View>
+
+            <Pressable
+              onPress={() => handleShareInfographic(ci, contact.name)}
+              className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
+            >
+              {capturingIndex === ci ? (
+                <ActivityIndicator size="small" color={iconColors.muted} />
+              ) : (
+                <Share2 size={13} color={iconColors.muted} />
+              )}
+              <Text className="text-sm font-medium text-muted-foreground">{t.share_share}</Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* Offscreen infographic */}
         <View style={{ position: 'absolute', left: -9999 }}>
@@ -374,7 +452,7 @@ export default function ShareScreen() {
             />
           </ViewShot>
         </View>
-      </View>
+      </Pressable>
     );
   };
 
@@ -385,7 +463,24 @@ export default function ShareScreen() {
         <Pressable onPress={() => router.back()} className="active:opacity-80">
           <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
         </Pressable>
-        <Text className="text-2xl font-bold text-foreground">{t.share_title}</Text>
+        <Text className="flex-1 text-2xl font-bold text-foreground">{t.share_title}</Text>
+        {bill.contacts.length >= 2 && !groupSelectMode && (
+          <Pressable
+            onPress={() => { setGroupSelectMode(true); setSelectedForGroup(new Set()); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+            className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 active:opacity-70"
+          >
+            <IconSymbol name="rectangle.stack.person.crop" size={14} color={iconColors.primary} />
+            <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+          </Pressable>
+        )}
+        {groupSelectMode && (
+          <Pressable
+            onPress={() => { setGroupSelectMode(false); setSelectedForGroup(new Set()); }}
+            className="rounded-full bg-muted px-2.5 py-1 active:opacity-70"
+          >
+            <Text className="text-xs font-semibold text-muted-foreground">{t.cancel}</Text>
+          </Pressable>
+        )}
       </View>
 
       <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
@@ -405,7 +500,7 @@ export default function ShareScreen() {
           const hasPhoneMembers = members.some((m) => m.phone);
 
           return (
-            <View key={group.id} className={cn('mb-4 rounded-xl p-3', tintBg)}>
+            <Pressable key={group.id} onLongPress={() => handleUngroupFromShare(group.id)} className={cn('mb-4 rounded-xl p-3', tintBg)}>
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-3">
                   {/* Stacked avatars */}
@@ -468,10 +563,33 @@ export default function ShareScreen() {
                   </Pressable>
                 )}
               </View>
-            </View>
+            </Pressable>
           );
         })}
       </ScrollView>
+
+      {/* Group confirm toolbar */}
+      {groupSelectMode && (
+        <View className="px-7 pb-4">
+          <Pressable
+            onPress={confirmGroupFromShare}
+            disabled={selectedForGroup.size < 2}
+            className={cn(
+              'items-center rounded-xl py-3',
+              selectedForGroup.size >= 2 ? 'bg-primary active:opacity-80' : 'bg-muted',
+            )}
+          >
+            <Text
+              className={cn(
+                'text-sm font-semibold',
+                selectedForGroup.size >= 2 ? 'text-primary-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {t.people_groupCount(selectedForGroup.size)}
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Member picker sheet for group WhatsApp */}
       <TrueSheet ref={memberPickerRef} name="member-picker" detents={['auto']} cornerRadius={20}>
