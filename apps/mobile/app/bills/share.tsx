@@ -67,6 +67,7 @@ export default function ShareScreen() {
 
   const [groupSelectMode, setGroupSelectMode] = useState(false);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
 
   const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
 
@@ -212,17 +213,27 @@ export default function ShareScreen() {
   const confirmGroupFromShare = useCallback(async () => {
     if (!bill || !userId) return;
     const selectedIds = Array.from(selectedForGroup) as Id<'contacts'>[];
-    if (selectedIds.length < 2) return;
 
     const members = selectedIds
       .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
       .filter((c): c is NonNullable<typeof c> => c != null);
 
-    const names = members.map((m) => m.isSelf ? t.self_label(m.name) : m.name);
-    const groupName = names.length <= 2 ? names.join(', ') : `${names[0]}, ${names[1]} +${names.length - 2}`;
+    let updated: typeof contactGroups;
 
-    const newGroup = { id: randomUUID(), contactIds: selectedIds, name: groupName };
-    const updated = [...contactGroups, newGroup];
+    if (editingGroupId) {
+      if (selectedIds.length < 2) {
+        updated = contactGroups.filter((g) => g.id !== editingGroupId);
+      } else {
+        const names = members.map((m) => m.isSelf ? t.self_label(m.name) : m.name);
+        const groupName = names.length <= 2 ? names.join(', ') : `${names[0]}, ${names[1]} +${names.length - 2}`;
+        updated = contactGroups.map((g) => g.id === editingGroupId ? { ...g, contactIds: selectedIds, name: groupName } : g);
+      }
+    } else {
+      if (selectedIds.length < 2) return;
+      const names = members.map((m) => m.isSelf ? t.self_label(m.name) : m.name);
+      const groupName = names.length <= 2 ? names.join(', ') : `${names[0]}, ${names[1]} +${names.length - 2}`;
+      updated = [...contactGroups, { id: randomUUID(), contactIds: selectedIds, name: groupName }];
+    }
 
     try {
       await updateContactGroupsMut({ id: id as Id<'bills'>, userId, groups: updated as any });
@@ -234,7 +245,8 @@ export default function ShareScreen() {
     }
     setGroupSelectMode(false);
     setSelectedForGroup(new Set());
-  }, [bill, userId, selectedForGroup, contactGroups, updateContactGroupsMut, id, t, alert]);
+    setEditingGroupId(null);
+  }, [bill, userId, selectedForGroup, editingGroupId, contactGroups, updateContactGroupsMut, id, t, alert]);
 
   const handleUngroupFromShare = useCallback((groupId: string) => {
     if (!userId) return;
@@ -470,7 +482,7 @@ export default function ShareScreen() {
         <Text className="flex-1 text-2xl font-bold text-foreground">{t.share_title}</Text>
         {bill.contacts.length >= 2 && !groupSelectMode && (
           <Pressable
-            onPress={() => { setGroupSelectMode(true); setSelectedForGroup(new Set()); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+            onPress={() => { setGroupSelectMode(true); setSelectedForGroup(new Set()); setEditingGroupId(null); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
             style={{ backgroundColor: 'transparent' }}
           >
             {useGlass ? (
@@ -488,7 +500,7 @@ export default function ShareScreen() {
         )}
         {groupSelectMode && (
           <Pressable
-            onPress={() => { setGroupSelectMode(false); setSelectedForGroup(new Set()); }}
+            onPress={() => { setGroupSelectMode(false); setSelectedForGroup(new Set()); setEditingGroupId(null); }}
             className="rounded-full bg-muted px-2.5 py-1 active:opacity-70"
           >
             <Text className="text-xs font-semibold text-muted-foreground">{t.cancel}</Text>
@@ -515,8 +527,30 @@ export default function ShareScreen() {
 
           return (
             <Pressable key={group.id} onLongPress={() => handleUngroupFromShare(group.id)} className={cn('-mx-7 mb-4 px-7 py-4', tintBg)}>
-              {/* Group label */}
-              <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.name}</Text>
+              {/* Group label + edit button */}
+              <View className="mb-3 flex-row items-center gap-2">
+                <Pressable
+                  onPress={() => {
+                    setGroupSelectMode(true);
+                    setEditingGroupId(group.id);
+                    const memberIds = new Set(members.map((m) => String(m.contactId)));
+                    setSelectedForGroup(memberIds);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  style={{ backgroundColor: 'transparent' }}
+                >
+                  {useGlass ? (
+                    <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }}>
+                      <IconSymbol name="pencil" size={12} color={iconColors.primary} />
+                    </GlassView>
+                  ) : (
+                    <View className="h-[26px] w-[26px] items-center justify-center rounded-full bg-primary/10">
+                      <IconSymbol name="pencil" size={12} color={iconColors.primary} />
+                    </View>
+                  )}
+                </Pressable>
+                <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.name}</Text>
+              </View>
 
               {/* Individual member rows — same layout as ungrouped */}
               {members.map((member, mi) => {
