@@ -243,7 +243,7 @@ export default function ShareScreen() {
         disabled={!isSelectable}
       >
         <View className="flex-row items-start justify-between">
-          <View className="flex-1 flex-row items-center gap-3">
+          <View className="flex-1 flex-row items-start gap-3">
             {groupSelectMode && !isLocked && (
               <IconSymbol
                 name={isSelected ? 'checkmark.circle.fill' : 'circle'}
@@ -480,7 +480,7 @@ export default function ShareScreen() {
                 return (
                   <View key={String(member.contactId)} className={cn(mi < members.length - 1 && 'mb-4')}>
                     <View className="flex-row items-start justify-between">
-                      <View className="flex-1 flex-row items-center gap-3">
+                      <View className="flex-1 flex-row items-start gap-3">
                         {member.imageUri ? (
                           <Image source={{ uri: member.imageUri }} className="w-10 h-10 rounded-full" />
                         ) : (
@@ -584,9 +584,9 @@ export default function ShareScreen() {
               })}
 
               {/* Group total row */}
-              <View className="mt-4 border-t border-foreground/10 pt-3">
+              <View className="ml-[52px] mt-4 border-t border-foreground/10 pt-3">
                 {(groupTax > 0 || groupTip > 0) && (
-                  <View className="mb-1 flex-row items-center justify-end gap-3">
+                  <View className="mb-1 flex-row items-center gap-3">
                     {groupTax > 0 && (
                       <Text className="text-sm text-muted-foreground">
                         {translatedTaxLabel}: {formatCurrency(groupTax, billCountry)}
@@ -599,7 +599,7 @@ export default function ShareScreen() {
                     )}
                   </View>
                 )}
-                <View className="flex-row items-center justify-end gap-2">
+                <View className="flex-row items-center justify-between">
                   <Text className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t.bill_total}</Text>
                   <Text className="text-xl font-bold tabular-nums text-foreground">
                     {formatCurrency(groupTotal, billCountry)}
