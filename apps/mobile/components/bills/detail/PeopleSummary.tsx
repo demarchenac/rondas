@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
-import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { GlassView } from 'expo-glass-effect';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { randomUUID } from 'expo-crypto';
@@ -61,6 +61,7 @@ interface PeopleSummaryProps {
   contactGroups?: ContactGroup[];
   onUpdateGroups: (groups: ContactGroup[]) => void;
   onToggleGroupPaid: (groupId: string) => void;
+  useGlass?: boolean;
 }
 
 function generateGroupName(members: ResolvedContact[], t: Translations): string {
@@ -83,13 +84,13 @@ function PeopleSummary({
   contactGroups = [],
   onUpdateGroups,
   onToggleGroupPaid,
+  useGlass = false,
 }: PeopleSummaryProps) {
   const { unlocked, showPaywall } = useProGate();
   const paidCount = contacts.filter((c) => c.paid).length;
   const allPaid = paidCount === contacts.length;
 
   const isEqualSplit = splitStrategy === 'equal';
-  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
 
   const [groupSelectMode, setGroupSelectMode] = useState(false);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
