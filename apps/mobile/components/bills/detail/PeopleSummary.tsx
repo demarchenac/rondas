@@ -351,7 +351,7 @@ function PeopleSummary({
               <Pressable
                 onPress={() => handleToggle(c.contactId)}
                 className={cn(
-                  'w-[140px] rounded-xl border-l-[3px] bg-card px-3.5 py-2 active:opacity-80',
+                  'w-[160px] rounded-xl border-l-[3px] bg-card px-3.5 py-2 active:opacity-80',
                   c.paid ? 'border-l-emerald-500' : 'border-l-amber-500',
                 )}
               >
@@ -383,7 +383,7 @@ function PeopleSummary({
                 className={cn(
                   'w-[160px] rounded-xl border-l-[3px] px-3.5 py-2 active:opacity-80',
                   g.tint.bg,
-                  g.tint.border,
+                  g.allMembersPaid ? 'border-l-emerald-500' : 'border-l-amber-500',
                 )}
               >
                 {/* Stacked avatars */}
