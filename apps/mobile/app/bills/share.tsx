@@ -275,7 +275,7 @@ export default function ShareScreen() {
         </View>
 
         {!isEqualSplit && (
-          <View className="mt-0 flex-row flex-wrap">
+          <View className="ml-[52px] flex-row flex-wrap">
             {contact.items.map((ref) => {
               const item = bill.items.find((i) => i.id === ref.itemId);
               if (!item) return null;
@@ -299,13 +299,13 @@ export default function ShareScreen() {
         )}
 
         {isEqualSplit && (
-          <View className=" mt-2">
+          <View className="ml-[52px] mt-2">
             <Text className="text-sm text-muted-foreground">{t.share_equalSplit}</Text>
           </View>
         )}
 
         {!isEqualSplit && (
-          <View className=" mt-2 flex-row items-center gap-3">
+          <View className="ml-[52px] mt-2 flex-row items-center gap-3">
             {contactTax > 0 && (
               <Text className="text-sm text-muted-foreground">
                 {translatedTaxLabel}: {formatCurrency(contactTax, billCountry)}
@@ -320,7 +320,7 @@ export default function ShareScreen() {
         )}
 
         {!groupSelectMode && (
-          <View className=" mt-3 flex-row items-center gap-2">
+          <View className="ml-[52px] mt-3 flex-row items-center gap-2">
             <Pressable
               onPress={() => handleTogglePaid(contact.contactId)}
               className={cn(
@@ -507,7 +507,7 @@ export default function ShareScreen() {
                     </View>
 
                     {!isEqualSplit && (
-                      <View className="mt-0 flex-row flex-wrap">
+                      <View className="ml-[52px] flex-row flex-wrap">
                         {member.items.map((ref) => {
                           const item = bill.items.find((i) => i.id === ref.itemId);
                           if (!item) return null;
@@ -531,7 +531,7 @@ export default function ShareScreen() {
                     )}
 
                     {!isEqualSplit && (
-                      <View className=" mt-2 flex-row items-center gap-3">
+                      <View className="ml-[52px] mt-2 flex-row items-center gap-3">
                         {mTax > 0 && (
                           <Text className="text-sm text-muted-foreground">
                             {translatedTaxLabel}: {formatCurrency(mTax, billCountry)}
@@ -545,7 +545,7 @@ export default function ShareScreen() {
                       </View>
                     )}
 
-                    <View className=" mt-3 flex-row items-center gap-2">
+                    <View className="ml-[52px] mt-3 flex-row items-center gap-2">
                       <Pressable
                         onPress={() => handleTogglePaid(member.contactId)}
                         className={cn(
