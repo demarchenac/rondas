@@ -275,7 +275,7 @@ export default function ShareScreen() {
         </View>
 
         {!isEqualSplit && (
-          <View className="ml-[52px] mt-1 flex-row flex-wrap">
+          <View className="ml-[52px] mt-0 flex-row flex-wrap">
             {contact.items.map((ref) => {
               const item = bill.items.find((i) => i.id === ref.itemId);
               if (!item) return null;
@@ -507,7 +507,7 @@ export default function ShareScreen() {
                     </View>
 
                     {!isEqualSplit && (
-                      <View className="ml-[52px] mt-1 flex-row flex-wrap">
+                      <View className="ml-[52px] mt-0 flex-row flex-wrap">
                         {member.items.map((ref) => {
                           const item = bill.items.find((i) => i.id === ref.itemId);
                           if (!item) return null;
