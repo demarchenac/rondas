@@ -6,6 +6,7 @@ import {
   billStateValidator,
   splitStrategyValidator,
   billItemValidator,
+  contactGroupValidator,
   locationValidator,
   contactArgValidator,
 } from './validators';
@@ -358,9 +359,14 @@ export const update = mutation({
     const displayTotal = computeDisplayTotal(newItems, mergedBill, platformSlug);
     const derived = computeDerivedFields(newItems, contacts);
 
+    const contactGroups = contacts.length < bill.contacts.length
+      ? cleanupContactGroups(contacts, bill.contactGroups)
+      : bill.contactGroups;
+
     await ctx.db.patch(id, {
       ...defined,
       contacts,
+      contactGroups,
       total: newTotal,
       displayTotal,
       ...derived,
@@ -478,8 +484,9 @@ export const removeContactFromItem = mutation({
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated, bill.splitStrategy);
     const derived = computeDerivedFields(bill.items, updated);
+    const contactGroups = cleanupContactGroups(updated, bill.contactGroups);
 
-    await ctx.db.patch(args.id, { contacts: updated, state, ...derived });
+    await ctx.db.patch(args.id, { contacts: updated, state, contactGroups, ...derived });
   },
 });
 
@@ -514,8 +521,9 @@ export const removeContactsFromItems = mutation({
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(bill.items, updated, bill.splitStrategy);
     const derived = computeDerivedFields(bill.items, updated);
+    const contactGroups = cleanupContactGroups(updated, bill.contactGroups);
 
-    await ctx.db.patch(args.id, { contacts: updated, state, ...derived });
+    await ctx.db.patch(args.id, { contacts: updated, state, contactGroups, ...derived });
   },
 });
 
@@ -638,6 +646,73 @@ export const assignEqualSplit = mutation({
   },
 });
 
+// --- Contact group mutations ---
+
+function cleanupContactGroups(
+  contacts: ContactRef[],
+  contactGroups: { id: string; contactIds: Id<'contacts'>[]; name: string }[] | undefined,
+): { id: string; contactIds: Id<'contacts'>[]; name: string }[] | undefined {
+  if (!contactGroups || contactGroups.length === 0) return undefined;
+  const contactIdSet = new Set(contacts.map((c) => String(c.contactId)));
+  const cleaned = contactGroups
+    .map((g) => ({ ...g, contactIds: g.contactIds.filter((id) => contactIdSet.has(String(id))) }))
+    .filter((g) => g.contactIds.length >= 2);
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
+export const updateContactGroups = mutation({
+  args: {
+    id: v.id('bills'),
+    userId: v.string(),
+    groups: v.array(contactGroupValidator),
+  },
+  handler: async (ctx, args) => {
+    const bill = await ctx.db.get(args.id);
+    if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
+
+    const contactIdSet = new Set(bill.contacts.map((c) => String(c.contactId)));
+    for (const group of args.groups) {
+      for (const cid of group.contactIds) {
+        if (!contactIdSet.has(String(cid))) throw new Error('Contact not found on this bill');
+      }
+      assertMaxLength(group.name, 200, 'Group name');
+    }
+
+    const cleaned = cleanupContactGroups(bill.contacts, args.groups);
+    await ctx.db.patch(args.id, { contactGroups: cleaned, updatedAt: Date.now() });
+  },
+});
+
+export const toggleGroupPaymentStatus = mutation({
+  args: {
+    id: v.id('bills'),
+    userId: v.string(),
+    groupId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const bill = await ctx.db.get(args.id);
+    if (!bill) throw new Error('Bill not found');
+    if (bill.userId !== args.userId) throw new Error('Not authorized');
+
+    const group = bill.contactGroups?.find((g) => g.id === args.groupId);
+    if (!group) throw new Error('Group not found');
+
+    const memberIds = new Set(group.contactIds.map(String));
+    const members = bill.contacts.filter((c) => memberIds.has(String(c.contactId)));
+    const allPaid = members.every((c) => c.paid);
+    const targetPaid = !allPaid;
+
+    const contacts = bill.contacts.map((c) =>
+      memberIds.has(String(c.contactId)) ? { ...c, paid: targetPaid } : c,
+    );
+    const state = computeBillState(bill.items, contacts, bill.splitStrategy);
+    const derived = computeDerivedFields(bill.items, contacts);
+
+    await ctx.db.patch(args.id, { contacts, state, ...derived });
+  },
+});
+
 export const clearSplitAssignments = mutation({
   args: {
     id: v.id('bills'),
@@ -656,6 +731,7 @@ export const clearSplitAssignments = mutation({
 
     await ctx.db.patch(args.id, {
       contacts: [],
+      contactGroups: undefined,
       state: 'unsplit',
       splitStrategy: undefined,
       numPeople: undefined,

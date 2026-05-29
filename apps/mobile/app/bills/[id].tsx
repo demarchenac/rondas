@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
@@ -38,6 +39,7 @@ import BulkToolbar from '@/components/bills/BulkToolbar';
 import ContactPickerSheet, { SUGGESTED_PREFIX, SELF_PREFIX, ANON_PREFIX } from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import ContactUnitSheet from '@/components/bills/detail/ContactUnitSheet';
+import Skeleton from '@/components/ui/Skeleton';
 
 const CONTACTS_CACHE_TTL = 5 * 60_000; // 5 minutes
 
@@ -67,6 +69,8 @@ export default function BillDetailScreen() {
   const updateContactUnits = useMutation(api.bills.updateContactUnits);
   const assignEqualSplit = useMutation(api.bills.assignEqualSplit);
   const clearSplit = useMutation(api.bills.clearSplitAssignments);
+  const updateContactGroupsMut = useMutation(api.bills.updateContactGroups);
+  const toggleGroupPaidMut = useMutation(api.bills.toggleGroupPaymentStatus);
 
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [activeDialog, setActiveDialog] = useState<DialogType>(null);
@@ -399,7 +403,7 @@ export default function BillDetailScreen() {
     setSingleAssignItemId(null);
   }, []);
 
-  const handleRemoveContact = useCallback((itemId: string, contactId: Id<'contacts'>) => {
+  const handleRemoveContact = useCallback((itemId: string, contactId: Id<'contacts'>, onConfirm?: () => void) => {
     if (!userId) return;
     alert(t.bill_removeContact, t.bill_removeContactConfirm, [
       { text: t.cancel, style: 'cancel' },
@@ -407,6 +411,7 @@ export default function BillDetailScreen() {
         text: t.remove,
         style: 'destructive',
         onPress: async () => {
+            onConfirm?.();
             try {
               await removeContact({ id: id as Id<'bills'>, userId: userId!, itemId, contactId });
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -444,8 +449,9 @@ export default function BillDetailScreen() {
 
   const handleRemoveFromUnitSheet = useCallback(() => {
     if (!unitSheetTarget || !userId) return;
-    setUnitSheetTarget(null);
-    handleRemoveContact(unitSheetTarget.itemId, unitSheetTarget.contactId);
+    handleRemoveContact(unitSheetTarget.itemId, unitSheetTarget.contactId, () => {
+      TrueSheet.dismiss('contact-unit').then(() => setUnitSheetTarget(null)).catch(() => setUnitSheetTarget(null));
+    });
   }, [unitSheetTarget, userId, handleRemoveContact]);
 
   const handleTogglePaid = useCallback(async (contactId: Id<'contacts'>) => {
@@ -459,6 +465,29 @@ export default function BillDetailScreen() {
       alert(t.error, t.error_mutationFailed);
     }
   }, [id, togglePaid, t, userId, alert]);
+
+  const handleUpdateGroups = useCallback(async (groups: { id: string; contactIds: string[]; name: string }[]) => {
+    if (!userId) return;
+    try {
+      await updateContactGroupsMut({ id: id as Id<'bills'>, userId, groups: groups as any });
+    } catch (err) {
+      console.error('[Bill] updateContactGroups failed:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      alert(t.error, t.error_mutationFailed);
+    }
+  }, [id, updateContactGroupsMut, userId, t, alert]);
+
+  const handleToggleGroupPaid = useCallback(async (groupId: string) => {
+    if (!userId) return;
+    try {
+      await toggleGroupPaidMut({ id: id as Id<'bills'>, userId, groupId });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.error('[Bill] toggleGroupPaid failed:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      alert(t.error, t.error_mutationFailed);
+    }
+  }, [id, toggleGroupPaidMut, userId, t, alert]);
 
   const handleSplitEqually = useCallback(() => {
     if (!bill || !userId) return;
@@ -718,25 +747,11 @@ export default function BillDetailScreen() {
   const { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, useCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel, decimalPlaces } = billDerived;
 
   // Progress bar computation
-  const totalItems = bill.items.length;
   const totalContacts = bill.contacts.length;
-  const isEqualSplit = bill.splitStrategy === 'equal';
   const paidContactCount = bill.contacts.filter((c) => c.paid).length;
 
-  let paidPercent: number;
-  let unpaidPercent: number;
-
-  if (isEqualSplit || equalSplitMode) {
-    const target = equalSplitMode ? numPeople : (bill.numPeople ?? numPeople);
-    paidPercent = target > 0 ? (paidContactCount / target) * 100 : 0;
-    unpaidPercent = target > 0 ? ((totalContacts - paidContactCount) / target) * 100 : 0;
-  } else {
-    const assignedItemIds = new Set(bill.contacts.flatMap((c) => c.items.map((i) => i.itemId)));
-    const assignedPercent = totalItems > 0 ? (assignedItemIds.size / totalItems) * 100 : 0;
-    const paidProportion = totalContacts > 0 ? paidContactCount / totalContacts : 0;
-    paidPercent = assignedPercent * paidProportion;
-    unpaidPercent = assignedPercent - paidPercent;
-  }
+  const paidPercent = totalContacts > 0 ? (paidContactCount / totalContacts) * 100 : 0;
+  const unpaidPercent = totalContacts > 0 ? ((totalContacts - paidContactCount) / totalContacts) * 100 : 0;
 
   return (
     <View className="flex-1 bg-background">
@@ -902,6 +917,9 @@ export default function BillDetailScreen() {
               iconColors={iconColors}
               t={t}
               onTogglePaid={handleTogglePaid}
+              contactGroups={bill.contactGroups}
+              onUpdateGroups={handleUpdateGroups}
+              onToggleGroupPaid={handleToggleGroupPaid}
             />
           </Animated.View>
         )}
@@ -948,23 +966,27 @@ export default function BillDetailScreen() {
       {/* Bottom fixed buttons — absolute positioned */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom, zIndex: 10, backgroundColor: 'transparent', paddingHorizontal: 28 }}>
         {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
-          <Pressable onPress={() => router.push(`/bills/share?id=${id}`)} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
-            {useGlass ? (
-              <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
-                <IconSymbol name="person.2.fill" size={18} color={iconColors.primary} />
-                <Text className="text-lg font-semibold text-foreground">
-                  {t.share_button(bill.contacts.length)}
-                </Text>
-              </GlassView>
-            ) : (
-              <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4">
-                <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
-                <Text className="text-lg font-semibold text-primary-foreground">
-                  {t.share_button(bill.contacts.length)}
-                </Text>
-              </View>
-            )}
-          </Pressable>
+          glassAvailable && !glassReady ? (
+            <Skeleton width="100%" height={52} borderRadius={12} style={{ marginBottom: 8 }} />
+          ) : (
+            <Pressable onPress={() => router.push(`/bills/share?id=${id}`)} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
+              {useGlass ? (
+                <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
+                  <IconSymbol name="person.2.fill" size={18} color={iconColors.primary} />
+                  <Text className="text-lg font-semibold text-foreground">
+                    {t.share_button(bill.contacts.length)}
+                  </Text>
+                </GlassView>
+              ) : (
+                <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4">
+                  <IconSymbol name="person.2.fill" size={18} color={iconColors.primaryForeground} />
+                  <Text className="text-lg font-semibold text-primary-foreground">
+                    {t.share_button(bill.contacts.length)}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          )
         )}
         {multiSelectMode && selectedItemIds.size > 0 && (
           <BulkToolbar
@@ -975,19 +997,23 @@ export default function BillDetailScreen() {
             onDelete={handleBulkDelete}
           />
         )}
-        <Pressable onPress={handleAddItem} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
-          {useGlass ? (
-            <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
-              <IconSymbol name="plus" size={14} color={iconColors.primary} />
-              <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
-            </GlassView>
-          ) : (
-            <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3">
-              <IconSymbol name="plus" size={14} color={iconColors.primary} />
-              <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
-            </View>
-          )}
-        </Pressable>
+        {glassAvailable && !glassReady ? (
+          <Skeleton width="100%" height={44} borderRadius={12} style={{ marginBottom: 8 }} />
+        ) : (
+          <Pressable onPress={handleAddItem} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
+            {useGlass ? (
+              <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
+                <IconSymbol name="plus" size={14} color={iconColors.primary} />
+                <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
+              </GlassView>
+            ) : (
+              <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3">
+                <IconSymbol name="plus" size={14} color={iconColors.primary} />
+                <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
+              </View>
+            )}
+          </Pressable>
+        )}
       </View>
 
       {/* Dialogs & Sheets */}

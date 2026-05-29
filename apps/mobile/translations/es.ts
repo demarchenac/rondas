@@ -111,10 +111,10 @@ export const es: typeof en = {
   category_service: 'Servicio',
 
   // Tax labels
-  tax_impoconsumo: 'Impoconsumo (incluido)',
-  tax_impoconsumoSeparate: 'Impoconsumo (separado)',
-  tax_iva: 'IVA (incluido)',
-  tax_ivaSeparate: 'IVA (separado)',
+  tax_impoconsumo: 'Impoconsumo (incl.)',
+  tax_impoconsumoSeparate: 'Impoconsumo (sep.)',
+  tax_iva: 'IVA (incl.)',
+  tax_ivaSeparate: 'IVA (sep.)',
   tax_salesTax: 'Impuesto de venta',
 
   // Settings
@@ -233,6 +233,11 @@ export const es: typeof en = {
   people_title: 'Personas',
   people_paidCount: (paid: number, total: number) => `${paid}/${total} pagado${paid !== 1 ? 's' : ''}`,
   people_items: (n: number) => n === 1 ? '1 ítem' : `${n} ítems`,
+  people_group: 'Agrupar',
+  people_groupCount: (n: number) => `Agrupar (${n})`,
+  people_ungroup: 'Desagrupar',
+  people_ungroupConfirm: '¿Desagrupar estos contactos?',
+  people_selectMembers: 'Selecciona a quién enviar',
   bill_selected: (n: number) => `${n} seleccionados`,
   bill_bulkEdit: 'Edición masiva',
   bill_deleteItems: 'Eliminar ítems',
@@ -315,7 +320,10 @@ export const es: typeof en = {
   wa_tip: (pct: number) => `Propina (${pct}%)`,
   wa_total: (amount: string) => `*Total: ${amount}*`,
   wa_equalSplit: (amount: string, total: string, n: number) => `División igual — ${total} / ${n} personas\n\n*Tu parte: ${amount}*`,
-  wa_footer: '_Resumen generado con la app Rondas_\n_rondas.app_',
+  wa_groupBreakdown: (groupName: string) => `*Desglose de ${groupName}:*`,
+  wa_groupMember: (name: string, amount: string) => `  ${name}: ${amount}`,
+  wa_groupTotal: (amount: string) => `*Total del grupo: ${amount}*`,
+  wa_footer: '_Resumen generado con la app Rondas_\nhttps://rondas.app',
 
   // Error states
   error_billNotFound: 'Factura no encontrada',

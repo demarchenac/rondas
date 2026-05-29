@@ -131,3 +131,43 @@ export function buildWhatsAppMessage(params: {
 
   return lines.join('\n');
 }
+
+interface GroupMember {
+  name: string;
+  amount: number;
+}
+
+export function buildGroupWhatsAppMessage(params: {
+  bill: BillData;
+  groupName: string;
+  members: GroupMember[];
+  groupTotal: number;
+  t: Translations;
+}): string {
+  const { bill, groupName, members, groupTotal, t } = params;
+  const billCountry: Country = (bill.country as Country) || 'CO';
+  const sep = '─────────────';
+
+  const lines: string[] = [];
+  lines.push(`🧾 *${bill.name}*`);
+  if (bill.location?.address) lines.push(`📍 ${bill.location.address}`);
+  const billDate = bill.photoTakenAt ?? new Date(bill._creationTime).toISOString();
+  const d = new Date(billDate);
+  if (!isNaN(d.getTime())) {
+    const locale = billCountry === 'US' ? 'en-US' : 'es-CO';
+    lines.push(`🕐 ${d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`);
+  }
+  lines.push('');
+  lines.push(t.wa_groupBreakdown(groupName));
+  lines.push('');
+  for (const m of members) {
+    lines.push(t.wa_groupMember(m.name, formatCurrency(m.amount, billCountry)));
+  }
+  lines.push('');
+  lines.push(sep);
+  lines.push(t.wa_groupTotal(formatCurrency(groupTotal, billCountry)));
+  lines.push('');
+  lines.push(t.wa_footer);
+
+  return lines.join('\n');
+}

@@ -109,10 +109,10 @@ export const en = {
   category_service: 'Service',
 
   // Tax labels
-  tax_impoconsumo: 'Impoconsumo (included)',
-  tax_impoconsumoSeparate: 'Impoconsumo (separate)',
-  tax_iva: 'IVA (included)',
-  tax_ivaSeparate: 'IVA (separate)',
+  tax_impoconsumo: 'Impoconsumo (incl.)',
+  tax_impoconsumoSeparate: 'Impoconsumo (sep.)',
+  tax_iva: 'IVA (incl.)',
+  tax_ivaSeparate: 'IVA (sep.)',
   tax_salesTax: 'Sales Tax',
 
   // Settings
@@ -231,6 +231,11 @@ export const en = {
   people_title: 'People',
   people_paidCount: (paid: number, total: number) => `${paid}/${total} paid`,
   people_items: (n: number) => n === 1 ? '1 item' : `${n} items`,
+  people_group: 'Group',
+  people_groupCount: (n: number) => `Group (${n})`,
+  people_ungroup: 'Ungroup',
+  people_ungroupConfirm: 'Ungroup these contacts?',
+  people_selectMembers: 'Select members to message',
   bill_selected: (n: number) => `${n} selected`,
   bill_bulkEdit: 'Bulk edit',
   bill_deleteItems: 'Delete items',
@@ -313,7 +318,10 @@ export const en = {
   wa_tip: (pct: number) => `Tip (${pct}%)`,
   wa_total: (amount: string) => `*Total: ${amount}*`,
   wa_equalSplit: (amount: string, total: string, n: number) => `Equal split — ${total} / ${n} people\n\n*Your share: ${amount}*`,
-  wa_footer: '_Summary generated with the Rondas app_\n_rondas.app_',
+  wa_groupBreakdown: (groupName: string) => `*${groupName}'s breakdown:*`,
+  wa_groupMember: (name: string, amount: string) => `  ${name}: ${amount}`,
+  wa_groupTotal: (amount: string) => `*Group total: ${amount}*`,
+  wa_footer: '_Summary generated with the Rondas app_\nhttps://rondas.app',
 
   // Error states
   error_billNotFound: 'Bill not found',

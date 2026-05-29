@@ -33,6 +33,12 @@ export const billContactRefValidator = v.object({
   paid: v.boolean(),
 });
 
+export const contactGroupValidator = v.object({
+  id: v.string(),
+  contactIds: v.array(v.id('contacts')),
+  name: v.string(),
+});
+
 export const locationValidator = v.object({
   latitude: v.number(),
   longitude: v.number(),
