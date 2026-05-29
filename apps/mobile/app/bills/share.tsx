@@ -9,14 +9,11 @@ import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 import { randomUUID } from 'expo-crypto';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
-import { TrueSheet } from '@lodev09/react-native-true-sheet';
-
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { WhatsAppIcon } from '@/components/icons/whatsapp';
 import { Share2 } from 'lucide-react-native';
 import { Image } from '@/lib/expo-image';
-import Avatar from '@/components/ui/avatar';
 import { ICON_COLORS } from '@/constants/colors';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
@@ -25,7 +22,7 @@ import { useT } from '@/lib/i18n';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import { formatCurrency } from '@/lib/format';
 import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type ReceiptCategory } from '@/constants/taxes';
-import { buildWhatsAppMessage, buildGroupWhatsAppMessage } from '@/lib/whatsapp';
+import { buildWhatsAppMessage } from '@/lib/whatsapp';
 import { toE164 } from '@/lib/phone';
 import { getTaxLabel } from '@/lib/billHelpers';
 import { cn } from '@/lib/cn';
@@ -52,7 +49,6 @@ export default function ShareScreen() {
 
   const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
   const togglePaid = useMutation(api.bills.togglePaymentStatus);
-  const toggleGroupPaidMut = useMutation(api.bills.toggleGroupPaymentStatus);
   const updateContactGroupsMut = useMutation(api.bills.updateContactGroups);
 
   const infographicRefs = useRef<Record<number, ViewShotRef | null>>({});
@@ -61,9 +57,6 @@ export default function ShareScreen() {
   const [previewAspect, setPreviewAspect] = useState(1);
   const [previewContactName, setPreviewContactName] = useState('');
 
-  const memberPickerRef = useRef<TrueSheet>(null);
-  const [memberPickerGroupId, setMemberPickerGroupId] = useState<string | null>(null);
-  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
 
   const [groupSelectMode, setGroupSelectMode] = useState(false);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
@@ -125,17 +118,6 @@ export default function ShareScreen() {
     }
   }, [id, togglePaid, t, userId, alert]);
 
-  const handleToggleGroupPaid = useCallback(async (groupId: string) => {
-    if (!userId) return;
-    try {
-      await toggleGroupPaidMut({ id: id as Id<'bills'>, userId, groupId });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      alert(t.error, t.error_mutationFailed);
-    }
-  }, [id, toggleGroupPaidMut, t, userId, alert]);
-
   const handleSendWhatsApp = useCallback(async (contact: { name: string; phone?: string; items: { itemId: string; units: number }[]; amount: number }) => {
     if (!bill || !contact.phone) {
       alert(t.bill_noPhone, t.bill_noPhoneMessage);
@@ -150,55 +132,6 @@ export default function ShareScreen() {
     }
     Linking.openURL(url);
   }, [bill, taxConfig, t, alert]);
-
-  const handleOpenMemberPicker = useCallback((groupId: string) => {
-    if (!bill) return;
-    const group = contactGroups.find((g) => g.id === groupId);
-    if (!group) return;
-    const membersWithPhone = group.contactIds
-      .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
-      .filter((c) => c?.phone);
-    if (membersWithPhone.length === 0) {
-      alert(t.bill_noPhone, t.bill_noPhoneMessage);
-      return;
-    }
-    setMemberPickerGroupId(groupId);
-    setSelectedMemberIds(new Set(membersWithPhone.map((c) => String(c!.contactId))));
-    memberPickerRef.current?.present();
-  }, [bill, contactGroups, alert, t]);
-
-  const handleSendGroupWhatsApp = useCallback(async () => {
-    if (!bill || !memberPickerGroupId) return;
-    const group = contactGroups.find((g) => g.id === memberPickerGroupId);
-    if (!group) return;
-
-    const members = group.contactIds
-      .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
-      .filter((c): c is NonNullable<typeof c> => c != null);
-
-    const groupTotal = members.reduce((sum, m) => sum + computeContactTotal(m).total, 0);
-    const memberData = members.map((m) => ({ name: m.name, amount: computeContactTotal(m).total }));
-
-    for (const m of members) {
-      if (!m.phone || !selectedMemberIds.has(String(m.contactId))) continue;
-      const message = buildGroupWhatsAppMessage({
-        bill,
-        groupName: group.name,
-        members: memberData,
-        groupTotal,
-        t,
-      });
-      const url = `https://wa.me/${toE164(m.phone)}?text=${encodeURIComponent(message)}`;
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
-        break; // Open one at a time; user returns and taps again for next
-      }
-    }
-
-    memberPickerRef.current?.dismiss();
-    setMemberPickerGroupId(null);
-  }, [bill, memberPickerGroupId, contactGroups, selectedMemberIds, computeContactTotal, t]);
 
   const toggleGroupSelection = useCallback((contactId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -299,6 +232,12 @@ export default function ShareScreen() {
     }
   }, [previewUri, previewContactName, t, alert]);
 
+  const editingGroup = editingGroupId ? contactGroups.find((g) => g.id === editingGroupId) : null;
+  const editingGroupMemberIds = useMemo(() => {
+    if (!editingGroup) return new Set<string>();
+    return new Set(editingGroup.contactIds.map(String));
+  }, [editingGroup]);
+
   if (!bill || !userId) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
@@ -312,18 +251,21 @@ export default function ShareScreen() {
   const renderContactRow = (contact: typeof bill.contacts[0], ci: number) => {
     const { total: contactTotal, tax: contactTax, tip: contactTip } = computeContactTotal(contact);
     const isInGroup = groupedContactIds.has(String(contact.contactId));
+    const isInEditingGroup = editingGroupMemberIds.has(String(contact.contactId));
+    const isLocked = isInGroup && !isInEditingGroup;
+    const isSelectable = groupSelectMode && !isLocked;
     const isSelected = selectedForGroup.has(String(contact.contactId));
 
     return (
       <Pressable
         key={ci}
         className="mb-4"
-        onPress={groupSelectMode && !isInGroup ? () => toggleGroupSelection(String(contact.contactId)) : undefined}
-        disabled={!groupSelectMode || isInGroup}
+        onPress={isSelectable ? () => toggleGroupSelection(String(contact.contactId)) : undefined}
+        disabled={!isSelectable}
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
-            {groupSelectMode && !isInGroup && (
+            {groupSelectMode && !isLocked && (
               <IconSymbol
                 name={isSelected ? 'checkmark.circle.fill' : 'circle'}
                 size={22}
@@ -331,9 +273,9 @@ export default function ShareScreen() {
               />
             )}
             {contact.imageUri ? (
-              <Image source={{ uri: contact.imageUri }} className="w-10 h-10 rounded-full" style={groupSelectMode && isInGroup ? { opacity: 0.4 } : undefined} />
+              <Image source={{ uri: contact.imageUri }} className="w-10 h-10 rounded-full" style={isLocked ? { opacity: 0.4 } : undefined} />
             ) : (
-              <View className="w-10 h-10 rounded-full items-center justify-center bg-primary/10" style={groupSelectMode && isInGroup ? { opacity: 0.4 } : undefined}>
+              <View className="w-10 h-10 rounded-full items-center justify-center bg-primary/10" style={isLocked ? { opacity: 0.4 } : undefined}>
                 <Text className="text-lg font-bold" style={{ color: iconColors.primary }}>
                   {contact.name[0]?.toUpperCase() ?? '?'}
                 </Text>
@@ -509,11 +451,14 @@ export default function ShareScreen() {
       </View>
 
       <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
-        {/* Ungrouped contacts */}
-        {ungroupedContacts.map((contact, ci) => renderContactRow(contact, ci))}
+        {/* In select mode: show all contacts as flat list */}
+        {groupSelectMode && bill.contacts.map((contact, ci) => renderContactRow(contact, ci))}
 
-        {/* Grouped contacts — inline rows with tinted background */}
-        {contactGroups.map((group, gi) => {
+        {/* Normal mode: ungrouped contacts */}
+        {!groupSelectMode && ungroupedContacts.map((contact, ci) => renderContactRow(contact, ci))}
+
+        {/* Normal mode: grouped contacts as tinted sections */}
+        {!groupSelectMode && contactGroups.map((group, gi) => {
           const members = group.contactIds
             .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
             .filter((c): c is NonNullable<typeof c> => c != null);
@@ -709,53 +654,6 @@ export default function ShareScreen() {
           </Pressable>
         </View>
       )}
-
-      {/* Member picker sheet for group WhatsApp */}
-      <TrueSheet ref={memberPickerRef} name="member-picker" detents={['auto']} cornerRadius={20} backgroundColor={colorScheme === 'dark' ? '#0f172a' : '#fafbfc'}>
-        <View className="px-7 pb-8 pt-4">
-          <Text className="mb-4 text-lg font-bold text-foreground">{t.people_selectMembers}</Text>
-          {memberPickerGroupId && contactGroups.find((g) => g.id === memberPickerGroupId)?.contactIds.map((cid) => {
-            const contact = bill.contacts.find((c) => String(c.contactId) === String(cid));
-            if (!contact?.phone) return null;
-            const isSelected = selectedMemberIds.has(String(cid));
-            return (
-              <Pressable
-                key={String(cid)}
-                onPress={() => {
-                  setSelectedMemberIds((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(String(cid))) next.delete(String(cid));
-                    else next.add(String(cid));
-                    return next;
-                  });
-                }}
-                className="flex-row items-center gap-3 py-2.5"
-              >
-                <IconSymbol
-                  name={isSelected ? 'checkmark.circle.fill' : 'circle'}
-                  size={20}
-                  color={isSelected ? '#25D366' : iconColors.mutedLight}
-                />
-                <Avatar name={contact.name} imageUri={contact.imageUri} size="sm" />
-                <Text className="flex-1 text-base text-foreground">{contact.name}</Text>
-                <Text className="text-sm text-muted-foreground">{contact.phone}</Text>
-              </Pressable>
-            );
-          })}
-          <Pressable
-            onPress={handleSendGroupWhatsApp}
-            disabled={selectedMemberIds.size === 0}
-            className={cn(
-              'mt-4 items-center rounded-xl py-3',
-              selectedMemberIds.size > 0 ? 'bg-[#25D366] active:opacity-80' : 'bg-muted',
-            )}
-          >
-            <Text className={cn('text-sm font-semibold', selectedMemberIds.size > 0 ? 'text-white' : 'text-muted-foreground')}>
-              {t.share_whatsapp}
-            </Text>
-          </Pressable>
-        </View>
-      </TrueSheet>
 
       <InfographicPreview
         uri={previewUri}
