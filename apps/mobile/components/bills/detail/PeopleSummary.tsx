@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
@@ -89,15 +89,7 @@ function PeopleSummary({
   const allPaid = paidCount === contacts.length;
 
   const isEqualSplit = splitStrategy === 'equal';
-  const glassAvailable = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
-  const [glassReady, setGlassReady] = useState(false);
-  useEffect(() => {
-    if (glassAvailable && !glassReady) {
-      const t = setTimeout(() => setGlassReady(true), 500);
-      return () => clearTimeout(t);
-    }
-  }, [glassAvailable, glassReady]);
-  const useGlass = glassAvailable && glassReady;
+  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
 
   const [groupSelectMode, setGroupSelectMode] = useState(false);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
@@ -302,23 +294,19 @@ function PeopleSummary({
             {t.people_title}
           </Text>
           {contacts.length >= 2 && !groupSelectMode && (
-            glassAvailable && !glassReady ? (
-              <View className="h-5 w-16 rounded-full bg-muted" />
-            ) : (
-              <Pressable onPress={enterSelectMode} style={{ backgroundColor: 'transparent' }}>
-                {useGlass ? (
-                  <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
-                    <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
-                  </GlassView>
-                ) : (
-                  <View className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5">
-                    <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
-                    <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
-                  </View>
-                )}
-              </Pressable>
-            )
+            <Pressable onPress={enterSelectMode} style={{ backgroundColor: 'transparent' }}>
+              {useGlass ? (
+                <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
+                  <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+                </GlassView>
+              ) : (
+                <View className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5">
+                  <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
+                  <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+                </View>
+              )}
+            </Pressable>
           )}
           {groupSelectMode && (
             <Pressable
