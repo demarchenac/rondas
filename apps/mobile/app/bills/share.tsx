@@ -494,7 +494,21 @@ export default function ShareScreen() {
                     </View>
                   )}
                 </Pressable>
-                <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.name}</Text>
+                <Pressable
+                  onPress={() => handleUngroupFromShare(group.id)}
+                  style={{ backgroundColor: 'transparent' }}
+                >
+                  {useGlass ? (
+                    <GlassView isInteractive tintColor={'#ef4444' + '1A'} style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }}>
+                      <IconSymbol name="xmark" size={10} color="#ef4444" />
+                    </GlassView>
+                  ) : (
+                    <View className="h-[26px] w-[26px] items-center justify-center rounded-full bg-destructive/10">
+                      <IconSymbol name="xmark" size={10} color="#ef4444" />
+                    </View>
+                  )}
+                </Pressable>
+                <Text className="flex-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.name}</Text>
               </View>
 
               {/* Individual member rows — same layout as ungrouped */}

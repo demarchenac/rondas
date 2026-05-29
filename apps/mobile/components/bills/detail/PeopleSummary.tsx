@@ -379,13 +379,28 @@ function PeopleSummary({
             <Animated.View key={g.id} layout={LinearTransition}>
               <Pressable
                 onPress={() => handleGroupToggle(g.id)}
-                onLongPress={() => handleUngroup(g.id)}
                 className={cn(
                   'w-[160px] rounded-xl border-l-[3px] px-3.5 py-2 active:opacity-80',
                   g.tint.bg,
                   g.allMembersPaid ? 'border-l-emerald-500' : 'border-l-amber-500',
                 )}
               >
+                {/* Ungroup button — top right */}
+                <Pressable
+                  onPress={() => handleUngroup(g.id)}
+                  style={{ position: 'absolute', top: 4, right: 4, zIndex: 10, backgroundColor: 'transparent' }}
+                  hitSlop={8}
+                >
+                  {useGlass ? (
+                    <GlassView isInteractive tintColor={'#ef4444' + '1A'} style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
+                      <IconSymbol name="xmark" size={8} color="#ef4444" />
+                    </GlassView>
+                  ) : (
+                    <View className="h-5 w-5 items-center justify-center rounded-full bg-destructive/10">
+                      <IconSymbol name="xmark" size={8} color="#ef4444" />
+                    </View>
+                  )}
+                </Pressable>
                 {/* Stacked avatars */}
                 <View className="flex-row items-center gap-2">
                   <View className="flex-row">
