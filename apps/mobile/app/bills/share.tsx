@@ -584,7 +584,8 @@ export default function ShareScreen() {
               })}
 
               {/* Group total row */}
-              <View className="ml-[52px] mt-4 border-t border-foreground/10 pt-3">
+              <View className="mt-4 border-t border-foreground/10" />
+              <View className="pt-3">
                 {(groupTax > 0 || groupTip > 0) && (
                   <View className="mb-1 flex-row items-center gap-3">
                     {groupTax > 0 && (
