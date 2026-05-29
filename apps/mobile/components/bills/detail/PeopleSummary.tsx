@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
-import { GlassView } from 'expo-glass-effect';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { randomUUID } from 'expo-crypto';
@@ -61,7 +60,6 @@ interface PeopleSummaryProps {
   contactGroups?: ContactGroup[];
   onUpdateGroups: (groups: ContactGroup[]) => void;
   onToggleGroupPaid: (groupId: string) => void;
-  useGlass?: boolean;
 }
 
 function generateGroupName(members: ResolvedContact[], t: Translations): string {
@@ -84,7 +82,6 @@ function PeopleSummary({
   contactGroups = [],
   onUpdateGroups,
   onToggleGroupPaid,
-  useGlass = false,
 }: PeopleSummaryProps) {
   const { unlocked, showPaywall } = useProGate();
   const paidCount = contacts.filter((c) => c.paid).length;
@@ -295,18 +292,9 @@ function PeopleSummary({
             {t.people_title}
           </Text>
           {contacts.length >= 2 && !groupSelectMode && (
-            <Pressable onPress={enterSelectMode} style={{ backgroundColor: 'transparent' }}>
-              {useGlass ? (
-                <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
-                  <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
-                </GlassView>
-              ) : (
-                <View className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5">
-                  <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
-                  <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
-                </View>
-              )}
+            <Pressable onPress={enterSelectMode} className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 active:opacity-70">
+              <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
+              <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
             </Pressable>
           )}
           {groupSelectMode && (
@@ -532,22 +520,12 @@ function PeopleSummary({
                   style={{ flex: 1, backgroundColor: 'transparent' }}
                 >
                   {showUngroup ? (
-                    useGlass ? (
-                      <GlassView isInteractive tintColor={'#ef4444' + '1A'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' }}>
-                        <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
-                      </GlassView>
-                    ) : (
-                      <View className="items-center rounded-xl bg-destructive/10 py-2.5">
-                        <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
-                      </View>
-                    )
-                  ) : useGlass && canGroup ? (
-                    <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text className="text-sm font-semibold text-primary">{t.people_groupCount(selectedForGroup.size)}</Text>
-                    </GlassView>
+                    <View className="items-center rounded-xl bg-destructive/10 py-2.5">
+                      <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
+                    </View>
                   ) : (
-                    <View className={cn('items-center rounded-xl py-2.5', canGroup ? 'bg-primary' : 'bg-muted')}>
-                      <Text className={cn('text-sm font-semibold', canGroup ? 'text-primary-foreground' : 'text-muted-foreground')}>
+                    <View className={cn('items-center rounded-xl py-2.5', canGroup ? 'bg-primary/10' : 'bg-muted')}>
+                      <Text className={cn('text-sm font-semibold', canGroup ? 'text-primary' : 'text-muted-foreground')}>
                         {t.people_groupCount(selectedForGroup.size)}
                       </Text>
                     </View>

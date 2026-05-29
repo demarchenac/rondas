@@ -920,7 +920,6 @@ export default function BillDetailScreen() {
               contactGroups={bill.contactGroups}
               onUpdateGroups={handleUpdateGroups}
               onToggleGroupPaid={handleToggleGroupPaid}
-              useGlass={useGlass}
             />
           </Animated.View>
         )}
