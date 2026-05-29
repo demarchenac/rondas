@@ -346,17 +346,19 @@ function PeopleSummary({
               <Pressable
                 onPress={() => handleToggle(c.contactId)}
                 className={cn(
-                  'w-[160px] rounded-xl border-l-[3px] bg-card px-3.5 py-2 active:opacity-80',
+                  'w-[160px] rounded-xl border-l-[3px] bg-card px-3.5 py-3 active:opacity-80',
                   c.paid ? 'border-l-emerald-500' : 'border-l-amber-500',
                 )}
               >
-                <View className="flex-row items-center gap-2">
-                  <Avatar name={c.name} imageUri={c.imageUri} size="sm" />
+                <View className="flex-row items-center gap-2.5">
+                  <View className="rounded-full border-2 border-card">
+                    <Avatar name={c.name} imageUri={c.imageUri} size="sm" />
+                  </View>
                   <Text className="flex-1 text-sm font-semibold text-foreground" numberOfLines={1}>
                     {c.isSelf ? t.self_label(c.name) : c.name}
                   </Text>
                 </View>
-                <View className="mt-1 flex-row items-center justify-between">
+                <View className="mt-2 flex-row items-center justify-between">
                   <Text className="text-sm font-bold tabular-nums text-foreground">
                     {formatCurrency(c.total, billCountry, decimalPlaces)}
                   </Text>
@@ -375,13 +377,12 @@ function PeopleSummary({
               <Pressable
                 onPress={() => handleGroupToggle(g.id)}
                 className={cn(
-                  'w-[160px] rounded-xl border-l-[3px] px-3.5 py-2 active:opacity-80',
+                  'w-[160px] rounded-xl border-l-[3px] px-3.5 py-3 active:opacity-80',
                   g.tint.bg,
                   g.allMembersPaid ? 'border-l-emerald-500' : 'border-l-amber-500',
                 )}
               >
-                {/* Stacked avatars */}
-                <View className="flex-row items-center gap-2">
+                <View className="flex-row items-center gap-2.5">
                   <View className="flex-row">
                     {g.members.slice(0, 3).map((m, i) => (
                       <View
@@ -389,13 +390,13 @@ function PeopleSummary({
                         style={{ marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }}
                         className="rounded-full border-2 border-card"
                       >
-                        <Avatar name={m.name} imageUri={m.imageUri} size="xs" />
+                        <Avatar name={m.name} imageUri={m.imageUri} size="sm" />
                       </View>
                     ))}
                     {g.members.length > 3 && (
                       <View
                         style={{ marginLeft: -8, zIndex: 0 }}
-                        className="h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-card bg-muted"
+                        className="h-6 w-6 items-center justify-center rounded-full border-2 border-card bg-muted"
                       >
                         <Text className="text-[10px] font-bold text-muted-foreground">
                           +{g.members.length - 3}
@@ -423,7 +424,7 @@ function PeopleSummary({
                     )}
                   </View>
                 </View>
-                <View className="mt-1 flex-row items-center justify-between">
+                <View className="mt-2 flex-row items-center justify-between">
                   <Text className="text-sm font-bold tabular-nums text-foreground">
                     {formatCurrency(g.total, billCountry, decimalPlaces)}
                   </Text>
@@ -453,12 +454,12 @@ function PeopleSummary({
                 <Pressable
                   onPress={() => handleExpandGroup(g.id)}
                   className={cn(
-                    'w-[140px] rounded-xl border-l-[3px] px-3.5 py-2 active:opacity-80',
+                    'w-[160px] rounded-xl border-l-[3px] px-3.5 py-3 active:opacity-80',
                     g.tint.bg,
                     g.tint.border,
                   )}
                 >
-                  <View className="flex-row items-center gap-2">
+                  <View className="flex-row items-center gap-2.5">
                     <View className="flex-row">
                       {g.members.slice(0, 2).map((m, i) => (
                         <View
@@ -466,7 +467,7 @@ function PeopleSummary({
                           style={{ marginLeft: i > 0 ? -8 : 0, zIndex: 2 - i }}
                           className="rounded-full border-2 border-card"
                         >
-                          <Avatar name={m.name} imageUri={m.imageUri} size="xs" />
+                          <Avatar name={m.name} imageUri={m.imageUri} size="sm" />
                         </View>
                       ))}
                     </View>
@@ -474,7 +475,7 @@ function PeopleSummary({
                       {g.name}
                     </Text>
                   </View>
-                  <Text className="mt-1 text-xs text-muted-foreground">Tap to edit</Text>
+                  <Text className="mt-2 text-xs text-muted-foreground">Tap to edit</Text>
                 </Pressable>
               </Animated.View>
             ))}
@@ -487,12 +488,14 @@ function PeopleSummary({
                   <Pressable
                     onPress={() => toggleSelection(String(c.contactId))}
                     className={cn(
-                      'w-[140px] rounded-xl border-l-[3px] bg-card px-3.5 py-2 active:opacity-80',
+                      'w-[160px] rounded-xl border-l-[3px] bg-card px-3.5 py-3 active:opacity-80',
                       isSelected ? 'border-l-primary' : 'border-l-muted',
                     )}
                   >
-                    <View className="flex-row items-center gap-2">
-                      <Avatar name={c.name} imageUri={c.imageUri} size="sm" />
+                    <View className="flex-row items-center gap-2.5">
+                      <View className="rounded-full border-2 border-card">
+                        <Avatar name={c.name} imageUri={c.imageUri} size="sm" />
+                      </View>
                       <Text className="flex-1 text-sm font-semibold text-foreground" numberOfLines={1}>
                         {c.isSelf ? t.self_label(c.name) : c.name}
                       </Text>
@@ -504,7 +507,7 @@ function PeopleSummary({
                         />
                       </Animated.View>
                     </View>
-                    <View className="mt-1">
+                    <View className="mt-2">
                       <Text className="text-sm font-bold tabular-nums text-foreground">
                         {formatCurrency(c.total, billCountry, decimalPlaces)}
                       </Text>
