@@ -526,19 +526,19 @@ function PeopleSummary({
             <Pressable
               onPress={confirmGroup}
               disabled={selectedForGroup.size < 2}
-              className={cn(
-                'flex-1 items-center rounded-xl py-2.5',
-                selectedForGroup.size >= 2 ? 'bg-primary active:opacity-80' : 'bg-muted',
-              )}
+              style={{ flex: 1, backgroundColor: 'transparent' }}
             >
-              <Text
-                className={cn(
-                  'text-sm font-semibold',
-                  selectedForGroup.size >= 2 ? 'text-primary-foreground' : 'text-muted-foreground',
-                )}
-              >
-                {t.people_groupCount(selectedForGroup.size)}
-              </Text>
+              {useGlass && selectedForGroup.size >= 2 ? (
+                <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text className="text-sm font-semibold text-primary">{t.people_groupCount(selectedForGroup.size)}</Text>
+                </GlassView>
+              ) : (
+                <View className={cn('items-center rounded-xl py-2.5', selectedForGroup.size >= 2 ? 'bg-primary' : 'bg-muted')}>
+                  <Text className={cn('text-sm font-semibold', selectedForGroup.size >= 2 ? 'text-primary-foreground' : 'text-muted-foreground')}>
+                    {t.people_groupCount(selectedForGroup.size)}
+                  </Text>
+                </View>
+              )}
             </Pressable>
           </View>
         </>

@@ -500,54 +500,105 @@ export default function ShareScreen() {
         {/* Ungrouped contacts */}
         {ungroupedContacts.map((contact, ci) => renderContactRow(contact, ci))}
 
-        {/* Group rows */}
+        {/* Group rows — individual members inside colored card */}
         {contactGroups.map((group, gi) => {
           const members = group.contactIds
             .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
             .filter((c): c is NonNullable<typeof c> => c != null);
           if (members.length < 2) return null;
 
-          const groupTotal = members.reduce((sum, m) => sum + computeContactTotal(m).total, 0);
+          const memberTotals = members.map((m) => computeContactTotal(m));
+          const groupTotal = memberTotals.reduce((sum, mt) => sum + mt.total, 0);
+          const groupTax = memberTotals.reduce((sum, mt) => sum + mt.tax, 0);
+          const groupTip = memberTotals.reduce((sum, mt) => sum + mt.tip, 0);
           const allPaid = members.every((m) => m.paid);
           const tintBg = GROUP_TINTS_BG[gi % GROUP_TINTS_BG.length];
           const hasPhoneMembers = members.some((m) => m.phone);
 
           return (
-            <Pressable key={group.id} onLongPress={() => handleUngroupFromShare(group.id)} className={cn('mb-4 rounded-xl p-3', tintBg)}>
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-3">
-                  {/* Stacked avatars */}
-                  <View className="flex-row">
-                    {members.slice(0, 3).map((m, i) => (
-                      <View
-                        key={String(m.contactId)}
-                        style={{ marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }}
-                        className="rounded-full border-2 border-card"
-                      >
-                        <Avatar name={m.name} imageUri={m.imageUri} size="sm" />
+            <Pressable key={group.id} onLongPress={() => handleUngroupFromShare(group.id)} className={cn('mb-4 rounded-2xl px-3 pt-3 pb-4', tintBg)}>
+              {/* Group header */}
+              <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.name}</Text>
+
+              {/* Individual member rows */}
+              {members.map((member) => {
+                const { total: mTotal } = computeContactTotal(member);
+                return (
+                  <View key={String(member.contactId)} className="mb-3">
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center gap-3">
+                        {member.imageUri ? (
+                          <Image source={{ uri: member.imageUri }} className="w-9 h-9 rounded-full" />
+                        ) : (
+                          <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
+                            <Text className="text-base font-bold" style={{ color: iconColors.primary }}>
+                              {member.name[0]?.toUpperCase() ?? '?'}
+                            </Text>
+                          </View>
+                        )}
+                        <View>
+                          <Text className="text-base font-semibold text-foreground">
+                            {member.isSelf ? t.self_label(member.name) : member.name}
+                          </Text>
+                          <Text className="text-xs text-muted-foreground">
+                            {isEqualSplit ? t.share_equalSplit : t.share_itemCount(member.items.length)}
+                          </Text>
+                        </View>
                       </View>
-                    ))}
-                    {members.length > 3 && (
-                      <View
-                        style={{ marginLeft: -8, zIndex: 0 }}
-                        className="h-6 w-6 items-center justify-center rounded-full border-2 border-card bg-muted"
-                      >
-                        <Text className="text-[10px] font-bold text-muted-foreground">+{members.length - 3}</Text>
+                      <Text className="text-base font-bold tabular-nums text-foreground">
+                        {formatCurrency(mTotal, billCountry)}
+                      </Text>
+                    </View>
+
+                    {!isEqualSplit && (
+                      <View className="ml-12 mt-1.5 flex-row flex-wrap">
+                        {member.items.map((ref) => {
+                          const item = bill.items.find((i) => i.id === ref.itemId);
+                          if (!item) return null;
+                          const totalUnits = bill.contacts.reduce((u, c) => {
+                            const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
+                            return u + (cRef ? cRef.units : 0);
+                          }, 0);
+                          const share = totalUnits > 0
+                            ? Math.round((ref.units / totalUnits) * item.subtotal)
+                            : Math.round(item.subtotal);
+                          return (
+                            <View key={ref.itemId} className="w-1/2 pr-2 mb-0.5">
+                              <Text className="text-xs text-foreground" numberOfLines={1}>
+                                {item.name} ({ref.units}/{totalUnits})
+                              </Text>
+                              <Text className="text-xs text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
+                            </View>
+                          );
+                        })}
                       </View>
                     )}
                   </View>
-                  <View>
-                    <Text className="text-lg font-semibold text-foreground">{group.name}</Text>
-                    <Text className="text-sm text-muted-foreground">
-                      {members.map((m) => m.name).join(', ')}
-                    </Text>
+                );
+              })}
+
+              {/* Group summary */}
+              <View className="mt-1 border-t border-foreground/10 pt-2">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-3">
+                    {groupTax > 0 && (
+                      <Text className="text-xs text-muted-foreground">
+                        {translatedTaxLabel}: {formatCurrency(groupTax, billCountry)}
+                      </Text>
+                    )}
+                    {groupTip > 0 && (
+                      <Text className="text-xs text-muted-foreground">
+                        {t.scan_tipPropina}: {formatCurrency(groupTip, billCountry)}
+                      </Text>
+                    )}
                   </View>
+                  <Text className="text-lg font-bold tabular-nums text-foreground">
+                    {formatCurrency(groupTotal, billCountry)}
+                  </Text>
                 </View>
-                <Text className="text-xl font-bold tabular-nums text-foreground">
-                  {formatCurrency(groupTotal, billCountry)}
-                </Text>
               </View>
 
+              {/* Group actions */}
               <View className="mt-3 flex-row items-center gap-2">
                 <Pressable
                   onPress={() => handleToggleGroupPaid(group.id)}
@@ -587,19 +638,19 @@ export default function ShareScreen() {
           <Pressable
             onPress={confirmGroupFromShare}
             disabled={selectedForGroup.size < 2}
-            className={cn(
-              'items-center rounded-xl py-3',
-              selectedForGroup.size >= 2 ? 'bg-primary active:opacity-80' : 'bg-muted',
-            )}
+            style={{ backgroundColor: 'transparent' }}
           >
-            <Text
-              className={cn(
-                'text-sm font-semibold',
-                selectedForGroup.size >= 2 ? 'text-primary-foreground' : 'text-muted-foreground',
-              )}
-            >
-              {t.people_groupCount(selectedForGroup.size)}
-            </Text>
+            {useGlass && selectedForGroup.size >= 2 ? (
+              <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+                <Text className="text-sm font-semibold text-primary">{t.people_groupCount(selectedForGroup.size)}</Text>
+              </GlassView>
+            ) : (
+              <View className={cn('items-center rounded-xl py-3.5', selectedForGroup.size >= 2 ? 'bg-primary' : 'bg-muted')}>
+                <Text className={cn('text-sm font-semibold', selectedForGroup.size >= 2 ? 'text-primary-foreground' : 'text-muted-foreground')}>
+                  {t.people_groupCount(selectedForGroup.size)}
+                </Text>
+              </View>
+            )}
           </Pressable>
         </View>
       )}
