@@ -242,7 +242,7 @@ export default function ShareScreen() {
         onPress={isSelectable ? () => toggleGroupSelection(String(contact.contactId)) : undefined}
         disabled={!isSelectable}
       >
-        <View className="flex-row items-center justify-between">
+        <View className="flex-row items-start justify-between">
           <View className="flex-row items-center gap-3">
             {groupSelectMode && !isLocked && (
               <IconSymbol
@@ -275,7 +275,7 @@ export default function ShareScreen() {
         </View>
 
         {!isEqualSplit && (
-          <View className="ml-[52px] mt-2 flex-row flex-wrap">
+          <View className="ml-[52px] mt-1 flex-row flex-wrap">
             {contact.items.map((ref) => {
               const item = bill.items.find((i) => i.id === ref.itemId);
               if (!item) return null;
@@ -481,7 +481,7 @@ export default function ShareScreen() {
                 const { total: mTotal, tax: mTax, tip: mTip } = computeContactTotal(member);
                 return (
                   <View key={String(member.contactId)} className={cn(mi < members.length - 1 && 'mb-4')}>
-                    <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-start justify-between">
                       <View className="flex-row items-center gap-3">
                         {member.imageUri ? (
                           <Image source={{ uri: member.imageUri }} className="w-10 h-10 rounded-full" />
@@ -507,7 +507,7 @@ export default function ShareScreen() {
                     </View>
 
                     {!isEqualSplit && (
-                      <View className="ml-[52px] mt-2 flex-row flex-wrap">
+                      <View className="ml-[52px] mt-1 flex-row flex-wrap">
                         {member.items.map((ref) => {
                           const item = bill.items.find((i) => i.id === ref.itemId);
                           if (!item) return null;
@@ -587,19 +587,21 @@ export default function ShareScreen() {
 
               {/* Group total row */}
               <View className="mt-4 border-t border-foreground/10 pt-3">
-                <View className="flex-row items-center gap-3">
-                  {groupTax > 0 && (
-                    <Text className="text-sm text-muted-foreground">
-                      {translatedTaxLabel}: {formatCurrency(groupTax, billCountry)}
-                    </Text>
-                  )}
-                  {groupTip > 0 && (
-                    <Text className="text-sm text-muted-foreground">
-                      {t.scan_tipPropina}: {formatCurrency(groupTip, billCountry)}
-                    </Text>
-                  )}
-                </View>
-                <View className="mt-1 flex-row items-center justify-between">
+                {(groupTax > 0 || groupTip > 0) && (
+                  <View className="mb-1 flex-row items-center justify-end gap-3">
+                    {groupTax > 0 && (
+                      <Text className="text-sm text-muted-foreground">
+                        {translatedTaxLabel}: {formatCurrency(groupTax, billCountry)}
+                      </Text>
+                    )}
+                    {groupTip > 0 && (
+                      <Text className="text-sm text-muted-foreground">
+                        {t.scan_tipPropina}: {formatCurrency(groupTip, billCountry)}
+                      </Text>
+                    )}
+                  </View>
+                )}
+                <View className="flex-row items-center justify-end gap-2">
                   <Text className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t.bill_total}</Text>
                   <Text className="text-xl font-bold tabular-nums text-foreground">
                     {formatCurrency(groupTotal, billCountry)}
