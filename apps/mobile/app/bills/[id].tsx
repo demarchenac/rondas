@@ -473,7 +473,7 @@ export default function BillDetailScreen() {
     } catch (err) {
       console.error('[Bill] updateContactGroups failed:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      alert(t.error, t.error_mutationFailed);
+      alert(t.error, err instanceof Error ? err.message : t.error_mutationFailed);
     }
   }, [id, updateContactGroupsMut, userId, t, alert]);
 

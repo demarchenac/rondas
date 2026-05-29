@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image as RNImage, Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Image as RNImage, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
@@ -66,6 +67,8 @@ export default function ShareScreen() {
 
   const [groupSelectMode, setGroupSelectMode] = useState(false);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
+
+  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
 
   const billCountry = (bill?.country as 'CO' | 'US') || 'CO';
   const billCategory = (bill?.tags?.find((t) => t.isPlatform)?.slug || 'dining') as ReceiptCategory;
@@ -224,9 +227,10 @@ export default function ShareScreen() {
     try {
       await updateContactGroupsMut({ id: id as Id<'bills'>, userId, groups: updated as any });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
+    } catch (err) {
+      console.error('[Share] confirmGroup failed:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      alert(t.error, t.error_mutationFailed);
+      alert(t.error, err instanceof Error ? err.message : t.error_mutationFailed);
     }
     setGroupSelectMode(false);
     setSelectedForGroup(new Set());
@@ -467,10 +471,19 @@ export default function ShareScreen() {
         {bill.contacts.length >= 2 && !groupSelectMode && (
           <Pressable
             onPress={() => { setGroupSelectMode(true); setSelectedForGroup(new Set()); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-            className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 active:opacity-70"
+            style={{ backgroundColor: 'transparent' }}
           >
-            <IconSymbol name="rectangle.stack.person.crop" size={14} color={iconColors.primary} />
-            <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+            {useGlass ? (
+              <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <IconSymbol name="rectangle.stack.person.crop" size={14} color={iconColors.primary} />
+                <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+              </GlassView>
+            ) : (
+              <View className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1">
+                <IconSymbol name="rectangle.stack.person.crop" size={14} color={iconColors.primary} />
+                <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+              </View>
+            )}
           </Pressable>
         )}
         {groupSelectMode && (

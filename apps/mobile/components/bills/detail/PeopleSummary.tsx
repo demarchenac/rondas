@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { randomUUID } from 'expo-crypto';
@@ -88,6 +89,7 @@ function PeopleSummary({
   const allPaid = paidCount === contacts.length;
 
   const isEqualSplit = splitStrategy === 'equal';
+  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
 
   const [groupSelectMode, setGroupSelectMode] = useState(false);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
@@ -297,12 +299,18 @@ function PeopleSummary({
             {t.people_title}
           </Text>
           {contacts.length >= 2 && !groupSelectMode && (
-            <Pressable
-              onPress={enterSelectMode}
-              className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 active:opacity-70"
-            >
-              <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
-              <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+            <Pressable onPress={enterSelectMode} style={{ backgroundColor: 'transparent' }}>
+              {useGlass ? (
+                <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
+                  <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+                </GlassView>
+              ) : (
+                <View className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5">
+                  <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
+                  <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+                </View>
+              )}
             </Pressable>
           )}
           {groupSelectMode && (
