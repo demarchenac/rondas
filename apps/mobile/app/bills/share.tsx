@@ -67,15 +67,15 @@ export default function ShareScreen() {
   const contactGroups = useMemo(() => bill?.contactGroups ?? [], [bill?.contactGroups]);
   const groupedContactIds = useMemo(() => {
     const ids = new Set<string>();
-    for (const g of contactGroups) {
-      for (const cid of g.contactIds) ids.add(String(cid));
+    for (const group of contactGroups) {
+      for (const contactId of group.contactIds) ids.add(String(contactId));
     }
     return ids;
   }, [contactGroups]);
 
   const ungroupedContacts = useMemo(() => {
     if (!bill) return [];
-    return bill.contacts.filter((c) => !groupedContactIds.has(String(c.contactId)));
+    return bill.contacts.filter((contact) => !groupedContactIds.has(String(contact.contactId)));
   }, [bill, groupedContactIds]);
 
   const shareDataMap = useMemo(() => {
@@ -84,9 +84,9 @@ export default function ShareScreen() {
 
     const itemTotalUnits = new Map<string, number>();
     if (!isEqualStrategy) {
-      for (const c of bill.contacts) {
-        for (const ref of c.items) {
-          itemTotalUnits.set(ref.itemId, (itemTotalUnits.get(ref.itemId) ?? 0) + ref.units);
+      for (const contact of bill.contacts) {
+        for (const itemRef of contact.items) {
+          itemTotalUnits.set(itemRef.itemId, (itemTotalUnits.get(itemRef.itemId) ?? 0) + itemRef.units);
         }
       }
     }
@@ -98,13 +98,13 @@ export default function ShareScreen() {
         continue;
       }
       const items = new Map<string, ItemShareInfo>();
-      for (const ref of contact.items) {
-        const item = bill.items.find((i) => i.id === ref.itemId);
-        if (!item) continue;
-        const totalAssignedUnits = itemTotalUnits.get(ref.itemId) ?? 1;
-        items.set(ref.itemId, { share: Math.round((ref.units / totalAssignedUnits) * item.subtotal), totalUnits: totalAssignedUnits, name: item.name });
+      for (const itemRef of contact.items) {
+        const billItem = bill.items.find((bi) => bi.id === itemRef.itemId);
+        if (!billItem) continue;
+        const totalAssignedUnits = itemTotalUnits.get(itemRef.itemId) ?? 1;
+        items.set(itemRef.itemId, { share: Math.round((itemRef.units / totalAssignedUnits) * billItem.subtotal), totalUnits: totalAssignedUnits, name: billItem.name });
       }
-      const itemsTotal = [...items.values()].reduce((s, i) => s + i.share, 0);
+      const itemsTotal = [...items.values()].reduce((sum, shareInfo) => sum + shareInfo.share, 0);
       const base = computeBase(itemsTotal, taxConfig);
       const contactTax = computeTax(itemsTotal, taxConfig);
       const contactTip = Math.round(base * (tipPercent / 100));
@@ -167,17 +167,17 @@ export default function ShareScreen() {
     const selectedIds = Array.from(selectedForGroup) as Id<'contacts'>[];
 
     const members = selectedIds
-      .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
-      .filter((c): c is NonNullable<typeof c> => c != null);
+      .map((contactId) => bill.contacts.find((contact) => String(contact.contactId) === String(contactId)))
+      .filter((contact): contact is NonNullable<typeof contact> => contact != null);
 
     let updated: typeof contactGroups;
 
     if (editingGroupId) {
       if (selectedIds.length < 2) {
-        updated = contactGroups.filter((g) => g.id !== editingGroupId);
+        updated = contactGroups.filter((group) => group.id !== editingGroupId);
       } else {
         const groupName = buildGroupName(members, t.self_label);
-        updated = contactGroups.map((g) => g.id === editingGroupId ? { ...g, contactIds: selectedIds, name: groupName } : g);
+        updated = contactGroups.map((group) => group.id === editingGroupId ? { ...group, contactIds: selectedIds, name: groupName } : group);
       }
     } else {
       if (selectedIds.length < 2) return;
@@ -197,11 +197,11 @@ export default function ShareScreen() {
   }, [bill, userId, selectedForGroup, editingGroupId, contactGroups, updateContactGroupsMut, id, t, alert, resetGroupMode]);
 
   const handleShareInfographic = useCallback(async (contactIndex: number, contactName: string) => {
-    const ref = infographicRefs.current[contactIndex];
-    if (!ref?.capture) return;
+    const viewShotRef = infographicRefs.current[contactIndex];
+    if (!viewShotRef?.capture) return;
     setCapturingIndex(contactIndex);
     try {
-      const uri = await ref.capture();
+      const uri = await viewShotRef.capture();
       const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
         RNImage.getSize(uri, (w, h) => resolve({ width: w, height: h }), reject);
       });
@@ -226,7 +226,7 @@ export default function ShareScreen() {
     }
   }, [previewUri, previewContactName, t, alert]);
 
-  const editingGroup = editingGroupId ? contactGroups.find((g) => g.id === editingGroupId) : null;
+  const editingGroup = editingGroupId ? contactGroups.find((group) => group.id === editingGroupId) : null;
   const editingGroupMemberIds = useMemo(() => {
     if (!editingGroup) return new Set<string>();
     return new Set(editingGroup.contactIds.map(String));
@@ -244,8 +244,8 @@ export default function ShareScreen() {
     const result = new Map<string, ResolvedContact[]>();
     for (const group of contactGroups) {
       const members = group.contactIds
-        .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
-        .filter((c): c is NonNullable<typeof c> => c != null);
+        .map((contactId) => bill.contacts.find((contact) => String(contact.contactId) === String(contactId)))
+        .filter((contact): contact is NonNullable<typeof contact> => contact != null);
       result.set(group.id, members);
     }
     return result;
@@ -253,7 +253,7 @@ export default function ShareScreen() {
 
   const getContactIndex = useCallback((contact: ResolvedContact) => {
     if (!bill) return 0;
-    return bill.contacts.findIndex((c) => String(c.contactId) === String(contact.contactId));
+    return bill.contacts.findIndex((billContact) => String(billContact.contactId) === String(contact.contactId));
   }, [bill]);
 
   if (!bill || !userId) {
@@ -279,9 +279,9 @@ export default function ShareScreen() {
     onShareInfographic: handleShareInfographic,
   };
 
-  const renderContactRow = (contact: typeof bill.contacts[0], ci: number) => {
-    const sd = shareDataMap.get(String(contact.contactId));
-    if (!sd) return null;
+  const renderContactRow = (contact: typeof bill.contacts[0], contactIndex: number) => {
+    const shareData = shareDataMap.get(String(contact.contactId));
+    if (!shareData) return null;
     const isInGroup = groupedContactIds.has(String(contact.contactId));
     const isInEditingGroup = editingGroupMemberIds.has(String(contact.contactId));
     const isLocked = isInGroup && !isInEditingGroup;
@@ -290,8 +290,8 @@ export default function ShareScreen() {
       <View key={String(contact.contactId)}>
         <ContactRow
           contact={contact}
-          contactIndex={ci}
-          shareData={sd}
+          contactIndex={contactIndex}
+          shareData={shareData}
           {...sharedRowProps}
           groupSelectMode={groupSelectMode}
           isLocked={isLocked}
@@ -299,14 +299,14 @@ export default function ShareScreen() {
           onToggleSelection={() => toggleGroupSelection(String(contact.contactId))}
         />
         <View style={{ position: 'absolute', left: -9999 }}>
-          <ViewShot ref={(r) => { infographicRefs.current[ci] = r; }} options={{ format: 'png', quality: 1 }}>
+          <ViewShot ref={(r) => { infographicRefs.current[contactIndex] = r; }} options={{ format: 'png', quality: 1 }}>
             <BillInfographic
               billName={bill.name}
               contactName={contact.isSelf ? t.self_label(contact.name) : contact.name}
               contactImageUri={contact.imageUri}
-              items={contact.items.map((ref) => {
-                const info = sd.items.get(ref.itemId);
-                return { name: info?.name ?? '', amount: info?.share ?? 0, units: ref.units, totalUnits: info?.totalUnits ?? 0 };
+              items={contact.items.map((itemRef) => {
+                const info = shareData.items.get(itemRef.itemId);
+                return { name: info?.name ?? '', amount: info?.share ?? 0, units: itemRef.units, totalUnits: info?.totalUnits ?? 0 };
               })}
               taxConfig={taxConfig}
               tipPercent={tipPercent}
@@ -363,13 +363,13 @@ export default function ShareScreen() {
 
       <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
         {/* In select mode: show all contacts as flat list */}
-        {groupSelectMode && bill.contacts.map((contact, ci) => renderContactRow(contact, ci))}
+        {groupSelectMode && bill.contacts.map((contact, contactIndex) => renderContactRow(contact, contactIndex))}
 
         {/* Normal mode: ungrouped contacts */}
-        {!groupSelectMode && ungroupedContacts.map((contact, ci) => renderContactRow(contact, ci))}
+        {!groupSelectMode && ungroupedContacts.map((contact, contactIndex) => renderContactRow(contact, contactIndex))}
 
         {/* Normal mode: grouped contacts as tinted sections */}
-        {!groupSelectMode && contactGroups.map((group, gi) => {
+        {!groupSelectMode && contactGroups.map((group, groupIndex) => {
           const members = resolvedGroupMembers.get(group.id) ?? [];
           if (members.length < 2) return null;
 
@@ -378,7 +378,7 @@ export default function ShareScreen() {
               key={group.id}
               group={group}
               members={members}
-              groupIndex={gi}
+              groupIndex={groupIndex}
               shareDataMap={shareDataMap}
               {...sharedRowProps}
               useGlass={useGlass}

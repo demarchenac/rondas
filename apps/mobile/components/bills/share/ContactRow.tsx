@@ -70,13 +70,13 @@ function ContactRow({
 
             {!isEqualSplit && (
               <View className="flex-row flex-wrap">
-                {contact.items.map((ref) => {
-                  const info = itemShares.get(ref.itemId);
+                {contact.items.map((itemRef) => {
+                  const info = itemShares.get(itemRef.itemId);
                   if (!info) return null;
                   return (
-                    <View key={ref.itemId} className="w-1/2 pr-2 mb-1">
+                    <View key={itemRef.itemId} className="w-1/2 pr-2 mb-1">
                       <Text className="text-sm text-foreground" numberOfLines={1}>
-                        {info.name} ({ref.units}/{info.totalUnits})
+                        {info.name} ({itemRef.units}/{info.totalUnits})
                       </Text>
                       <Text className="text-sm text-muted-foreground">{formatCurrency(info.share, billCountry)}</Text>
                     </View>

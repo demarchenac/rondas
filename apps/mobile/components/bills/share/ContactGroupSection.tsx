@@ -40,16 +40,16 @@ function ContactGroupSection({
   let groupTotal = 0;
   let groupTax = 0;
   let groupTip = 0;
-  for (const m of members) {
-    const sd = shareDataMap.get(String(m.contactId));
-    if (sd) { groupTotal += sd.total; groupTax += sd.tax; groupTip += sd.tip; }
+  for (const member of members) {
+    const memberShare = shareDataMap.get(String(member.contactId));
+    if (memberShare) { groupTotal += memberShare.total; groupTax += memberShare.tax; groupTip += memberShare.tip; }
   }
 
   return (
     <View className={cn('-mx-7 mb-4 px-7 py-4', tintBg)}>
       <View className="mb-3 flex-row items-center gap-2">
         <Pressable
-          onPress={() => onEditGroup(group.id, new Set(members.map((m) => String(m.contactId))))}
+          onPress={() => onEditGroup(group.id, new Set(members.map((member) => String(member.contactId))))}
           accessibilityRole="button"
           accessibilityLabel={`Edit group ${group.name}`}
           style={{ backgroundColor: 'transparent' }}
@@ -67,15 +67,15 @@ function ContactGroupSection({
         <Text className="flex-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.name}</Text>
       </View>
 
-      {members.map((member, mi) => {
-        const sd = shareDataMap.get(String(member.contactId));
-        if (!sd) return null;
+      {members.map((member, memberIndex) => {
+        const memberShareData = shareDataMap.get(String(member.contactId));
+        if (!memberShareData) return null;
         return (
-          <View key={String(member.contactId)} className={cn(mi < members.length - 1 && 'mb-4')}>
+          <View key={String(member.contactId)} className={cn(memberIndex < members.length - 1 && 'mb-4')}>
             <ContactRow
               contact={member}
               contactIndex={getContactIndex(member)}
-              shareData={sd}
+              shareData={memberShareData}
               isEqualSplit={isEqualSplit}
               billCountry={billCountry}
               contactCount={contactCount}
