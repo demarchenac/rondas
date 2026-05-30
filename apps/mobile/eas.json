@@ -20,9 +20,14 @@
     },
     "apk": {
       "distribution": "internal",
-      "channel": "production",
+      "channel": "preview",
+      "environment": "preview",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_APP_VARIANT": "preview"
       }
     },
     "production": {

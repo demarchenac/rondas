@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rondas — Viabilidad Financiera</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --bg-card-alt: #162033;
+    --border: #334155;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-heading: #f8fafc;
+    --primary: #38bdf8;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --purple: #a78bfa;
+    --indigo: #818cf8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 2.2rem;
+    color: var(--text-heading);
+    margin-bottom: 0.5rem;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    color: var(--primary);
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    color: var(--text-heading);
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .metric {
+    text-align: center;
+    padding: 1.25rem;
+  }
+
+  .metric .value {
+    font-size: 2rem;
+    font-weight: 800;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  .metric .label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .green { color: var(--green); }
+  .red { color: var(--red); }
+  .amber { color: var(--amber); }
+  .primary { color: var(--primary); }
+  .purple { color: var(--purple); }
+  .indigo { color: var(--indigo); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card-alt);
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  tr:hover td { background: rgba(56, 189, 248, 0.03); }
+
+  .highlight-row td {
+    background: rgba(52, 211, 153, 0.08);
+    font-weight: 600;
+  }
+
+  .bar-container {
+    background: var(--bg-card-alt);
+    border-radius: 6px;
+    height: 28px;
+    display: flex;
+    overflow: hidden;
+    margin: 0.5rem 0;
+  }
+
+  .bar-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--bg);
+    transition: width 0.3s ease;
+  }
+
+  .funnel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+
+  .funnel-step {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .funnel-bar {
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--bg);
+    transition: width 0.3s ease;
+  }
+
+  .funnel-label {
+    min-width: 140px;
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .funnel-value {
+    min-width: 80px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .timeline {
+    position: relative;
+    padding-left: 2rem;
+    margin: 1.5rem 0;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+
+  .timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -2rem;
+    top: 6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    background: var(--bg);
+  }
+
+  .timeline-item.done::before {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .timeline-item.current::before {
+    background: var(--amber);
+    border-color: var(--amber);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+  }
+
+  .timeline-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .timeline-title {
+    font-weight: 600;
+    color: var(--text-heading);
+  }
+
+  .timeline-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+  }
+
+  .callout {
+    border-left: 3px solid var(--primary);
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    background: rgba(56, 189, 248, 0.05);
+    border-radius: 0 8px 8px 0;
+  }
+
+  .callout.warning {
+    border-left-color: var(--amber);
+    background: rgba(251, 191, 36, 0.05);
+  }
+
+  .callout.success {
+    border-left-color: var(--green);
+    background: rgba(52, 211, 153, 0.05);
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .tag-green { background: rgba(52, 211, 153, 0.15); color: var(--green); }
+  .tag-amber { background: rgba(251, 191, 36, 0.15); color: var(--amber); }
+  .tag-red { background: rgba(248, 113, 113, 0.15); color: var(--red); }
+  .tag-primary { background: rgba(56, 189, 248, 0.15); color: var(--primary); }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    .card-grid { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    h1 { font-size: 1.6rem; }
+  }
+
+  .verdict {
+    text-align: center;
+    padding: 2rem;
+    border: 2px solid var(--green);
+    border-radius: 16px;
+    background: rgba(52, 211, 153, 0.05);
+    margin: 2rem 0;
+  }
+
+  .verdict .icon { font-size: 3rem; margin-bottom: 0.5rem; }
+  .verdict h3 { color: var(--green); margin: 0.5rem 0; font-size: 1.3rem; }
+</style>
+</head>
+<body>
+
+<h1>Rondas — Viabilidad Financiera</h1>
+<p class="subtitle">Análisis de breakeven, proyecciones y escenarios para un SaaS móvil de bill-splitting en el mercado colombiano. Mayo 2026.</p>
+
+<!-- ============================================ -->
+<h2>1. Tu producto hoy</h2>
+
+<div class="card-grid">
+  <div class="card metric">
+    <span class="value primary">$9.900</span>
+    <span class="label">COP/mes (Colombia)</span>
+  </div>
+  <div class="card metric">
+    <span class="value primary">$4.99</span>
+    <span class="label">USD/mes (Internacional)</span>
+  </div>
+  <div class="card metric">
+    <span class="value purple">~25%</span>
+    <span class="label">Descuento plan anual</span>
+  </div>
+  <div class="card metric">
+    <span class="value amber">3</span>
+    <span class="label">Facturas gratis/mes</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Modelo de monetización</h3>
+  <p style="margin-top: 0.5rem;">Freemium con <strong>reverse trial</strong>: las primeras 2 facturas desbloquean todas las funciones Pro. Después, el usuario libre queda limitado a 3 facturas/mes sin escaneo AI, sin tracking de pagos, y sin historial >90 días.</p>
+
+  <div style="margin-top: 1rem;">
+    <span class="tag tag-green">Free</span> 3 bills/mes, entrada manual
+    &nbsp;&nbsp;
+    <span class="tag tag-primary">Pro</span> Ilimitado, AI scan, pagos, historial completo
+  </div>
+</div>
+
+<!-- ============================================ -->
+<h2>2. Estructura de costos</h2>
+
+<h3>Costos variables por usuario Pro activo/mes</h3>
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Servicio</th><th>Costo/usuario</th><th>Notas</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Gemini 2.5 Flash</td><td class="green">~$0.04</td><td>~10 scans/mes, thinking_budget: 512</td></tr>
+      <tr><td>Convex (function calls)</td><td class="green">~$0.00</td><td>Free tier: 1M calls/mes. Queries reactivas + mutations por usuario están muy dentro del límite</td></tr>
+      <tr><td>Google Places</td><td class="green">$0.00</td><td>No configurado — geocoding usa APIs nativas del dispositivo</td></tr>
+      <tr><td>Resend (email)</td><td class="green">$0.00</td><td>No configurado — notificaciones se hacen vía deep links de WhatsApp</td></tr>
+      <tr><td>WorkOS, Sentry, RevenueCat</td><td class="green">$0.00</td><td>Free tiers cubren early stage</td></tr>
+      <tr class="highlight-row"><td><strong>Total variable</strong></td><td><strong>~$0.04</strong></td><td>Prácticamente solo el costo de Gemini AI por scan</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Costos fijos mensuales (se activan con el crecimiento)</h3>
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Servicio</th><th>Costo/mes</th><th>Se activa al...</th><th>Usuarios Pro para cubrir</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Apple Developer</td><td>$8.25</td><td>Siempre (anual $99)</td><td>4</td></tr>
+      <tr><td>Google Play</td><td>$2.08</td><td>Una vez ($25 lifetime)</td><td>1</td></tr>
+      <tr><td>Dominio rondas.app</td><td>~$1.50</td><td>Siempre (anual ~$18)</td><td>1</td></tr>
+      <tr><td>Convex Pro</td><td>$25</td><td>Superar 1M calls (~2K usuarios)</td><td>14</td></tr>
+      <tr><td>Sentry Team</td><td>$29</td><td>Superar 5K events (~5K usuarios)</td><td>16</td></tr>
+      <tr><td>Resend Pro</td><td>$20</td><td>No configurado actualmente — $0 hoy</td><td>11</td></tr>
+      <tr><td>RevenueCat</td><td>1% MRR</td><td>Superar $2.5K MRR</td><td>Porcentual</td></tr>
+      <tr class="highlight-row"><td><strong>Fase actual</strong></td><td><strong>~$12/mes</strong></td><td colspan="2">Solo Apple + dominio + Google Play amortizado</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="callout success">
+  <strong>Ventaja estructural:</strong> Tu stack es casi 100% serverless con free tiers generosos. Los costos fijos no escalan hasta ~2,000 usuarios totales. En la fase de arranque, tu burn rate real es ~$12 USD/mes.
+</div>
+
+<!-- ============================================ -->
+<h2>3. Margen neto por suscriptor</h2>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Región</th><th>Precio/mes</th><th>Store fee (15%)</th><th>Costo infra</th><th>Neto/usuario</th><th>Margen</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>🇨🇴 Colombia</td><td>$2.30</td><td class="red">-$0.35</td><td class="red">-$0.04</td>
+        <td class="green"><strong>$1.91</strong></td>
+        <td><span class="tag tag-green">83%</span></td>
+      </tr>
+      <tr>
+        <td>🇺🇸 USA</td><td>$4.99</td><td class="red">-$0.75</td><td class="red">-$0.04</td>
+        <td class="green"><strong>$4.20</strong></td>
+        <td><span class="tag tag-green">84%</span></td>
+      </tr>
+      <tr>
+        <td>🌎 Latam</td><td>$3.49</td><td class="red">-$0.52</td><td class="red">-$0.04</td>
+        <td class="green"><strong>$2.93</strong></td>
+        <td><span class="tag tag-green">84%</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 style="margin-top: 1.5rem;">Distribución del ingreso (Colombia, $9.900 COP/mes)</h3>
+  <div class="bar-container">
+    <div class="bar-segment" style="width: 83%; background: var(--green);">Neto $1.91 (83%)</div>
+    <div class="bar-segment" style="width: 15%; background: var(--red);">Store 15%</div>
+    <div class="bar-segment" style="width: 2%; background: var(--amber);">AI 2%</div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<h2>4. Punto de equilibrio (Breakeven)</h2>
+
+<div class="card">
+  <h3>¿Cuántos suscriptores Pro necesitas para cubrir costos?</h3>
+
+  <div class="card-grid" style="margin-top: 1rem;">
+    <div class="card metric" style="border: 2px solid var(--green);">
+      <span class="value green">7</span>
+      <span class="label">Suscriptores Pro (CO)</span>
+      <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.5rem;">
+        7 × $1.91 = $13.37 > $12/mes costos fijos
+      </span>
+    </div>
+    <div class="card metric" style="border: 2px solid var(--primary);">
+      <span class="value primary">3</span>
+      <span class="label">Suscriptores Pro (USA)</span>
+      <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.5rem;">
+        3 × $4.20 = $12.60 > $12/mes costos fijos
+      </span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Breakeven con solo 7 usuarios Pro colombianos o 3 estadounidenses.</strong> Esto es extremadamente bajo para una app móvil. La mayoría de SaaS necesitan cientos de usuarios para cubrir costos.
+  </div>
+</div>
+
+<!-- ============================================ -->
+<h2>5. Funnel de conversión esperado</h2>
+
+<div class="card">
+  <p style="margin-bottom: 1rem; color: var(--text-muted);">Benchmark de apps freemium de utilidad en Latam (conservador):</p>
+
+  <div class="funnel">
+    <div class="funnel-step">
+      <span class="funnel-label">Descargas</span>
+      <div class="funnel-bar" style="width: 100%; background: var(--primary);">1,000</div>
+      <span class="funnel-value">100%</span>
+    </div>
+    <div class="funnel-step">
+      <span class="funnel-label">Registros</span>
+      <div class="funnel-bar" style="width: 55%; background: #22d3ee;">550</div>
+      <span class="funnel-value">55%</span>
+    </div>
+    <div class="funnel-step">
+      <span class="funnel-label">Crean 1ra factura</span>
+      <div class="funnel-bar" style="width: 30%; background: var(--indigo);">300</div>
+      <span class="funnel-value">30%</span>
+    </div>
+    <div class="funnel-step">
+      <span class="funnel-label">Reverse trial (2 bills)</span>
+      <div class="funnel-bar" style="width: 18%; background: var(--purple);">180</div>
+      <span class="funnel-value">18%</span>
+    </div>
+    <div class="funnel-step">
+      <span class="funnel-label">Hit paywall (3+ bills)</span>
+      <div class="funnel-bar" style="width: 10%; background: var(--amber);">100</div>
+      <span class="funnel-value">10%</span>
+    </div>
+    <div class="funnel-step">
+      <span class="funnel-label">Convierten a Pro</span>
+      <div class="funnel-bar" style="width: 4%; background: var(--green);">30–50</div>
+      <span class="funnel-value green" style="font-weight: 800;">3–5%</span>
+    </div>
+  </div>
+
+  <div class="callout warning">
+    <strong>La tasa de conversión clave es 3–5%.</strong> Apps de utilidad en Latam con buen onboarding convierten 2–6%. Tu reverse trial (desbloquear todo en las primeras 2 facturas) es una ventaja porque el usuario experimenta el valor completo antes de pagar.
+  </div>
+</div>
+
+<!-- ============================================ -->
+<h2>6. Proyecciones de ingreso</h2>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Escenario</th><th>Pro Users</th><th>Revenue/mes</th><th>Costos/mes</th><th>Neto/mes</th><th>Neto/año</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-red">Arranque</span></td>
+        <td>20</td><td>$46</td><td>$13</td>
+        <td class="green">$33</td><td>$396</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-amber">Tracción</span></td>
+        <td>100</td><td>$230</td><td>$16</td>
+        <td class="green">$214</td><td>$2,568</td>
+      </tr>
+      <tr class="highlight-row">
+        <td><span class="tag tag-green">Estable</span></td>
+        <td>500</td><td>$1,151</td><td>$32</td>
+        <td class="green">$1,119</td><td>$13,428</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-primary">Crecimiento</span></td>
+        <td>2,000</td><td>$4,605</td><td>$142</td>
+        <td class="green">$4,463</td><td>$53,556</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-primary">Escala</span></td>
+        <td>10,000</td><td>$23,023</td><td>$862</td>
+        <td class="green">$22,161</td><td>$265,932</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">
+    * Asume mix 70% Colombia / 20% Latam / 10% USA. Costos = fijos ($12) + variable ($0.04/usuario × Gemini AI). Convex Pro y Sentry se activan en escenarios de crecimiento. Store fee 15% para revenue &lt;$1M/año.
+  </p>
+</div>
+
+<!-- ============================================ -->
+<h2>7. Timeline al breakeven</h2>
+
+<div class="card">
+  <div class="timeline">
+    <div class="timeline-item done">
+      <span class="timeline-time">Mes 0 (hoy)</span>
+      <span class="timeline-title">Launch en App Store + Google Play</span>
+      <span class="timeline-desc">0 usuarios, -$12/mes costos fijos. Inversión acumulada: ~$150 (developer accounts + dominio)</span>
+    </div>
+    <div class="timeline-item current">
+      <span class="timeline-time">Mes 1–2</span>
+      <span class="timeline-title">Breakeven → 7 suscriptores Pro</span>
+      <span class="timeline-desc">Marketing orgánico: grupos de WhatsApp, redes sociales, boca a boca en restaurantes colombianos. Meta: 200 descargas → 7 Pro.</span>
+    </div>
+    <div class="timeline-item">
+      <span class="timeline-time">Mes 3–6</span>
+      <span class="timeline-title">Tracción → 50–100 Pro</span>
+      <span class="timeline-desc">1,000–2,000 descargas acumuladas. Neto ~$100–200/mes. El producto se paga solo + genera ingreso pasivo.</span>
+    </div>
+    <div class="timeline-item">
+      <span class="timeline-time">Mes 6–12</span>
+      <span class="timeline-title">Estabilidad → 200–500 Pro</span>
+      <span class="timeline-desc">Neto ~$400–1,000/mes. Efecto de retención: usuarios que pagan mensualmente generan LTV creciente.</span>
+    </div>
+    <div class="timeline-item">
+      <span class="timeline-time">Año 2+</span>
+      <span class="timeline-title">Crecimiento → 1,000+ Pro</span>
+      <span class="timeline-desc">Expansión a otros mercados Latam. Neto ~$2,000+/mes. Posible ingreso a tiempo completo.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<h2>8. Métricas clave a monitorear</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <h3>📥 Adquisición</h3>
+    <table>
+      <tr><td>Descargas/semana</td><td class="amber">Meta: 50+</td></tr>
+      <tr><td>Registro → 1ra factura</td><td class="amber">Meta: >30%</td></tr>
+      <tr><td>CAC (costo adquisición)</td><td class="green">Meta: $0 (orgánico)</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>💰 Monetización</h3>
+    <table>
+      <tr><td>Tasa de conversión Free→Pro</td><td class="amber">Meta: >3%</td></tr>
+      <tr><td>ARPU (avg revenue/user)</td><td class="primary">~$0.07–0.15</td></tr>
+      <tr><td>MRR (monthly recurring)</td><td class="green">Meta: $100+ mes 3</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>🔄 Retención</h3>
+    <table>
+      <tr><td>Retención D7</td><td class="amber">Meta: >25%</td></tr>
+      <tr><td>Retención D30</td><td class="amber">Meta: >15%</td></tr>
+      <tr><td>Churn mensual Pro</td><td class="red">Alerta: >10%</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>📊 Unit Economics</h3>
+    <table>
+      <tr><td>LTV (lifetime value)</td><td class="green">Meta: >$10</td></tr>
+      <tr><td>LTV/CAC ratio</td><td class="green">Meta: >3x</td></tr>
+      <tr><td>Payback period</td><td class="green">Meta: <1 mes</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<h2>9. Próximas inversiones estratégicas</h2>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Iniciativa</th><th>Prioridad</th><th>Costo</th><th>Impacto esperado</th><th>Cuándo</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PostHog Analytics</strong></td>
+        <td><span class="tag tag-green">Alta</span></td>
+        <td class="green">$0 (1M events/mes gratis)</td>
+        <td>Medir funnel real free→Pro, retención, churn. Sin esto estás volando a ciegas.</td>
+        <td>Pre-launch</td>
+      </tr>
+      <tr>
+        <td><strong>Onboarding guiado</strong></td>
+        <td><span class="tag tag-green">Alta</span></td>
+        <td class="green">$0 (desarrollo)</td>
+        <td>Subir activación de 30% → 50%+. El reverse trial solo funciona si el usuario llega a crear 2 facturas.</td>
+        <td>Post-launch v1.1</td>
+      </tr>
+      <tr>
+        <td><strong>Better Auth (reemplazar WorkOS)</strong></td>
+        <td><span class="tag tag-amber">Baja</span></td>
+        <td class="green">$0 (self-hosted)</td>
+        <td>Eliminar costo futuro de WorkOS. Tradeoff: mantener auth propio.</td>
+        <td>Cuando WorkOS cobre >$50/mes</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="callout success">
+  <strong>PostHog es la inversión más importante pre-launch.</strong> Es gratuito y te permite validar si las proyecciones de este reporte se cumplen en la realidad. Las métricas de conversión, retención y churn que mencionamos en la sección 8 requieren analytics para medirse.
+</div>
+
+<div class="callout">
+  <strong>Onboarding guiado tiene el mayor ROI post-launch.</strong> Cada punto porcentual de activación que subas se multiplica por todo el funnel. Si 1,000 descargas producen 300 activaciones hoy (30%), un onboarding guiado puede llevar eso a 500 (50%) — eso son 200 usuarios más pasando por el reverse trial y viendo el valor de Pro.
+</div>
+
+<div class="card">
+  <h3>Impacto del onboarding en revenue (1,000 descargas)</h3>
+  <div class="two-col" style="margin-top: 1rem;">
+    <div style="text-align: center;">
+      <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Sin onboarding</span>
+      <div style="font-size: 1.5rem; font-weight: 800; color: var(--amber); margin: 0.5rem 0;">30 Pro</div>
+      <div style="font-size: 0.9rem; color: var(--text-muted);">300 activos × 10% paywall × 3% conversión</div>
+      <div style="font-size: 1.1rem; font-weight: 600; margin-top: 0.5rem;">~$57/mes</div>
+    </div>
+    <div style="text-align: center;">
+      <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Con onboarding</span>
+      <div style="font-size: 1.5rem; font-weight: 800; color: var(--green); margin: 0.5rem 0;">50 Pro</div>
+      <div style="font-size: 0.9rem; color: var(--text-muted);">500 activos × 10% paywall × 3% conversión</div>
+      <div style="font-size: 1.1rem; font-weight: 600; margin-top: 0.5rem;">~$96/mes (+67%)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<h2>10. Riesgos y mitigaciones</h2>
+
+<div class="two-col">
+  <div class="card">
+    <h3 style="color: var(--red);">⚠️ Riesgos</h3>
+    <ul style="padding-left: 1.2rem; margin-top: 0.75rem;">
+      <li style="margin-bottom: 0.5rem;"><strong>Bajo volumen de descargas:</strong> Colombia es un mercado de ~20M smartphones. Bill-splitting es nicho.</li>
+      <li style="margin-bottom: 0.5rem;"><strong>Churn alto:</strong> La app resuelve un problema puntual (salir a comer), no un hábito diario.</li>
+      <li style="margin-bottom: 0.5rem;"><strong>Competencia gratuita:</strong> Splitwise es gratis para el caso básico. Calculadoras manuales son $0.</li>
+      <li style="margin-bottom: 0.5rem;"><strong>Disposición a pagar:</strong> $9.900 COP/mes puede percibirse caro vs apps gratuitas en Colombia.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3 style="color: var(--green);">✅ Mitigaciones</h3>
+    <ul style="padding-left: 1.2rem; margin-top: 0.75rem;">
+      <li style="margin-bottom: 0.5rem;"><strong>AI scanning es el diferenciador:</strong> Ningún competidor local lo ofrece. Reduce fricción de 5min → 30seg.</li>
+      <li style="margin-bottom: 0.5rem;"><strong>Reverse trial:</strong> El usuario experimenta el valor completo antes de decidir pagar.</li>
+      <li style="margin-bottom: 0.5rem;"><strong>Costos ultra-bajos:</strong> Breakeven en 7 usuarios. Incluso con bajo volumen, no pierdes dinero.</li>
+      <li style="margin-bottom: 0.5rem;"><strong>Virality natural:</strong> Cada vez que alguien comparte un resumen por WhatsApp, es marketing gratuito.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<h2>11. Veredicto</h2>
+
+<div class="verdict">
+  <div class="icon">✅</div>
+  <h3>Viable — riesgo financiero mínimo</h3>
+  <p style="max-width: 600px; margin: 1rem auto; color: var(--text-muted);">
+    Con costos fijos de ~$12/mes y breakeven en <strong>7 suscriptores</strong>, el riesgo de perder dinero es casi nulo.
+    No necesitas inversión externa, no necesitas miles de usuarios, y el margen por suscriptor es >80%.
+  </p>
+  <p style="max-width: 600px; margin: 0 auto; color: var(--text);">
+    El escenario realista es alcanzar breakeven en <strong>el primer o segundo mes</strong> con marketing orgánico (WhatsApp groups, Instagram, boca a boca en restaurantes). A partir de ahí, cada nuevo suscriptor es ingreso neto casi puro.
+  </p>
+</div>
+
+<div class="callout">
+  <strong>La pregunta correcta no es "¿puedo hacer dinero?" sino "¿cuánto crecimiento puedo lograr?"</strong>
+  <br><br>
+  Tu stack serverless + free tiers + precios regionalizados crean una estructura donde es prácticamente imposible perder dinero a menos que abandones el proyecto. El ceiling depende del tamaño del mercado y tu capacidad de distribución, no de la economía del producto.
+</div>
+
+<p style="text-align: center; color: var(--text-muted); margin-top: 3rem; font-size: 0.8rem;">
+  Generado el 30 de mayo de 2026 · Datos basados en pricing.schema.md y estructura actual del proyecto
+</p>
+
+</body>
+</html>

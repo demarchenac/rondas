@@ -62,25 +62,31 @@
 - [x] Store user config in Convex (synced across devices)
 - [x] Detect new vs returning user via Convex query on login
 
-### 1.7 File Uploads — UploadThing
+### 1.7 File Uploads — UploadThing *(deferred — post-launch)*
 
 - [ ] Create UploadThing project
 - [x] Install UploadThing client in Expo app
 - [ ] Configure upload route for bill images
 
-### 1.8 Email — Resend + React Email
+> Note: Images are sent as base64 directly to Gemini. Photo persistence deferred to post-launch.
+
+### 1.8 Email — Resend + React Email *(deferred — post-launch)*
 
 - [ ] Create Resend account and obtain API key
 - [x] Set up React Email project in `/emails` directory
 - [x] Configure Resend client in Convex backend
 
-### 1.9 WhatsApp — Meta Cloud API
+> Note: Not configured. Notifications handled via WhatsApp deep links for v1.
+
+### 1.9 WhatsApp — Meta Cloud API *(deferred — post-launch)*
 
 - [ ] Create Meta developer account and app
 - [ ] Enable WhatsApp product on Meta app
 - [ ] Add test phone numbers to sandbox
 - [ ] Store WhatsApp API credentials in environment variables
 - [x] Create a Convex action to send a WhatsApp message
+
+> Note: WhatsApp sharing works via `wa.me/` deep links. Cloud API deferred to post-launch.
 
 ---
 
@@ -260,8 +266,8 @@
 - [x] "Resumen generado con la app Rondas" footer in messages and infographic
 - [x] Redesigned WhatsApp message with full breakdown (location, date, subtotal, tax, before-tip, tip, total)
 - [x] Extract WhatsApp message builder to `lib/whatsapp.ts`
-- [ ] Create React Email template for per-contact bill summary
-- [ ] Create Convex action to send email via Resend
+- [ ] Create React Email template for per-contact bill summary *(deferred — post-launch)*
+- [ ] Create Convex action to send email via Resend *(deferred — post-launch)*
 
 ### 6.2 Payment Tracking
 
@@ -469,8 +475,10 @@
 - [x] Fix bugs from TestFlight testing (Error 23, Convex deploy, keyboard inputs)
 - [ ] Write App Store description (English + Spanish)
 - [ ] Prepare screenshots for App Store (6.7" and 6.1" screens)
-- [ ] Privacy Policy URL
+- [x] Privacy Policy URL — rondas.app/privacy (ES) + rondas.app/en/privacy (EN)
+- [x] Terms of Service URL — rondas.app/terms (ES) + rondas.app/en/terms (EN)
 - [ ] Submit for App Store review
+- [ ] Submit for Google Play review
 
 ---
 
@@ -653,9 +661,86 @@
 
 ---
 
+## Session 12 — Share Screen Audit & Polish (2026-05-29)
+
+### Share Screen — Code Quality
+- [x] Fix stale contactIndex bug (ungrouped contacts shared wrong infographic)
+- [x] Replace deprecated accessibilityRole with role prop (RN 0.85)
+- [x] Replace deprecated nativewind useColorScheme with react-native
+- [x] Replace callback-based Image.getSize with promise-based API
+- [x] Extract computeContactItemShare into shared utils (dedup share math)
+- [x] Extract buildHeader helper in whatsapp.ts (remove triple duplication)
+- [x] Thread bill.decimalPlaces through entire share tree
+- [x] Fix inconsistent contactKey usage in ContactGroupSection
+- [x] Fix unreadable GroupConfirmToolbar button styling
+- [x] Localize hardcoded accessibility labels (en/es)
+- [x] Replace hardcoded #10b981 with iconColors.success
+- [x] Fix phone.ts false-positive country code detection
+- [x] Simplify stateLabel to reuse STATE_LABEL_KEYS
+- [x] Move GROUP_TINTS_BG from types.ts to utils.ts
+- [x] Tighten contactKey param type from unknown to Id<'contacts'> | string
+- [x] Remove trivial dismiss wrapper in InfographicPreview
+- [x] Reuse Avatar component in ContactRow (replaced inline avatar)
+
+### Share Screen — UI
+- [x] Liquid glass header with MaskedView gradient fade
+- [x] Skeleton placeholders during 500ms glass delay
+- [x] Fix ContactRow layout (total inside flex-1 for full-width item grid)
+- [x] Truncate contact names with numberOfLines={1}
+- [x] Consistent px-7 padding between header and scroll content
+
+### Bill Logic
+- [x] Bill state 'split' when all contacts paid (regardless of item coverage)
+- [x] Deploy simplified computeBillState to Convex production
+
+### UI Polish
+- [x] Tip dialog 3x2 grid layout (was 5+1)
+- [x] Localize "Tap to edit" in PeopleSummary (was hardcoded English)
+- [x] Shorten "Impoconsumo" to "ICO" in tax labels
+- [x] Full tax names in Spanish descriptive text
+- [x] Move dev log button to bottom-right corner
+
+### Android
+- [x] Configure APK build profile with preview channel
+- [x] Trigger APK build for shareable Android testing
+
+---
+
+## Phase 11 — Post-Launch Roadmap *(future)*
+
+### 11.1 Analytics — PostHog
+- [ ] Install PostHog React Native SDK
+- [ ] Configure PostHog provider in app root
+- [ ] Track key funnel events: signup, first_bill, reverse_trial_complete, paywall_shown, subscription_started
+- [ ] Track retention events: app_open, bill_created, share_sent
+- [ ] Set up conversion dashboard (free → Pro funnel)
+- [ ] Enable session replay for debugging
+
+### 11.2 Onboarding Flow
+- [ ] Design step-by-step guided onboarding for first bill
+- [ ] Step 1: Take/select photo of bill
+- [ ] Step 2: Review AI-extracted items
+- [ ] Step 3: Assign contacts to items
+- [ ] Step 4: Share breakdown via WhatsApp
+- [ ] Add skip button on each step
+- [ ] Persist onboarding completion in user profile
+- [ ] Only show for new users (totalBillsCreated === 0)
+
+### 11.3 Auth Migration Evaluation
+- [ ] Evaluate Better Auth as WorkOS replacement when WorkOS costs become significant
+- [ ] Document migration path: session handling, OAuth providers, token refresh
+- [ ] Decision criteria: WorkOS monthly cost > $50 AND >1,000 active users
+
+### 11.4 Deferred Infrastructure
+- [ ] UploadThing: persist bill photos for history/re-scan
+- [ ] Resend: email summaries per contact
+- [ ] WhatsApp Cloud API: push notifications (replace deep links)
+
+---
+
 ## Progress Summary
 
-> Last updated: 2026-04-21 (Session 10 — Subscriptions, feature gating, app icon, Apple setup)
+> Last updated: 2026-05-30 (Session 12 — Share screen audit, bill state fix, UI polish)
 
 | Phase                             | Total Tasks | Done  |
 | --------------------------------- | ----------- | ----- |
@@ -668,9 +753,11 @@
 | Phase 7 — Bill Detail & History   | 32          | 31    |
 | Phase 8 — Settings                | 24          | 24    |
 | Phase 9 — Subscriptions           | 46          | 40    |
-| Phase 10 — Polish & Launch        | 17          | 13    |
+| Phase 10 — Polish & Launch        | 19          | 16    |
 | Codebase Review #1 Refactoring    | 48          | 48    |
 | Codebase Review #2 Fixes          | 20          | 20    |
 | Session 7 — Bill Detail Redesign  | 30          | 30    |
 | Session 8 — Errors, Tip, Filters  | 19          | 19    |
-| **Total**                         | **383**     | **366**|
+| Session 12 — Share Screen Audit   | 27          | 27    |
+| Phase 11 — Post-Launch Roadmap    | 17          | 0     |
+| **Total**                         | **429**     | **396**|
