@@ -27,7 +27,7 @@ import InfographicPreview from '@/components/bills/InfographicPreview';
 import ContactRow from '@/components/bills/share/ContactRow';
 import ContactGroupSection from '@/components/bills/share/ContactGroupSection';
 import GroupConfirmToolbar from '@/components/bills/share/GroupConfirmToolbar';
-import type { ResolvedContact } from '@/components/bills/share/types';
+import type { ResolvedContact, ContactShareData, ItemShareInfo } from '@/components/bills/share/types';
 
 export default function ShareScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -79,25 +79,39 @@ export default function ShareScreen() {
     return bill.contacts.filter((c) => !groupedContactIds.has(String(c.contactId)));
   }, [bill, groupedContactIds]);
 
-  const computeContactTotal = useCallback((contact: { items: { itemId: string; units: number }[]; amount: number }) => {
-    if (!bill) return { total: 0, tax: 0, tip: 0 };
-    const isEqualSplit = splitStrategy === 'equal';
-    if (isEqualSplit) return { total: contact.amount, tax: 0, tip: 0 };
+  const shareDataMap = useMemo(() => {
+    if (!bill) return new Map<string, ContactShareData>();
+    const isEqual = splitStrategy === 'equal';
 
-    const contactItemAmounts = contact.items.map((ref) => {
-      const item = bill.items.find((i) => i.id === ref.itemId);
-      if (!item) return 0;
-      const totalUnits = bill.contacts.reduce((u, c) => {
-        const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
-        return u + (cRef ? cRef.units : 0);
-      }, 0);
-      return totalUnits > 0 ? Math.round((ref.units / totalUnits) * item.subtotal) : Math.round(item.subtotal);
-    });
-    const contactItemsTotal = contactItemAmounts.reduce((s, a) => s + a, 0);
-    const contactBase = computeBase(contactItemsTotal, taxConfig);
-    const cTax = computeTax(contactItemsTotal, taxConfig);
-    const cTip = Math.round(contactBase * (tipPercent / 100));
-    return { total: contactBase + cTax + cTip, tax: cTax, tip: cTip };
+    const itemTotalUnits = new Map<string, number>();
+    if (!isEqual) {
+      for (const c of bill.contacts) {
+        for (const ref of c.items) {
+          itemTotalUnits.set(ref.itemId, (itemTotalUnits.get(ref.itemId) ?? 0) + ref.units);
+        }
+      }
+    }
+
+    const result = new Map<string, ContactShareData>();
+    for (const contact of bill.contacts) {
+      if (isEqual) {
+        result.set(String(contact.contactId), { items: new Map(), total: contact.amount, tax: 0, tip: 0 });
+        continue;
+      }
+      const items = new Map<string, ItemShareInfo>();
+      for (const ref of contact.items) {
+        const item = bill.items.find((i) => i.id === ref.itemId);
+        if (!item) continue;
+        const tu = itemTotalUnits.get(ref.itemId) ?? 1;
+        items.set(ref.itemId, { share: Math.round((ref.units / tu) * item.subtotal), totalUnits: tu, name: item.name });
+      }
+      const itemsTotal = [...items.values()].reduce((s, i) => s + i.share, 0);
+      const base = computeBase(itemsTotal, taxConfig);
+      const cTax = computeTax(itemsTotal, taxConfig);
+      const cTip = Math.round(base * (tipPercent / 100));
+      result.set(String(contact.contactId), { items, total: base + cTax + cTip, tax: cTax, tip: cTip });
+    }
+    return result;
   }, [bill, splitStrategy, taxConfig, tipPercent]);
 
   const handleTogglePaid = useCallback(async (contactId: Id<'contacts'>) => {
@@ -234,8 +248,6 @@ export default function ShareScreen() {
 
   const sharedRowProps = {
     isEqualSplit,
-    billItems: bill.items,
-    allContacts: bill.contacts,
     billCountry,
     contactCount: bill.contacts.length,
     translatedTaxLabel,
@@ -248,7 +260,8 @@ export default function ShareScreen() {
   };
 
   const renderContactRow = (contact: typeof bill.contacts[0], ci: number) => {
-    const { total, tax, tip } = computeContactTotal(contact);
+    const sd = shareDataMap.get(String(contact.contactId));
+    if (!sd) return null;
     const isInGroup = groupedContactIds.has(String(contact.contactId));
     const isInEditingGroup = editingGroupMemberIds.has(String(contact.contactId));
     const isLocked = isInGroup && !isInEditingGroup;
@@ -258,9 +271,7 @@ export default function ShareScreen() {
         <ContactRow
           contact={contact}
           contactIndex={ci}
-          total={total}
-          tax={tax}
-          tip={tip}
+          shareData={sd}
           {...sharedRowProps}
           groupSelectMode={groupSelectMode}
           isLocked={isLocked}
@@ -274,15 +285,8 @@ export default function ShareScreen() {
               contactName={contact.isSelf ? t.self_label(contact.name) : contact.name}
               contactImageUri={contact.imageUri}
               items={contact.items.map((ref) => {
-                const item = bill.items.find((i) => i.id === ref.itemId);
-                const totalUnits = bill.contacts.reduce((u, c) => {
-                  const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
-                  return u + (cRef ? cRef.units : 0);
-                }, 0);
-                const share = item && totalUnits > 0
-                  ? Math.round((ref.units / totalUnits) * item.subtotal)
-                  : item?.subtotal ?? 0;
-                return { name: item?.name ?? '', amount: share, units: ref.units, totalUnits };
+                const info = sd.items.get(ref.itemId);
+                return { name: info?.name ?? '', amount: info?.share ?? 0, units: ref.units, totalUnits: info?.totalUnits ?? 0 };
               })}
               taxConfig={taxConfig}
               tipPercent={tipPercent}
@@ -353,7 +357,7 @@ export default function ShareScreen() {
               group={group}
               members={members}
               groupIndex={gi}
-              computeTotal={computeContactTotal}
+              shareDataMap={shareDataMap}
               {...sharedRowProps}
               useGlass={useGlass}
               onEditGroup={handleEditGroup}

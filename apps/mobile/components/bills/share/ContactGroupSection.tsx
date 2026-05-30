@@ -1,6 +1,6 @@
 import React from 'react';
-import { Platform, Pressable, View } from 'react-native';
-import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import { Pressable, View } from 'react-native';
+import { GlassView } from 'expo-glass-effect';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { cn } from '@/lib/cn';
@@ -8,16 +8,14 @@ import { formatCurrency } from '@/lib/format';
 import type { Id } from '@convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
 import ContactRow from './ContactRow';
-import { GROUP_TINTS_BG, type ResolvedContact } from './types';
+import { GROUP_TINTS_BG, type ResolvedContact, type ContactShareData } from './types';
 
 export interface ContactGroupSectionProps {
   group: { id: string; contactIds: Id<'contacts'>[]; name: string };
   members: ResolvedContact[];
   groupIndex: number;
-  computeTotal: (contact: { items: { itemId: string; units: number }[]; amount: number }) => { total: number; tax: number; tip: number };
+  shareDataMap: Map<string, ContactShareData>;
   isEqualSplit: boolean;
-  billItems: { id?: string; name: string; subtotal: number }[];
-  allContacts: { items: { itemId: string; units: number }[] }[];
   billCountry: string;
   contactCount: number;
   translatedTaxLabel: string;
@@ -33,15 +31,19 @@ export interface ContactGroupSectionProps {
 }
 
 function ContactGroupSection({
-  group, members, groupIndex, computeTotal, isEqualSplit, billItems, allContacts,
+  group, members, groupIndex, shareDataMap, isEqualSplit,
   billCountry, contactCount, translatedTaxLabel, useGlass: glass, iconColors, t, capturingIndex,
   onEditGroup, onTogglePaid, onSendWhatsApp, onShareInfographic, getContactIndex,
 }: ContactGroupSectionProps) {
-  const memberTotals = members.map((m) => computeTotal(m));
-  const groupTotal = memberTotals.reduce((sum, mt) => sum + mt.total, 0);
-  const groupTax = memberTotals.reduce((sum, mt) => sum + mt.tax, 0);
-  const groupTip = memberTotals.reduce((sum, mt) => sum + mt.tip, 0);
   const tintBg = GROUP_TINTS_BG[groupIndex % GROUP_TINTS_BG.length];
+
+  let groupTotal = 0;
+  let groupTax = 0;
+  let groupTip = 0;
+  for (const m of members) {
+    const sd = shareDataMap.get(String(m.contactId));
+    if (sd) { groupTotal += sd.total; groupTax += sd.tax; groupTip += sd.tip; }
+  }
 
   return (
     <View className={cn('-mx-7 mb-4 px-7 py-4', tintBg)}>
@@ -64,18 +66,15 @@ function ContactGroupSection({
       </View>
 
       {members.map((member, mi) => {
-        const { total: mTotal, tax: mTax, tip: mTip } = computeTotal(member);
+        const sd = shareDataMap.get(String(member.contactId));
+        if (!sd) return null;
         return (
           <View key={String(member.contactId)} className={cn(mi < members.length - 1 && 'mb-4')}>
             <ContactRow
               contact={member}
               contactIndex={getContactIndex(member)}
-              total={mTotal}
-              tax={mTax}
-              tip={mTip}
+              shareData={sd}
               isEqualSplit={isEqualSplit}
-              billItems={billItems}
-              allContacts={allContacts}
               billCountry={billCountry}
               contactCount={contactCount}
               translatedTaxLabel={translatedTaxLabel}

@@ -11,6 +11,19 @@ export interface ResolvedContact {
   paid: boolean;
 }
 
+export interface ItemShareInfo {
+  share: number;
+  totalUnits: number;
+  name: string;
+}
+
+export interface ContactShareData {
+  items: Map<string, ItemShareInfo>;
+  total: number;
+  tax: number;
+  tip: number;
+}
+
 export const GROUP_TINTS_BG = [
   'bg-blue-500/10',
   'bg-purple-500/10',

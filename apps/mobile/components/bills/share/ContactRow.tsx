@@ -9,17 +9,13 @@ import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import type { Id } from '@convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
-import type { ResolvedContact } from './types';
+import type { ResolvedContact, ContactShareData } from './types';
 
 export interface ContactRowProps {
   contact: ResolvedContact;
   contactIndex: number;
-  total: number;
-  tax: number;
-  tip: number;
+  shareData: ContactShareData;
   isEqualSplit: boolean;
-  billItems: { id?: string; name: string; subtotal: number }[];
-  allContacts: { items: { itemId: string; units: number }[] }[];
   billCountry: string;
   contactCount: number;
   translatedTaxLabel: string;
@@ -36,11 +32,13 @@ export interface ContactRowProps {
 }
 
 function ContactRow({
-  contact, contactIndex, total, tax, tip, isEqualSplit, billItems, allContacts,
+  contact, contactIndex, shareData, isEqualSplit,
   billCountry, contactCount, translatedTaxLabel, iconColors, t,
   groupSelectMode, isLocked, isSelected, capturingIndex,
   onToggleSelection, onTogglePaid, onSendWhatsApp, onShareInfographic,
 }: ContactRowProps) {
+  const { total, tax, tip, items: itemShares } = shareData;
+
   return (
     <Pressable
       className="mb-4"
@@ -76,21 +74,14 @@ function ContactRow({
             {!isEqualSplit && (
               <View className="flex-row flex-wrap">
                 {contact.items.map((ref) => {
-                  const item = billItems.find((i) => i.id === ref.itemId);
-                  if (!item) return null;
-                  const totalUnits = allContacts.reduce((u, c) => {
-                    const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
-                    return u + (cRef ? cRef.units : 0);
-                  }, 0);
-                  const share = totalUnits > 0
-                    ? Math.round((ref.units / totalUnits) * item.subtotal)
-                    : Math.round(item.subtotal);
+                  const info = itemShares.get(ref.itemId);
+                  if (!info) return null;
                   return (
                     <View key={ref.itemId} className="w-1/2 pr-2 mb-1">
                       <Text className="text-sm text-foreground" numberOfLines={1}>
-                        {item.name} ({ref.units}/{totalUnits})
+                        {info.name} ({ref.units}/{info.totalUnits})
                       </Text>
-                      <Text className="text-sm text-muted-foreground">{formatCurrency(share, billCountry)}</Text>
+                      <Text className="text-sm text-muted-foreground">{formatCurrency(info.share, billCountry)}</Text>
                     </View>
                   );
                 })}
