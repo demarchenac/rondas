@@ -1,9 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, useColorScheme, View } from 'react-native';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from 'nativewind';
 import { useQuery, useMutation } from 'convex/react';
 import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
@@ -26,14 +25,14 @@ import ContactRow from '@/components/bills/share/ContactRow';
 import ContactGroupSection from '@/components/bills/share/ContactGroupSection';
 import ContactInfographic from '@/components/bills/share/ContactInfographic';
 import GroupConfirmToolbar from '@/components/bills/share/GroupConfirmToolbar';
-import { buildGroupName, contactKey } from '@/components/bills/share/utils';
+import { buildGroupName, contactKey, computeContactItemShare } from '@/components/bills/share/utils';
 import type { ResolvedContact, ContactShareData, ItemShareInfo } from '@/components/bills/share/types';
 
 export default function ShareScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const t = useT();
   const { user } = useAuth();
@@ -62,6 +61,7 @@ export default function ShareScreen() {
   const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill?.taxIncludedOverride ?? undefined);
   const tipPercent = bill?.tipPercent ?? 0;
   const splitStrategy = bill?.splitStrategy;
+  const decimalPlaces = bill?.decimalPlaces;
   const translatedTaxLabel = getTaxLabel(taxConfig, t);
 
   const contactGroups = useMemo(() => bill?.contactGroups ?? [], [bill?.contactGroups]);
@@ -82,15 +82,6 @@ export default function ShareScreen() {
     if (!bill) return new Map<string, ContactShareData>();
     const isEqualStrategy = splitStrategy === 'equal';
 
-    const itemTotalUnits = new Map<string, number>();
-    if (!isEqualStrategy) {
-      for (const contact of bill.contacts) {
-        for (const itemRef of contact.items) {
-          itemTotalUnits.set(itemRef.itemId, (itemTotalUnits.get(itemRef.itemId) ?? 0) + itemRef.units);
-        }
-      }
-    }
-
     const result = new Map<string, ContactShareData>();
     for (const contact of bill.contacts) {
       if (isEqualStrategy) {
@@ -99,10 +90,8 @@ export default function ShareScreen() {
       }
       const items = new Map<string, ItemShareInfo>();
       for (const itemRef of contact.items) {
-        const billItem = bill.items.find((bi) => bi.id === itemRef.itemId);
-        if (!billItem) continue;
-        const totalAssignedUnits = itemTotalUnits.get(itemRef.itemId) ?? 1;
-        items.set(itemRef.itemId, { share: Math.round((itemRef.units / totalAssignedUnits) * billItem.subtotal), totalUnits: totalAssignedUnits, name: billItem.name });
+        const info = computeContactItemShare(itemRef, bill.items, bill.contacts);
+        if (info) items.set(itemRef.itemId, info);
       }
       const itemsTotal = [...items.values()].reduce((sum, shareInfo) => sum + shareInfo.share, 0);
       const base = computeBase(itemsTotal, taxConfig);
@@ -129,7 +118,7 @@ export default function ShareScreen() {
       alert(t.bill_noPhone, t.bill_noPhoneMessage);
       return;
     }
-    const message = buildWhatsAppMessage({ bill, contact, taxConfig, t });
+    const message = buildWhatsAppMessage({ bill, contact, taxConfig, decimalPlaces, t });
     const url = `https://wa.me/${toE164(contact.phone)}?text=${encodeURIComponent(message)}`;
     const canOpen = await Linking.canOpenURL(url);
     if (!canOpen) {
@@ -137,7 +126,7 @@ export default function ShareScreen() {
       return;
     }
     Linking.openURL(url);
-  }, [bill, taxConfig, t, alert]);
+  }, [bill, taxConfig, decimalPlaces, t, alert]);
 
   const resetGroupMode = useCallback(() => {
     setGroupSelectMode(false);
@@ -202,9 +191,7 @@ export default function ShareScreen() {
     setCapturingIndex(contactIndex);
     try {
       const uri = await viewShotRef.capture();
-      const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-        Image.getSize(uri, (w, h) => resolve({ width: w, height: h }), reject);
-      });
+      const { width, height } = await Image.getSize(uri);
       setPreviewAspect(width > 0 && height > 0 ? width / height : 0.55);
       setPreviewUri(uri);
       setPreviewContactName(contactName);
@@ -271,22 +258,10 @@ export default function ShareScreen() {
 
   const isEqualSplit = splitStrategy === 'equal';
 
-  const sharedRowProps = {
-    isEqualSplit,
-    billCountry,
-    contactCount: bill.contacts.length,
-    translatedTaxLabel,
-    iconColors,
-    t,
-    capturingIndex,
-    onTogglePaid: handleTogglePaid,
-    onSendWhatsApp: handleSendWhatsApp,
-    onShareInfographic: handleShareInfographic,
-  };
-
-  const renderContactRow = (contact: typeof bill.contacts[0], contactIndex: number) => {
+  const renderContactRow = (contact: typeof bill.contacts[0]) => {
     const shareData = shareDataMap.get(contactKey(contact));
     if (!shareData) return null;
+    const billIndex = getContactIndex(contact);
     const isInGroup = groupedContactIds.has(contactKey(contact));
     const isInEditingGroup = editingGroupMemberIds.has(contactKey(contact));
     const isLocked = isInGroup && !isInEditingGroup;
@@ -295,21 +270,32 @@ export default function ShareScreen() {
       <View key={contactKey(contact)}>
         <ContactRow
           contact={contact}
-          contactIndex={contactIndex}
+          contactIndex={billIndex}
           shareData={shareData}
-          {...sharedRowProps}
+          isEqualSplit={isEqualSplit}
+          billCountry={billCountry}
+          decimalPlaces={decimalPlaces}
+          contactCount={bill.contacts.length}
+          translatedTaxLabel={translatedTaxLabel}
+          iconColors={iconColors}
+          t={t}
+          capturingIndex={capturingIndex}
+          onTogglePaid={handleTogglePaid}
+          onSendWhatsApp={handleSendWhatsApp}
+          onShareInfographic={handleShareInfographic}
           groupSelectMode={groupSelectMode}
           isLocked={isLocked}
           isSelected={selectedForGroup.has(contactKey(contact))}
           onToggleSelection={() => toggleGroupSelection(contactKey(contact))}
         />
         <ContactInfographic
-          viewShotRef={(r) => { infographicRefs.current[contactIndex] = r; }}
+          viewShotRef={(r) => { infographicRefs.current[billIndex] = r; }}
           contact={contact}
           shareData={shareData}
           billName={bill.name}
           taxConfig={taxConfig}
           tipPercent={tipPercent}
+          decimalPlaces={decimalPlaces}
           location={bill.location?.address}
           date={new Date(bill._creationTime).toISOString()}
           country={billCountry}
@@ -323,14 +309,14 @@ export default function ShareScreen() {
     <View className="flex-1 bg-background">
 
       <View className="flex-row items-center gap-3 px-5 pb-4" style={{ paddingTop: insets.top + 12 }}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" className="active:opacity-80">
+        <Pressable onPress={() => router.back()} role="button" accessibilityLabel={t.a11y_goBack} className="active:opacity-80">
           <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
         </Pressable>
         <Text className="flex-1 text-2xl font-bold text-foreground">{t.share_title}</Text>
         {bill.contacts.length >= 2 && !groupSelectMode && (
           <Pressable
             onPress={enterGroupMode}
-            accessibilityRole="button"
+            role="button"
             accessibilityLabel={t.people_group}
             style={{ backgroundColor: 'transparent' }}
           >
@@ -350,7 +336,7 @@ export default function ShareScreen() {
         {groupSelectMode && (
           <Pressable
             onPress={resetGroupMode}
-            accessibilityRole="button"
+            role="button"
             accessibilityLabel={t.cancel}
             className="rounded-full bg-muted px-2.5 py-1 active:opacity-70"
           >
@@ -361,10 +347,10 @@ export default function ShareScreen() {
 
       <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
         {/* In select mode: show all contacts as flat list */}
-        {groupSelectMode && bill.contacts.map((contact, contactIndex) => renderContactRow(contact, contactIndex))}
+        {groupSelectMode && bill.contacts.map((contact) => renderContactRow(contact))}
 
         {/* Normal mode: ungrouped contacts */}
-        {!groupSelectMode && ungroupedContacts.map((contact, contactIndex) => renderContactRow(contact, contactIndex))}
+        {!groupSelectMode && ungroupedContacts.map((contact) => renderContactRow(contact))}
 
         {/* Normal mode: grouped contacts as tinted sections */}
         {!groupSelectMode && contactGroups.map((group, groupIndex) => {
@@ -378,7 +364,17 @@ export default function ShareScreen() {
               members={members}
               groupIndex={groupIndex}
               shareDataMap={shareDataMap}
-              {...sharedRowProps}
+              isEqualSplit={isEqualSplit}
+              billCountry={billCountry}
+              decimalPlaces={decimalPlaces}
+              contactCount={bill.contacts.length}
+              translatedTaxLabel={translatedTaxLabel}
+              iconColors={iconColors}
+              t={t}
+              capturingIndex={capturingIndex}
+              onTogglePaid={handleTogglePaid}
+              onSendWhatsApp={handleSendWhatsApp}
+              onShareInfographic={handleShareInfographic}
               useGlass={useGlass}
               onEditGroup={handleEditGroup}
               getContactIndex={getContactIndex}

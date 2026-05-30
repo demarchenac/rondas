@@ -67,6 +67,7 @@ function BillInfographic({
   items,
   taxConfig: infTaxConfig,
   tipPercent,
+  decimalPlaces,
   location,
   date,
   country,
@@ -78,6 +79,7 @@ function BillInfographic({
   items: { name: string; amount: number; units?: number; totalUnits?: number }[];
   taxConfig: TaxConfig;
   tipPercent: number;
+  decimalPlaces?: number;
   location?: string;
   date: string;
   country: 'CO' | 'US';
@@ -181,7 +183,7 @@ function BillInfographic({
                 {item.name}{item.units && item.totalUnits ? ` (${item.units}/${item.totalUnits})` : ''}
               </Text>
               <Text className="text-sm font-bold text-[#0f172a]" style={{ fontVariant: ['tabular-nums'] }}>
-                {formatCurrency(item.amount, country)}
+                {formatCurrency(item.amount, country, decimalPlaces)}
               </Text>
             </View>
           ))}
@@ -190,20 +192,20 @@ function BillInfographic({
           <View className="mt-2 gap-[2px]">
             <View className="flex-row justify-between py-1">
               <Text className="text-sm text-[#94a3b8]">{t.bill_subtotal}</Text>
-              <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase, country)}</Text>
+              <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase, country, decimalPlaces)}</Text>
             </View>
             <View className="flex-row justify-between py-1">
               <Text className="text-sm text-[#94a3b8]">{translatedTaxLabel}</Text>
-              <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTax, country)}</Text>
+              <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTax, country, decimalPlaces)}</Text>
             </View>
             <View className="flex-row justify-between py-1 border-t-[0.5px] border-t-[#e2e8f0] mt-[2px]">
               <Text className="text-sm text-[#64748b] font-semibold">{t.bill_beforeTip}</Text>
-              <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase + contactTax, country)}</Text>
+              <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactBase + contactTax, country, decimalPlaces)}</Text>
             </View>
             {tipPercent > 0 && (
               <View className="flex-row justify-between py-1">
                 <Text className="text-sm text-[#94a3b8]">{t.bill_tip(tipPercent)}</Text>
-                <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTip, country)}</Text>
+                <Text className="text-sm text-[#64748b] font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCurrency(contactTip, country, decimalPlaces)}</Text>
               </View>
             )}
           </View>
@@ -220,7 +222,7 @@ function BillInfographic({
               numberOfLines={1}
               minimumFontScale={0.7}
             >
-              {formatCurrency(contactTotal, country)}
+              {formatCurrency(contactTotal, country, decimalPlaces)}
             </Text>
           </View>
 

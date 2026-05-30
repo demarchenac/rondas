@@ -2,31 +2,45 @@
  * Normalize a phone number to E.164 format for WhatsApp deep links.
  * Default country code is 57 (Colombia).
  */
+const COUNTRY_CODES_BY_LENGTH = [
+  { code: '593', localLen: 9 },
+  { code: '57', localLen: 10 },
+  { code: '55', localLen: 11 },
+  { code: '58', localLen: 10 },
+  { code: '56', localLen: 9 },
+  { code: '54', localLen: 10 },
+  { code: '52', localLen: 10 },
+  { code: '49', localLen: 11 },
+  { code: '44', localLen: 10 },
+  { code: '34', localLen: 9 },
+  { code: '33', localLen: 9 },
+  { code: '1', localLen: 10 },
+];
+
+function detectCountryCode(digits: string): { code: string; local: string } | null {
+  for (const { code, localLen } of COUNTRY_CODES_BY_LENGTH) {
+    if (digits.startsWith(code) && digits.length === code.length + localLen) {
+      return { code, local: digits.slice(code.length) };
+    }
+  }
+  return null;
+}
+
 export function toE164(phone: string, defaultCountryCode = '57'): string {
   const digits = phone.replace(/\D/g, '');
-  if (digits.startsWith(defaultCountryCode)) return digits;
+  const detected = detectCountryCode(digits);
+  if (detected) return digits;
   if (digits.startsWith('0')) return defaultCountryCode + digits.slice(1);
   return defaultCountryCode + digits;
 }
 
-const COUNTRY_CODES = ['57', '1', '44', '34', '49', '33', '55', '52', '54', '56', '58', '593'];
-
-/**
- * Format phone for display: (+57) 301 795-3720
- */
 export function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '');
   if (digits.length < 7) return phone;
 
-  let countryCode = '';
-  let local = digits;
-  for (const cc of COUNTRY_CODES) {
-    if (digits.startsWith(cc) && digits.length > cc.length + 6) {
-      countryCode = cc;
-      local = digits.slice(cc.length);
-      break;
-    }
-  }
+  const detected = detectCountryCode(digits);
+  const countryCode = detected?.code ?? '';
+  const local = detected?.local ?? digits;
 
   const carrier = local.slice(0, 3);
   const mid = local.slice(3, 6);

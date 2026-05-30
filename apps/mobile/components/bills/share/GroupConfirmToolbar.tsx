@@ -2,7 +2,6 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { GlassView } from 'expo-glass-effect';
 import { Text } from '@/components/ui/text';
-import { cn } from '@/lib/cn';
 import type { Translations } from '@/lib/i18n';
 
 export interface GroupConfirmToolbarProps {
@@ -31,7 +30,7 @@ function GroupConfirmToolbar({ selectedCount, isEditing, useGlass, iconColors, t
   } else if (canGroup) {
     label = t.people_groupCount(selectedCount);
     tintColor = iconColors.primary + '1A';
-    textClass = 'text-sm font-semibold text-primary';
+    textClass = 'text-sm font-semibold text-primary-foreground';
     bgClass = 'items-center rounded-xl bg-primary py-3.5';
   } else {
     label = t.people_groupCount(selectedCount);
@@ -47,7 +46,7 @@ function GroupConfirmToolbar({ selectedCount, isEditing, useGlass, iconColors, t
       <Pressable
         onPress={onConfirm}
         disabled={!canGroup && !showUngroup}
-        accessibilityRole="button"
+        role="button"
         accessibilityLabel={label}
         style={{ backgroundColor: 'transparent' }}
       >

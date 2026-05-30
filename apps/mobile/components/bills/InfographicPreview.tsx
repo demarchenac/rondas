@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import React from 'react';
+import { Pressable, ScrollView, View, useColorScheme, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -7,7 +7,6 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, runOnJS,
 } from 'react-native-reanimated';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
-import { useColorScheme } from 'nativewind';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { useT } from '@/lib/i18n';
@@ -28,14 +27,12 @@ interface InfographicPreviewProps {
 function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: InfographicPreviewProps) {
   const t = useT();
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const useGlass = isGlassEffectAPIAvailable();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const imageWidth = screenWidth - 64;
   const translateY = useSharedValue(0);
-
-  const dismiss = useCallback(() => { onClose(); }, [onClose]);
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
@@ -46,7 +43,7 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
         const remaining = screenHeight - e.translationY;
         const speed = Math.max(e.velocityY, 800);
         const duration = Math.min(Math.max((remaining / speed) * 1000, 150), 400);
-        translateY.value = withTiming(screenHeight, { duration }, () => runOnJS(dismiss)());
+        translateY.value = withTiming(screenHeight, { duration }, () => runOnJS(onClose)());
       } else {
         translateY.value = withTiming(0, { duration: 200 });
       }
@@ -94,7 +91,7 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
           </ScrollView>
 
           <View className="px-6 pt-3">
-            <Pressable onPress={onShare} className="active:opacity-80">
+            <Pressable onPress={onShare} accessibilityLabel={t.share_share} className="active:opacity-80">
               {useGlass ? (
                 <GlassView isInteractive tintColor={iconColors.primary + '0D'} style={{ borderRadius: 16, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
                   <Text className="text-lg font-bold text-primary">{t.share_share}</Text>

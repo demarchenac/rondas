@@ -33,13 +33,7 @@ export const STATE_LABEL_KEYS: Record<BillState, keyof Translations> = {
 };
 
 export function stateLabel(t: Translations, state: BillState): string {
-  const map: Record<BillState, string> = {
-    draft: t.state_draft,
-    unsplit: t.state_unsplit,
-    split: t.state_split,
-    unresolved: t.state_unresolved,
-  };
-  return map[state];
+  return t[STATE_LABEL_KEYS[state]] as string;
 }
 
 const TAX_LABEL_MAP: Record<string, keyof Translations> = {

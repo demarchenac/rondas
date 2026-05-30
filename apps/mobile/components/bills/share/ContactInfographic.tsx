@@ -13,13 +13,14 @@ interface ContactInfographicProps {
   billName: string;
   taxConfig: TaxConfig;
   tipPercent: number;
+  decimalPlaces?: number;
   location?: string;
   date: string;
   country: 'CO' | 'US';
   t: Translations;
 }
 
-function ContactInfographic({ viewShotRef, contact, shareData, billName, taxConfig, tipPercent, location, date, country, t }: ContactInfographicProps) {
+function ContactInfographic({ viewShotRef, contact, shareData, billName, taxConfig, tipPercent, decimalPlaces, location, date, country, t }: ContactInfographicProps) {
   return (
     <View style={{ position: 'absolute', left: -9999 }}>
       <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
@@ -33,6 +34,7 @@ function ContactInfographic({ viewShotRef, contact, shareData, billName, taxConf
           })}
           taxConfig={taxConfig}
           tipPercent={tipPercent}
+          decimalPlaces={decimalPlaces}
           location={location}
           date={date}
           country={country}

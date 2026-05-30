@@ -16,6 +16,7 @@ export interface ContactRowProps {
   shareData: ContactShareData;
   isEqualSplit: boolean;
   billCountry: string;
+  decimalPlaces?: number;
   contactCount: number;
   translatedTaxLabel: string;
   iconColors: Record<string, string>;
@@ -32,7 +33,7 @@ export interface ContactRowProps {
 
 function ContactRow({
   contact, contactIndex, shareData, isEqualSplit,
-  billCountry, contactCount, translatedTaxLabel, iconColors, t,
+  billCountry, decimalPlaces, contactCount, translatedTaxLabel, iconColors, t,
   groupSelectMode, isLocked, isSelected, capturingIndex,
   onToggleSelection, onTogglePaid, onSendWhatsApp, onShareInfographic,
 }: ContactRowProps) {
@@ -63,7 +64,7 @@ function ContactRow({
             <Text className="text-lg font-semibold text-foreground">{displayName}</Text>
             <Text className="text-sm text-muted-foreground">
               {isEqualSplit
-                ? t.share_equalPerPerson(formatCurrency(total, billCountry), contactCount)
+                ? t.share_equalPerPerson(formatCurrency(total, billCountry, decimalPlaces), contactCount)
                 : t.share_itemCount(contact.items.length)}
             </Text>
 
@@ -77,7 +78,7 @@ function ContactRow({
                       <Text className="text-sm text-foreground" numberOfLines={1}>
                         {info.name} ({itemRef.units}/{info.totalUnits})
                       </Text>
-                      <Text className="text-sm text-muted-foreground">{formatCurrency(info.share, billCountry)}</Text>
+                      <Text className="text-sm text-muted-foreground">{formatCurrency(info.share, billCountry, decimalPlaces)}</Text>
                     </View>
                   );
                 })}
@@ -92,12 +93,12 @@ function ContactRow({
               <View className="mt-1 flex-row items-center gap-3">
                 {tax > 0 && (
                   <Text className="text-sm text-muted-foreground">
-                    {translatedTaxLabel}: {formatCurrency(tax, billCountry)}
+                    {translatedTaxLabel}: {formatCurrency(tax, billCountry, decimalPlaces)}
                   </Text>
                 )}
                 {tip > 0 && (
                   <Text className="text-sm text-muted-foreground">
-                    {t.scan_tipPropina}: {formatCurrency(tip, billCountry)}
+                    {t.scan_tipPropina}: {formatCurrency(tip, billCountry, decimalPlaces)}
                   </Text>
                 )}
               </View>
@@ -107,7 +108,7 @@ function ContactRow({
               <View className="mt-2 flex-row items-center gap-2">
                 <Pressable
                   onPress={() => onTogglePaid(contact.contactId)}
-                  accessibilityRole="button"
+                  role="button"
                   accessibilityLabel={`${contact.paid ? t.share_paid : t.share_unpaid} ${displayName}`}
                   className={cn(
                     'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
@@ -117,7 +118,7 @@ function ContactRow({
                   <IconSymbol
                     name={contact.paid ? 'checkmark.circle.fill' : 'circle'}
                     size={14}
-                    color={contact.paid ? '#10b981' : iconColors.muted}
+                    color={contact.paid ? iconColors.success : iconColors.muted}
                   />
                   <Text className={cn('text-sm font-medium', contact.paid ? 'text-emerald-500' : 'text-muted-foreground')}>
                     {contact.paid ? t.share_paid : t.share_unpaid}
@@ -127,7 +128,7 @@ function ContactRow({
                 {contact.phone && (
                   <Pressable
                     onPress={() => onSendWhatsApp(contact)}
-                    accessibilityRole="button"
+                    role="button"
                     accessibilityLabel={`${t.share_whatsapp} ${displayName}`}
                     className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
                   >
@@ -138,7 +139,7 @@ function ContactRow({
 
                 <Pressable
                   onPress={() => onShareInfographic(contactIndex, contact.name)}
-                  accessibilityRole="button"
+                  role="button"
                   accessibilityLabel={`${t.share_share} ${displayName}`}
                   className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
                 >
@@ -154,7 +155,7 @@ function ContactRow({
           </View>
         </View>
         <Text className="text-xl font-bold tabular-nums text-foreground">
-          {formatCurrency(total, billCountry)}
+          {formatCurrency(total, billCountry, decimalPlaces)}
         </Text>
       </View>
   );
@@ -164,8 +165,8 @@ function ContactRow({
       <Pressable
         className="mb-4"
         onPress={onToggleSelection}
-        accessibilityRole="button"
-        accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} ${displayName}`}
+        role="button"
+        accessibilityLabel={isSelected ? t.a11y_deselect(displayName) : t.a11y_select(displayName)}
       >
         {content}
       </Pressable>

@@ -8,7 +8,8 @@ import { formatCurrency } from '@/lib/format';
 import type { Id } from '@convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
 import ContactRow from './ContactRow';
-import { GROUP_TINTS_BG, type ResolvedContact, type ContactShareData } from './types';
+import type { ResolvedContact, ContactShareData } from './types';
+import { contactKey, GROUP_TINTS_BG } from './utils';
 
 export interface ContactGroupSectionProps {
   group: { id: string; contactIds: Id<'contacts'>[]; name: string };
@@ -17,6 +18,7 @@ export interface ContactGroupSectionProps {
   shareDataMap: Map<string, ContactShareData>;
   isEqualSplit: boolean;
   billCountry: string;
+  decimalPlaces?: number;
   contactCount: number;
   translatedTaxLabel: string;
   useGlass: boolean;
@@ -32,7 +34,7 @@ export interface ContactGroupSectionProps {
 
 function ContactGroupSection({
   group, members, groupIndex, shareDataMap, isEqualSplit,
-  billCountry, contactCount, translatedTaxLabel, useGlass, iconColors, t, capturingIndex,
+  billCountry, decimalPlaces, contactCount, translatedTaxLabel, useGlass, iconColors, t, capturingIndex,
   onEditGroup, onTogglePaid, onSendWhatsApp, onShareInfographic, getContactIndex,
 }: ContactGroupSectionProps) {
   const tintBg = GROUP_TINTS_BG[groupIndex % GROUP_TINTS_BG.length];
@@ -41,7 +43,7 @@ function ContactGroupSection({
   let groupTax = 0;
   let groupTip = 0;
   for (const member of members) {
-    const memberShare = shareDataMap.get(String(member.contactId));
+    const memberShare = shareDataMap.get(contactKey(member));
     if (memberShare) { groupTotal += memberShare.total; groupTax += memberShare.tax; groupTip += memberShare.tip; }
   }
 
@@ -49,9 +51,9 @@ function ContactGroupSection({
     <View className={cn('-mx-7 mb-4 px-7 py-4', tintBg)}>
       <View className="mb-3 flex-row items-center gap-2">
         <Pressable
-          onPress={() => onEditGroup(group.id, new Set(members.map((member) => String(member.contactId))))}
-          accessibilityRole="button"
-          accessibilityLabel={`Edit group ${group.name}`}
+          onPress={() => onEditGroup(group.id, new Set(members.map((member) => contactKey(member))))}
+          role="button"
+          accessibilityLabel={t.a11y_editGroup(group.name)}
           style={{ backgroundColor: 'transparent' }}
         >
           {useGlass ? (
@@ -68,16 +70,17 @@ function ContactGroupSection({
       </View>
 
       {members.map((member, memberIndex) => {
-        const memberShareData = shareDataMap.get(String(member.contactId));
+        const memberShareData = shareDataMap.get(contactKey(member));
         if (!memberShareData) return null;
         return (
-          <View key={String(member.contactId)} className={cn(memberIndex < members.length - 1 && 'mb-4')}>
+          <View key={contactKey(member)} className={cn(memberIndex < members.length - 1 && 'mb-4')}>
             <ContactRow
               contact={member}
               contactIndex={getContactIndex(member)}
               shareData={memberShareData}
               isEqualSplit={isEqualSplit}
               billCountry={billCountry}
+              decimalPlaces={decimalPlaces}
               contactCount={contactCount}
               translatedTaxLabel={translatedTaxLabel}
               iconColors={iconColors}
@@ -97,12 +100,12 @@ function ContactGroupSection({
           <View className="mb-1 flex-row items-center gap-3">
             {groupTax > 0 && (
               <Text className="text-sm text-muted-foreground">
-                {translatedTaxLabel}: {formatCurrency(groupTax, billCountry)}
+                {translatedTaxLabel}: {formatCurrency(groupTax, billCountry, decimalPlaces)}
               </Text>
             )}
             {groupTip > 0 && (
               <Text className="text-sm text-muted-foreground">
-                {t.scan_tipPropina}: {formatCurrency(groupTip, billCountry)}
+                {t.scan_tipPropina}: {formatCurrency(groupTip, billCountry, decimalPlaces)}
               </Text>
             )}
           </View>
@@ -110,7 +113,7 @@ function ContactGroupSection({
         <View className="flex-row items-center justify-between">
           <Text className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t.bill_total}</Text>
           <Text className="text-xl font-bold tabular-nums text-foreground">
-            {formatCurrency(groupTotal, billCountry)}
+            {formatCurrency(groupTotal, billCountry, decimalPlaces)}
           </Text>
         </View>
       </View>

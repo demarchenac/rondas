@@ -395,4 +395,10 @@ export const es: typeof en = {
   gate_historyLockedHint: 'Actualiza a Pro para ver cuentas de más de 90 días',
   gate_upgradeButton: 'Actualizar a Pro',
   gate_manualEntry: 'Agregar manual',
+
+  // Accessibility
+  a11y_goBack: 'Volver',
+  a11y_select: (name: string) => `Seleccionar ${name}`,
+  a11y_deselect: (name: string) => `Deseleccionar ${name}`,
+  a11y_editGroup: (name: string) => `Editar grupo ${name}`,
 };

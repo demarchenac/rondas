@@ -393,4 +393,10 @@ export const en = {
   gate_historyLockedHint: 'Upgrade to Pro to view bills older than 90 days',
   gate_upgradeButton: 'Upgrade to Pro',
   gate_manualEntry: 'Add manually',
+
+  // Accessibility
+  a11y_goBack: 'Go back',
+  a11y_select: (name: string) => `Select ${name}`,
+  a11y_deselect: (name: string) => `Deselect ${name}`,
+  a11y_editGroup: (name: string) => `Edit group ${name}`,
 };
