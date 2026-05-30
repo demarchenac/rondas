@@ -39,12 +39,9 @@ function ContactRow({
 }: ContactRowProps) {
   const { total, tax, tip, items: itemShares } = shareData;
 
-  return (
-    <Pressable
-      className="mb-4"
-      onPress={groupSelectMode && !isLocked ? onToggleSelection : undefined}
-      disabled={!groupSelectMode || !!isLocked}
-    >
+  const displayName = contact.isSelf ? t.self_label(contact.name) : contact.name;
+
+  const content = (
       <View className="flex-row items-start justify-between">
         <View className="flex-1 flex-row items-start gap-3">
           {groupSelectMode && !isLocked && (
@@ -55,16 +52,16 @@ function ContactRow({
             />
           )}
           {contact.imageUri ? (
-            <Image source={{ uri: contact.imageUri }} className="w-10 h-10 rounded-full" style={isLocked ? { opacity: 0.4 } : undefined} />
+            <Image source={{ uri: contact.imageUri }} className="w-10 h-10 rounded-full" style={isLocked ? { opacity: 0.4 } : undefined} accessibilityLabel={`${displayName} avatar`} />
           ) : (
-            <View className="w-10 h-10 rounded-full items-center justify-center bg-primary/10" style={isLocked ? { opacity: 0.4 } : undefined}>
+            <View className="w-10 h-10 rounded-full items-center justify-center bg-primary/10" style={isLocked ? { opacity: 0.4 } : undefined} accessibilityLabel={`${displayName} avatar`}>
               <Text className="text-lg font-bold" style={{ color: iconColors.primary }}>
                 {contact.name[0]?.toUpperCase() ?? '?'}
               </Text>
             </View>
           )}
           <View className="flex-1">
-            <Text className="text-lg font-semibold text-foreground">{contact.isSelf ? t.self_label(contact.name) : contact.name}</Text>
+            <Text className="text-lg font-semibold text-foreground">{displayName}</Text>
             <Text className="text-sm text-muted-foreground">
               {isEqualSplit
                 ? t.share_equalPerPerson(formatCurrency(total, billCountry), contactCount)
@@ -111,6 +108,8 @@ function ContactRow({
               <View className="mt-2 flex-row items-center gap-2">
                 <Pressable
                   onPress={() => onTogglePaid(contact.contactId)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${contact.paid ? t.share_paid : t.share_unpaid} ${displayName}`}
                   className={cn(
                     'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
                     contact.paid ? 'bg-emerald-500/15' : 'bg-muted-foreground/10',
@@ -129,6 +128,8 @@ function ContactRow({
                 {contact.phone && (
                   <Pressable
                     onPress={() => onSendWhatsApp(contact)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t.share_whatsapp} ${displayName}`}
                     className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
                   >
                     <WhatsAppIcon size={14} />
@@ -138,6 +139,8 @@ function ContactRow({
 
                 <Pressable
                   onPress={() => onShareInfographic(contactIndex, contact.name)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t.share_share} ${displayName}`}
                   className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
                 >
                   {capturingIndex === contactIndex ? (
@@ -155,8 +158,22 @@ function ContactRow({
           {formatCurrency(total, billCountry)}
         </Text>
       </View>
-    </Pressable>
   );
+
+  if (groupSelectMode && !isLocked) {
+    return (
+      <Pressable
+        className="mb-4"
+        onPress={onToggleSelection}
+        accessibilityRole="button"
+        accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} ${displayName}`}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return <View className="mb-4">{content}</View>;
 }
 
 export default React.memo(ContactRow);

@@ -32,7 +32,7 @@ export interface ContactGroupSectionProps {
 
 function ContactGroupSection({
   group, members, groupIndex, shareDataMap, isEqualSplit,
-  billCountry, contactCount, translatedTaxLabel, useGlass: glass, iconColors, t, capturingIndex,
+  billCountry, contactCount, translatedTaxLabel, useGlass, iconColors, t, capturingIndex,
   onEditGroup, onTogglePaid, onSendWhatsApp, onShareInfographic, getContactIndex,
 }: ContactGroupSectionProps) {
   const tintBg = GROUP_TINTS_BG[groupIndex % GROUP_TINTS_BG.length];
@@ -50,9 +50,11 @@ function ContactGroupSection({
       <View className="mb-3 flex-row items-center gap-2">
         <Pressable
           onPress={() => onEditGroup(group.id, new Set(members.map((m) => String(m.contactId))))}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit group ${group.name}`}
           style={{ backgroundColor: 'transparent' }}
         >
-          {glass ? (
+          {useGlass ? (
             <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }}>
               <IconSymbol name="pencil" size={12} color={iconColors.primary} />
             </GlassView>

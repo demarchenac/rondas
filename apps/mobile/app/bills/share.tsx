@@ -16,7 +16,7 @@ import { ICON_COLORS } from '@/constants/colors';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useAuth } from '@/lib/AuthContext';
-import { useT, type Translations } from '@/lib/i18n';
+import { useT } from '@/lib/i18n';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type ReceiptCategory } from '@/constants/taxes';
 import { buildWhatsAppMessage } from '@/lib/whatsapp';
@@ -27,7 +27,7 @@ import InfographicPreview from '@/components/bills/InfographicPreview';
 import ContactRow from '@/components/bills/share/ContactRow';
 import ContactGroupSection from '@/components/bills/share/ContactGroupSection';
 import GroupConfirmToolbar from '@/components/bills/share/GroupConfirmToolbar';
-import type { ResolvedContact, ContactShareData, ItemShareInfo } from '@/components/bills/share/types';
+import { buildGroupName, type ResolvedContact, type ContactShareData, type ItemShareInfo } from '@/components/bills/share/types';
 
 export default function ShareScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -81,10 +81,10 @@ export default function ShareScreen() {
 
   const shareDataMap = useMemo(() => {
     if (!bill) return new Map<string, ContactShareData>();
-    const isEqual = splitStrategy === 'equal';
+    const isEqualStrategy = splitStrategy === 'equal';
 
     const itemTotalUnits = new Map<string, number>();
-    if (!isEqual) {
+    if (!isEqualStrategy) {
       for (const c of bill.contacts) {
         for (const ref of c.items) {
           itemTotalUnits.set(ref.itemId, (itemTotalUnits.get(ref.itemId) ?? 0) + ref.units);
@@ -94,7 +94,7 @@ export default function ShareScreen() {
 
     const result = new Map<string, ContactShareData>();
     for (const contact of bill.contacts) {
-      if (isEqual) {
+      if (isEqualStrategy) {
         result.set(String(contact.contactId), { items: new Map(), total: contact.amount, tax: 0, tip: 0 });
         continue;
       }
@@ -102,14 +102,14 @@ export default function ShareScreen() {
       for (const ref of contact.items) {
         const item = bill.items.find((i) => i.id === ref.itemId);
         if (!item) continue;
-        const tu = itemTotalUnits.get(ref.itemId) ?? 1;
-        items.set(ref.itemId, { share: Math.round((ref.units / tu) * item.subtotal), totalUnits: tu, name: item.name });
+        const totalAssignedUnits = itemTotalUnits.get(ref.itemId) ?? 1;
+        items.set(ref.itemId, { share: Math.round((ref.units / totalAssignedUnits) * item.subtotal), totalUnits: totalAssignedUnits, name: item.name });
       }
       const itemsTotal = [...items.values()].reduce((s, i) => s + i.share, 0);
       const base = computeBase(itemsTotal, taxConfig);
-      const cTax = computeTax(itemsTotal, taxConfig);
-      const cTip = Math.round(base * (tipPercent / 100));
-      result.set(String(contact.contactId), { items, total: base + cTax + cTip, tax: cTax, tip: cTip });
+      const contactTax = computeTax(itemsTotal, taxConfig);
+      const contactTip = Math.round(base * (tipPercent / 100));
+      result.set(String(contact.contactId), { items, total: base + contactTax + contactTip, tax: contactTax, tip: contactTip });
     }
     return result;
   }, [bill, splitStrategy, taxConfig, tipPercent]);
@@ -140,6 +140,19 @@ export default function ShareScreen() {
     Linking.openURL(url);
   }, [bill, taxConfig, t, alert]);
 
+  const resetGroupMode = useCallback(() => {
+    setGroupSelectMode(false);
+    setSelectedForGroup(new Set());
+    setEditingGroupId(null);
+  }, []);
+
+  const enterGroupMode = useCallback(() => {
+    setGroupSelectMode(true);
+    setSelectedForGroup(new Set());
+    setEditingGroupId(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
   const toggleGroupSelection = useCallback((contactId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedForGroup((prev) => {
@@ -164,14 +177,12 @@ export default function ShareScreen() {
       if (selectedIds.length < 2) {
         updated = contactGroups.filter((g) => g.id !== editingGroupId);
       } else {
-        const names = members.map((m) => m.isSelf ? t.self_label(m.name) : m.name);
-        const groupName = names.length <= 2 ? names.join(', ') : `${names[0]}, ${names[1]} +${names.length - 2}`;
+        const groupName = buildGroupName(members, t.self_label);
         updated = contactGroups.map((g) => g.id === editingGroupId ? { ...g, contactIds: selectedIds, name: groupName } : g);
       }
     } else {
       if (selectedIds.length < 2) return;
-      const names = members.map((m) => m.isSelf ? t.self_label(m.name) : m.name);
-      const groupName = names.length <= 2 ? names.join(', ') : `${names[0]}, ${names[1]} +${names.length - 2}`;
+      const groupName = buildGroupName(members, t.self_label);
       updated = [...contactGroups, { id: randomUUID(), contactIds: selectedIds, name: groupName }];
     }
 
@@ -183,10 +194,8 @@ export default function ShareScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       alert(t.error, err instanceof Error ? err.message : t.error_mutationFailed);
     }
-    setGroupSelectMode(false);
-    setSelectedForGroup(new Set());
-    setEditingGroupId(null);
-  }, [bill, userId, selectedForGroup, editingGroupId, contactGroups, updateContactGroupsMut, id, t, alert]);
+    resetGroupMode();
+  }, [bill, userId, selectedForGroup, editingGroupId, contactGroups, updateContactGroupsMut, id, t, alert, resetGroupMode]);
 
   const handleShareInfographic = useCallback(async (contactIndex: number, contactName: string) => {
     const ref = infographicRefs.current[contactIndex];
@@ -305,13 +314,15 @@ export default function ShareScreen() {
     <View className="flex-1 bg-background">
 
       <View className="flex-row items-center gap-3 px-5 pb-4" style={{ paddingTop: insets.top + 12 }}>
-        <Pressable onPress={() => router.back()} className="active:opacity-80">
+        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" className="active:opacity-80">
           <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
         </Pressable>
         <Text className="flex-1 text-2xl font-bold text-foreground">{t.share_title}</Text>
         {bill.contacts.length >= 2 && !groupSelectMode && (
           <Pressable
-            onPress={() => { setGroupSelectMode(true); setSelectedForGroup(new Set()); setEditingGroupId(null); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+            onPress={enterGroupMode}
+            accessibilityRole="button"
+            accessibilityLabel={t.people_group}
             style={{ backgroundColor: 'transparent' }}
           >
             {useGlass ? (
@@ -329,7 +340,9 @@ export default function ShareScreen() {
         )}
         {groupSelectMode && (
           <Pressable
-            onPress={() => { setGroupSelectMode(false); setSelectedForGroup(new Set()); setEditingGroupId(null); }}
+            onPress={resetGroupMode}
+            accessibilityRole="button"
+            accessibilityLabel={t.cancel}
             className="rounded-full bg-muted px-2.5 py-1 active:opacity-70"
           >
             <Text className="text-xs font-semibold text-muted-foreground">{t.cancel}</Text>
