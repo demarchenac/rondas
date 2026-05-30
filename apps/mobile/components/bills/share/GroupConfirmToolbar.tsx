@@ -18,7 +18,29 @@ function GroupConfirmToolbar({ selectedCount, isEditing, useGlass, iconColors, t
   const canGroup = selectedCount >= 2;
   const showUngroup = isEditing && !canGroup;
 
-  const label = showUngroup ? t.people_ungroup : t.people_groupCount(selectedCount);
+  let label: string;
+  let tintColor: string;
+  let textClass: string;
+  let bgClass: string;
+
+  if (showUngroup) {
+    label = t.people_ungroup;
+    tintColor = '#ef44441A';
+    textClass = 'text-sm font-semibold text-destructive';
+    bgClass = 'items-center rounded-xl bg-destructive/10 py-3.5';
+  } else if (canGroup) {
+    label = t.people_groupCount(selectedCount);
+    tintColor = iconColors.primary + '1A';
+    textClass = 'text-sm font-semibold text-primary';
+    bgClass = 'items-center rounded-xl bg-primary py-3.5';
+  } else {
+    label = t.people_groupCount(selectedCount);
+    tintColor = '';
+    textClass = 'text-sm font-semibold text-muted-foreground';
+    bgClass = 'items-center rounded-xl bg-muted py-3.5';
+  }
+
+  const showGlass = useGlass && (showUngroup || canGroup);
 
   return (
     <View className="px-7 pb-4">
@@ -29,25 +51,13 @@ function GroupConfirmToolbar({ selectedCount, isEditing, useGlass, iconColors, t
         accessibilityLabel={label}
         style={{ backgroundColor: 'transparent' }}
       >
-        {showUngroup ? (
-          useGlass ? (
-            <GlassView isInteractive tintColor={'#ef4444' + '1A'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
-              <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
-            </GlassView>
-          ) : (
-            <View className="items-center rounded-xl bg-destructive/10 py-3.5">
-              <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
-            </View>
-          )
-        ) : useGlass && canGroup ? (
-          <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
-            <Text className="text-sm font-semibold text-primary">{t.people_groupCount(selectedCount)}</Text>
+        {showGlass ? (
+          <GlassView isInteractive tintColor={tintColor} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+            <Text className={textClass}>{label}</Text>
           </GlassView>
         ) : (
-          <View className={cn('items-center rounded-xl py-3.5', canGroup ? 'bg-primary' : 'bg-muted')}>
-            <Text className={cn('text-sm font-semibold', canGroup ? 'text-primary-foreground' : 'text-muted-foreground')}>
-              {t.people_groupCount(selectedCount)}
-            </Text>
+          <View className={bgClass}>
+            <Text className={textClass}>{label}</Text>
           </View>
         )}
       </Pressable>

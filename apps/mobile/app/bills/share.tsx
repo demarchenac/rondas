@@ -50,7 +50,6 @@ export default function ShareScreen() {
   const [previewAspect, setPreviewAspect] = useState(1);
   const [previewContactName, setPreviewContactName] = useState('');
 
-
   const [groupSelectMode, setGroupSelectMode] = useState(false);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
@@ -58,7 +57,7 @@ export default function ShareScreen() {
   const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
 
   const billCountry = (bill?.country as 'CO' | 'US') || 'CO';
-  const billCategory = (bill?.tags?.find((t) => t.isPlatform)?.slug || 'dining') as ReceiptCategory;
+  const billCategory = (bill?.tags?.find((tag) => tag.isPlatform)?.slug || 'dining') as ReceiptCategory;
   const rawTaxConfig = getTaxConfig(billCountry, billCategory);
   const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill?.taxIncludedOverride ?? undefined);
   const tipPercent = bill?.tipPercent ?? 0;
@@ -240,6 +239,18 @@ export default function ShareScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
+  const resolvedGroupMembers = useMemo(() => {
+    if (!bill) return new Map<string, ResolvedContact[]>();
+    const result = new Map<string, ResolvedContact[]>();
+    for (const group of contactGroups) {
+      const members = group.contactIds
+        .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
+        .filter((c): c is NonNullable<typeof c> => c != null);
+      result.set(group.id, members);
+    }
+    return result;
+  }, [bill, contactGroups]);
+
   const getContactIndex = useCallback((contact: ResolvedContact) => {
     if (!bill) return 0;
     return bill.contacts.findIndex((c) => String(c.contactId) === String(contact.contactId));
@@ -276,7 +287,7 @@ export default function ShareScreen() {
     const isLocked = isInGroup && !isInEditingGroup;
 
     return (
-      <View key={ci}>
+      <View key={String(contact.contactId)}>
         <ContactRow
           contact={contact}
           contactIndex={ci}
@@ -359,9 +370,7 @@ export default function ShareScreen() {
 
         {/* Normal mode: grouped contacts as tinted sections */}
         {!groupSelectMode && contactGroups.map((group, gi) => {
-          const members = group.contactIds
-            .map((cid) => bill.contacts.find((c) => String(c.contactId) === String(cid)))
-            .filter((c): c is NonNullable<typeof c> => c != null);
+          const members = resolvedGroupMembers.get(group.id) ?? [];
           if (members.length < 2) return null;
 
           return (
