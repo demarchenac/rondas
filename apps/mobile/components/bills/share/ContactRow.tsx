@@ -4,7 +4,7 @@ import { Share2 } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { WhatsAppIcon } from '@/components/icons/whatsapp';
-import { Image } from '@/lib/expo-image';
+import Avatar from '@/components/ui/avatar';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import type { Translations } from '@/lib/i18n';
@@ -51,15 +51,9 @@ function ContactRow({
               color={isSelected ? iconColors.primary : iconColors.mutedLight}
             />
           )}
-          {contact.imageUri ? (
-            <Image source={{ uri: contact.imageUri }} className="w-10 h-10 rounded-full" style={isLocked ? { opacity: 0.4 } : undefined} accessibilityLabel={`${displayName} avatar`} />
-          ) : (
-            <View className="w-10 h-10 rounded-full items-center justify-center bg-primary/10" style={isLocked ? { opacity: 0.4 } : undefined} accessibilityLabel={`${displayName} avatar`}>
-              <Text className="text-lg font-bold" style={{ color: iconColors.primary }}>
-                {contact.name[0]?.toUpperCase() ?? '?'}
-              </Text>
-            </View>
-          )}
+          <View style={isLocked ? { opacity: 0.4 } : undefined} accessibilityLabel={`${displayName} avatar`}>
+            <Avatar name={contact.name} imageUri={contact.imageUri} size="lg" />
+          </View>
           <View className="flex-1">
             <Text className="text-lg font-semibold text-foreground">{displayName}</Text>
             <Text className="text-sm text-muted-foreground">
@@ -69,12 +63,12 @@ function ContactRow({
             </Text>
 
             {!isEqualSplit && (
-              <View className="flex-row flex-wrap">
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 8 }}>
                 {contact.items.map((itemRef) => {
                   const info = itemShares.get(itemRef.itemId);
                   if (!info) return null;
                   return (
-                    <View key={itemRef.itemId} className="w-1/2 pr-2 mb-1">
+                    <View key={itemRef.itemId} style={{ flexBasis: '48%', flexGrow: 1 }} className="mb-1">
                       <Text className="text-sm text-foreground" numberOfLines={1}>
                         {info.name} ({itemRef.units}/{info.totalUnits})
                       </Text>

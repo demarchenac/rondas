@@ -1,6 +1,8 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, useColorScheme, View } from 'react-native';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import MaskedView from '@react-native-masked-view/masked-view';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from 'convex/react';
@@ -53,7 +55,15 @@ export default function ShareScreen() {
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
 
-  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
+  const glassAvailable = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
+  const [glassReady, setGlassReady] = useState(false);
+  useEffect(() => {
+    if (glassAvailable && !glassReady) {
+      const id = setTimeout(() => setGlassReady(true), 500);
+      return () => clearTimeout(id);
+    }
+  }, [glassAvailable, glassReady]);
+  const useGlass = glassAvailable && glassReady;
 
   const billCountry = (bill?.country as 'CO' | 'US') || 'CO';
   const billCategory = (bill?.tags?.find((tag) => tag.isPlatform)?.slug || 'dining') as ReceiptCategory;
@@ -305,54 +315,76 @@ export default function ShareScreen() {
     );
   };
 
+  const backButton = useGlass ? (
+    <Pressable onPress={() => router.back()} role="button" accessibilityLabel={t.a11y_goBack} className="active:opacity-80">
+      <GlassView isInteractive style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}>
+        <IconSymbol name="chevron.left" size={18} color={iconColors.primary} />
+      </GlassView>
+    </Pressable>
+  ) : (
+    <Pressable onPress={() => router.back()} role="button" accessibilityLabel={t.a11y_goBack} className="active:opacity-80">
+      <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
+    </Pressable>
+  );
+
+  const trailingButton = groupSelectMode ? (
+    <Pressable onPress={resetGroupMode} role="button" accessibilityLabel={t.cancel} className="active:opacity-80">
+      {useGlass ? (
+        <GlassView isInteractive style={{ borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 }}>
+          <Text className="text-xs font-semibold text-muted-foreground">{t.cancel}</Text>
+        </GlassView>
+      ) : (
+        <View className="rounded-full bg-muted px-2.5 py-1">
+          <Text className="text-xs font-semibold text-muted-foreground">{t.cancel}</Text>
+        </View>
+      )}
+    </Pressable>
+  ) : bill.contacts.length >= 2 ? (
+    <Pressable onPress={enterGroupMode} role="button" accessibilityLabel={t.people_group} className="active:opacity-80">
+      {useGlass ? (
+        <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <IconSymbol name="rectangle.stack.person.crop" size={14} color={iconColors.primary} />
+          <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+        </GlassView>
+      ) : (
+        <View className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1">
+          <IconSymbol name="rectangle.stack.person.crop" size={14} color={iconColors.primary} />
+          <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
+        </View>
+      )}
+    </Pressable>
+  ) : null;
+
   return (
     <View className="flex-1 bg-background">
 
-      <View className="flex-row items-center gap-3 px-5 pb-4" style={{ paddingTop: insets.top + 12 }}>
-        <Pressable onPress={() => router.back()} role="button" accessibilityLabel={t.a11y_goBack} className="active:opacity-80">
-          <IconSymbol name="chevron.left" size={22} color={iconColors.primary} />
-        </Pressable>
-        <Text className="flex-1 text-2xl font-bold text-foreground">{t.share_title}</Text>
-        {bill.contacts.length >= 2 && !groupSelectMode && (
-          <Pressable
-            onPress={enterGroupMode}
-            role="button"
-            accessibilityLabel={t.people_group}
-            style={{ backgroundColor: 'transparent' }}
-          >
-            {useGlass ? (
-              <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <IconSymbol name="rectangle.stack.person.crop" size={14} color={iconColors.primary} />
-                <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
-              </GlassView>
-            ) : (
-              <View className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1">
-                <IconSymbol name="rectangle.stack.person.crop" size={14} color={iconColors.primary} />
-                <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
-              </View>
-            )}
-          </Pressable>
-        )}
-        {groupSelectMode && (
-          <Pressable
-            onPress={resetGroupMode}
-            role="button"
-            accessibilityLabel={t.cancel}
-            className="rounded-full bg-muted px-2.5 py-1 active:opacity-70"
-          >
-            <Text className="text-xs font-semibold text-muted-foreground">{t.cancel}</Text>
-          </Pressable>
-        )}
+      {/* Header — floating above MaskedView */}
+      <View style={{ position: 'absolute', left: 0, right: 0, top: insets.top, zIndex: 10 }}>
+        <View className="flex-row items-center gap-3 px-5 pb-3 pt-3">
+          {backButton}
+          <Text className="flex-1 text-2xl font-bold text-foreground">{t.share_title}</Text>
+          {trailingButton}
+        </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerClassName="px-7 pb-8">
-        {/* In select mode: show all contacts as flat list */}
+      {/* Top scroll edge — fade content under header */}
+      <MaskedView
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top + 80, zIndex: 5 }}
+        pointerEvents="none"
+        maskElement={
+          <LinearGradient
+            colors={['rgba(0,0,0,1)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)']}
+            locations={[0, 0.65, 1]}
+            style={{ flex: 1 }}
+          />
+        }
+      >
+        <View className="flex-1 bg-background" />
+      </MaskedView>
+
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 60 }} contentContainerClassName="px-7 pb-8">
         {groupSelectMode && bill.contacts.map((contact) => renderContactRow(contact))}
-
-        {/* Normal mode: ungrouped contacts */}
         {!groupSelectMode && ungroupedContacts.map((contact) => renderContactRow(contact))}
-
-        {/* Normal mode: grouped contacts as tinted sections */}
         {!groupSelectMode && contactGroups.map((group, groupIndex) => {
           const members = resolvedGroupMembers.get(group.id) ?? [];
           if (members.length < 2) return null;
@@ -383,7 +415,6 @@ export default function ShareScreen() {
         })}
       </ScrollView>
 
-      {/* Group confirm toolbar */}
       {groupSelectMode && (
         <GroupConfirmToolbar
           selectedCount={selectedForGroup.size}
