@@ -7,7 +7,6 @@ import { WhatsAppIcon } from '@/components/icons/whatsapp';
 import { Image } from '@/lib/expo-image';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
-import type { Id } from '@convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
 import type { ResolvedContact, ContactShareData } from './types';
 
@@ -26,7 +25,7 @@ export interface ContactRowProps {
   isSelected?: boolean;
   capturingIndex: number | null;
   onToggleSelection?: () => void;
-  onTogglePaid: (id: Id<'contacts'>) => void;
+  onTogglePaid: (contactId: string) => void;
   onSendWhatsApp: (contact: ResolvedContact) => void;
   onShareInfographic: (index: number, name: string) => void;
 }

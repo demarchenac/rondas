@@ -24,7 +24,7 @@ export interface ContactGroupSectionProps {
   t: Translations;
   capturingIndex: number | null;
   onEditGroup: (groupId: string, memberIds: Set<string>) => void;
-  onTogglePaid: (id: Id<'contacts'>) => void;
+  onTogglePaid: (contactId: string) => void;
   onSendWhatsApp: (contact: ResolvedContact) => void;
   onShareInfographic: (index: number, name: string) => void;
   getContactIndex: (contact: ResolvedContact) => number;

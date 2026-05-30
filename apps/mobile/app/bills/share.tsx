@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image as RNImage, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,10 +8,9 @@ import { useQuery, useMutation } from 'convex/react';
 import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 import { randomUUID } from 'expo-crypto';
-import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
+import { type ViewShotRef } from 'react-native-view-shot';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Image } from '@/lib/expo-image';
 import { ICON_COLORS } from '@/constants/colors';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
@@ -22,12 +21,13 @@ import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type Re
 import { buildWhatsAppMessage } from '@/lib/whatsapp';
 import { toE164 } from '@/lib/phone';
 import { getTaxLabel } from '@/lib/billHelpers';
-import BillInfographic from '@/components/bills/BillInfographic';
 import InfographicPreview from '@/components/bills/InfographicPreview';
 import ContactRow from '@/components/bills/share/ContactRow';
 import ContactGroupSection from '@/components/bills/share/ContactGroupSection';
+import ContactInfographic from '@/components/bills/share/ContactInfographic';
 import GroupConfirmToolbar from '@/components/bills/share/GroupConfirmToolbar';
-import { buildGroupName, type ResolvedContact, type ContactShareData, type ItemShareInfo } from '@/components/bills/share/types';
+import { buildGroupName, contactKey } from '@/components/bills/share/utils';
+import type { ResolvedContact, ContactShareData, ItemShareInfo } from '@/components/bills/share/types';
 
 export default function ShareScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -68,14 +68,14 @@ export default function ShareScreen() {
   const groupedContactIds = useMemo(() => {
     const ids = new Set<string>();
     for (const group of contactGroups) {
-      for (const contactId of group.contactIds) ids.add(String(contactId));
+      for (const cId of group.contactIds) ids.add(String(cId));
     }
     return ids;
   }, [contactGroups]);
 
   const ungroupedContacts = useMemo(() => {
     if (!bill) return [];
-    return bill.contacts.filter((contact) => !groupedContactIds.has(String(contact.contactId)));
+    return bill.contacts.filter((contact) => !groupedContactIds.has(contactKey(contact)));
   }, [bill, groupedContactIds]);
 
   const shareDataMap = useMemo(() => {
@@ -94,7 +94,7 @@ export default function ShareScreen() {
     const result = new Map<string, ContactShareData>();
     for (const contact of bill.contacts) {
       if (isEqualStrategy) {
-        result.set(String(contact.contactId), { items: new Map(), total: contact.amount, tax: 0, tip: 0 });
+        result.set(contactKey(contact), { items: new Map(), total: contact.amount, tax: 0, tip: 0 });
         continue;
       }
       const items = new Map<string, ItemShareInfo>();
@@ -108,15 +108,15 @@ export default function ShareScreen() {
       const base = computeBase(itemsTotal, taxConfig);
       const contactTax = computeTax(itemsTotal, taxConfig);
       const contactTip = Math.round(base * (tipPercent / 100));
-      result.set(String(contact.contactId), { items, total: base + contactTax + contactTip, tax: contactTax, tip: contactTip });
+      result.set(contactKey(contact), { items, total: base + contactTax + contactTip, tax: contactTax, tip: contactTip });
     }
     return result;
   }, [bill, splitStrategy, taxConfig, tipPercent]);
 
-  const handleTogglePaid = useCallback(async (contactId: Id<'contacts'>) => {
+  const handleTogglePaid = useCallback(async (contactId: string) => {
     if (!userId) return;
     try {
-      await togglePaid({ id: id as Id<'bills'>, userId, contactId });
+      await togglePaid({ id: id as Id<'bills'>, userId, contactId: contactId as Id<'contacts'> });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -167,7 +167,7 @@ export default function ShareScreen() {
     const selectedIds = Array.from(selectedForGroup) as Id<'contacts'>[];
 
     const members = selectedIds
-      .map((contactId) => bill.contacts.find((contact) => String(contact.contactId) === String(contactId)))
+      .map((cId) => bill.contacts.find((contact) => contactKey(contact) === String(cId)))
       .filter((contact): contact is NonNullable<typeof contact> => contact != null);
 
     let updated: typeof contactGroups;
@@ -186,7 +186,7 @@ export default function ShareScreen() {
     }
 
     try {
-      await updateContactGroupsMut({ id: id as Id<'bills'>, userId, groups: updated as any });
+      await updateContactGroupsMut({ id: id as Id<'bills'>, userId, groups: updated as { id: string; contactIds: Id<'contacts'>[]; name: string }[] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
       console.error('[Share] confirmGroup failed:', err);
@@ -203,7 +203,7 @@ export default function ShareScreen() {
     try {
       const uri = await viewShotRef.capture();
       const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-        RNImage.getSize(uri, (w, h) => resolve({ width: w, height: h }), reject);
+        Image.getSize(uri, (w, h) => resolve({ width: w, height: h }), reject);
       });
       setPreviewAspect(width > 0 && height > 0 ? width / height : 0.55);
       setPreviewUri(uri);
@@ -226,6 +226,11 @@ export default function ShareScreen() {
     }
   }, [previewUri, previewContactName, t, alert]);
 
+  const handleClosePreview = useCallback(() => {
+    setPreviewUri(null);
+    setPreviewContactName('');
+  }, []);
+
   const editingGroup = editingGroupId ? contactGroups.find((group) => group.id === editingGroupId) : null;
   const editingGroupMemberIds = useMemo(() => {
     if (!editingGroup) return new Set<string>();
@@ -244,7 +249,7 @@ export default function ShareScreen() {
     const result = new Map<string, ResolvedContact[]>();
     for (const group of contactGroups) {
       const members = group.contactIds
-        .map((contactId) => bill.contacts.find((contact) => String(contact.contactId) === String(contactId)))
+        .map((cId) => bill.contacts.find((contact) => contactKey(contact) === String(cId)))
         .filter((contact): contact is NonNullable<typeof contact> => contact != null);
       result.set(group.id, members);
     }
@@ -253,7 +258,7 @@ export default function ShareScreen() {
 
   const getContactIndex = useCallback((contact: ResolvedContact) => {
     if (!bill) return 0;
-    return bill.contacts.findIndex((billContact) => String(billContact.contactId) === String(contact.contactId));
+    return bill.contacts.findIndex((billContact) => contactKey(billContact) === contactKey(contact));
   }, [bill]);
 
   if (!bill || !userId) {
@@ -280,14 +285,14 @@ export default function ShareScreen() {
   };
 
   const renderContactRow = (contact: typeof bill.contacts[0], contactIndex: number) => {
-    const shareData = shareDataMap.get(String(contact.contactId));
+    const shareData = shareDataMap.get(contactKey(contact));
     if (!shareData) return null;
-    const isInGroup = groupedContactIds.has(String(contact.contactId));
-    const isInEditingGroup = editingGroupMemberIds.has(String(contact.contactId));
+    const isInGroup = groupedContactIds.has(contactKey(contact));
+    const isInEditingGroup = editingGroupMemberIds.has(contactKey(contact));
     const isLocked = isInGroup && !isInEditingGroup;
 
     return (
-      <View key={String(contact.contactId)}>
+      <View key={contactKey(contact)}>
         <ContactRow
           contact={contact}
           contactIndex={contactIndex}
@@ -295,28 +300,21 @@ export default function ShareScreen() {
           {...sharedRowProps}
           groupSelectMode={groupSelectMode}
           isLocked={isLocked}
-          isSelected={selectedForGroup.has(String(contact.contactId))}
-          onToggleSelection={() => toggleGroupSelection(String(contact.contactId))}
+          isSelected={selectedForGroup.has(contactKey(contact))}
+          onToggleSelection={() => toggleGroupSelection(contactKey(contact))}
         />
-        <View style={{ position: 'absolute', left: -9999 }}>
-          <ViewShot ref={(r) => { infographicRefs.current[contactIndex] = r; }} options={{ format: 'png', quality: 1 }}>
-            <BillInfographic
-              billName={bill.name}
-              contactName={contact.isSelf ? t.self_label(contact.name) : contact.name}
-              contactImageUri={contact.imageUri}
-              items={contact.items.map((itemRef) => {
-                const info = shareData.items.get(itemRef.itemId);
-                return { name: info?.name ?? '', amount: info?.share ?? 0, units: itemRef.units, totalUnits: info?.totalUnits ?? 0 };
-              })}
-              taxConfig={taxConfig}
-              tipPercent={tipPercent}
-              location={bill.location?.address}
-              date={new Date(bill._creationTime).toISOString()}
-              country={billCountry}
-              t={t}
-            />
-          </ViewShot>
-        </View>
+        <ContactInfographic
+          viewShotRef={(r) => { infographicRefs.current[contactIndex] = r; }}
+          contact={contact}
+          shareData={shareData}
+          billName={bill.name}
+          taxConfig={taxConfig}
+          tipPercent={tipPercent}
+          location={bill.location?.address}
+          date={new Date(bill._creationTime).toISOString()}
+          country={billCountry}
+          t={t}
+        />
       </View>
     );
   };
@@ -406,7 +404,7 @@ export default function ShareScreen() {
         imageAspect={previewAspect}
         visible={previewUri !== null}
         onShare={handleConfirmShare}
-        onClose={() => { setPreviewUri(null); setPreviewContactName(''); }}
+        onClose={handleClosePreview}
       />
     </View>
   );
