@@ -407,7 +407,7 @@ export const assignContactToItem = mutation({
     if (isNewOnBill && !selfFlag) await incrementReference(ctx, contactId);
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
-    const state = computeBillState(bill.items, updated, 'by_item');
+    const state = computeBillState(updated);
     const derived = computeDerivedFields(bill.items, updated);
 
     await ctx.db.patch(args.id, { contacts: updated, state, splitStrategy: 'by_item', ...derived });
@@ -449,7 +449,7 @@ export const assignContactToItems = mutation({
     if (isNewOnBill && !selfFlag) await incrementReference(ctx, contactId);
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
-    const state = computeBillState(bill.items, updated, 'by_item');
+    const state = computeBillState(updated);
     const derived = computeDerivedFields(bill.items, updated);
 
     await ctx.db.patch(args.id, { contacts: updated, state, splitStrategy: 'by_item', ...derived });
@@ -482,7 +482,7 @@ export const removeContactFromItem = mutation({
     }
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
-    const state = computeBillState(bill.items, updated, bill.splitStrategy);
+    const state = computeBillState(updated);
     const derived = computeDerivedFields(bill.items, updated);
     const contactGroups = cleanupContactGroups(updated, bill.contactGroups);
 
@@ -519,7 +519,7 @@ export const removeContactsFromItems = mutation({
     }
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
-    const state = computeBillState(bill.items, updated, bill.splitStrategy);
+    const state = computeBillState(updated);
     const derived = computeDerivedFields(bill.items, updated);
     const contactGroups = cleanupContactGroups(updated, bill.contactGroups);
 
@@ -556,7 +556,7 @@ export const updateContactUnits = mutation({
     };
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
-    const state = computeBillState(bill.items, updated, bill.splitStrategy);
+    const state = computeBillState(updated);
     const derived = computeDerivedFields(bill.items, updated);
 
     await ctx.db.patch(args.id, { contacts: updated, state, ...derived });
@@ -577,7 +577,7 @@ export const togglePaymentStatus = mutation({
     const contacts = bill.contacts.map((c) =>
       c.contactId === args.contactId ? { ...c, paid: !c.paid } : c,
     );
-    const state = computeBillState(bill.items, contacts, bill.splitStrategy);
+    const state = computeBillState(contacts);
     const derived = computeDerivedFields(bill.items, contacts);
 
     await ctx.db.patch(args.id, { contacts, state, ...derived });
@@ -632,7 +632,7 @@ export const assignEqualSplit = mutation({
       if (prev) newContact.paid = prev.paid;
     }
 
-    const state = computeBillState(bill.items, contacts, 'equal');
+    const state = computeBillState(contacts);
     const derived = computeDerivedFields(bill.items, contacts);
 
     await ctx.db.patch(args.id, {
@@ -706,7 +706,7 @@ export const toggleGroupPaymentStatus = mutation({
     const contacts = bill.contacts.map((c) =>
       memberIds.has(String(c.contactId)) ? { ...c, paid: targetPaid } : c,
     );
-    const state = computeBillState(bill.items, contacts, bill.splitStrategy);
+    const state = computeBillState(contacts);
     const derived = computeDerivedFields(bill.items, contacts);
 
     await ctx.db.patch(args.id, { contacts, state, ...derived });
@@ -744,20 +744,10 @@ export const clearSplitAssignments = mutation({
 // --- Helpers ---
 
 function computeBillState(
-  items: { id?: string; subtotal: number }[],
-  contacts: { items: ContactItemRef[]; paid: boolean }[],
-  splitStrategy?: string,
+  contacts: { paid: boolean }[],
 ): 'unsplit' | 'split' | 'unresolved' {
   if (contacts.length === 0) return 'unsplit';
-  if (splitStrategy === 'equal') {
-    const allPaid = contacts.every((c) => c.paid);
-    return allPaid ? 'split' : 'unresolved';
-  }
-  const allItemsCovered = items.every((item) =>
-    item.id ? contacts.some((c) => c.items.some((i) => i.itemId === item.id)) : false,
-  );
-  const allPaid = contacts.every((c) => c.paid);
-  return allItemsCovered && allPaid ? 'split' : 'unresolved';
+  return contacts.every((c) => c.paid) ? 'split' : 'unresolved';
 }
 
 function computeDisplayTotal(
