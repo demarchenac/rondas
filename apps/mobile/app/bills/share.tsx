@@ -18,7 +18,7 @@ import { ICON_COLORS } from '@/constants/colors';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useAuth } from '@/lib/AuthContext';
-import { useT } from '@/lib/i18n';
+import { useT, type Translations } from '@/lib/i18n';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import { formatCurrency } from '@/lib/format';
 import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type ReceiptCategory } from '@/constants/taxes';
@@ -35,6 +35,50 @@ const GROUP_TINTS_BG = [
   'bg-teal-500/10',
   'bg-rose-500/10',
 ];
+
+function GroupConfirmToolbar({ selectedCount, isEditing, useGlass: glass, iconColors: colors, t: tr, onConfirm }: {
+  selectedCount: number;
+  isEditing: boolean;
+  useGlass: boolean;
+  iconColors: Record<string, string>;
+  t: Translations;
+  onConfirm: () => void;
+}) {
+  const canGroup = selectedCount >= 2;
+  const showUngroup = isEditing && !canGroup;
+
+  return (
+    <View className="px-7 pb-4">
+      <Pressable
+        onPress={onConfirm}
+        disabled={!canGroup && !showUngroup}
+        style={{ backgroundColor: 'transparent' }}
+      >
+        {showUngroup ? (
+          glass ? (
+            <GlassView isInteractive tintColor={'#ef4444' + '1A'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+              <Text className="text-sm font-semibold text-destructive">{tr.people_ungroup}</Text>
+            </GlassView>
+          ) : (
+            <View className="items-center rounded-xl bg-destructive/10 py-3.5">
+              <Text className="text-sm font-semibold text-destructive">{tr.people_ungroup}</Text>
+            </View>
+          )
+        ) : glass && canGroup ? (
+          <GlassView isInteractive tintColor={colors.primary + '1A'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
+            <Text className="text-sm font-semibold text-primary">{tr.people_groupCount(selectedCount)}</Text>
+          </GlassView>
+        ) : (
+          <View className={cn('items-center rounded-xl py-3.5', canGroup ? 'bg-primary' : 'bg-muted')}>
+            <Text className={cn('text-sm font-semibold', canGroup ? 'text-primary-foreground' : 'text-muted-foreground')}>
+              {tr.people_groupCount(selectedCount)}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+    </View>
+  );
+}
 
 export default function ShareScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -613,41 +657,16 @@ export default function ShareScreen() {
       </ScrollView>
 
       {/* Group confirm toolbar */}
-      {groupSelectMode && (() => {
-        const canGroup = selectedForGroup.size >= 2;
-        const showUngroup = editingGroupId && !canGroup;
-        return (
-          <View className="px-7 pb-4">
-            <Pressable
-              onPress={confirmGroupFromShare}
-              disabled={!canGroup && !showUngroup}
-              style={{ backgroundColor: 'transparent' }}
-            >
-              {showUngroup ? (
-                useGlass ? (
-                  <GlassView isInteractive tintColor={'#ef4444' + '1A'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
-                  </GlassView>
-                ) : (
-                  <View className="items-center rounded-xl bg-destructive/10 py-3.5">
-                    <Text className="text-sm font-semibold text-destructive">{t.people_ungroup}</Text>
-                  </View>
-                )
-              ) : useGlass && canGroup ? (
-                <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text className="text-sm font-semibold text-primary">{t.people_groupCount(selectedForGroup.size)}</Text>
-                </GlassView>
-              ) : (
-                <View className={cn('items-center rounded-xl py-3.5', canGroup ? 'bg-primary' : 'bg-muted')}>
-                  <Text className={cn('text-sm font-semibold', canGroup ? 'text-primary-foreground' : 'text-muted-foreground')}>
-                    {t.people_groupCount(selectedForGroup.size)}
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-          </View>
-        );
-      })()}
+      {groupSelectMode && (
+        <GroupConfirmToolbar
+          selectedCount={selectedForGroup.size}
+          isEditing={!!editingGroupId}
+          useGlass={useGlass}
+          iconColors={iconColors}
+          t={t}
+          onConfirm={confirmGroupFromShare}
+        />
+      )}
 
       <InfographicPreview
         uri={previewUri}
