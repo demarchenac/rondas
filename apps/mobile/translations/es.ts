@@ -111,8 +111,8 @@ export const es: typeof en = {
   category_service: 'Servicio',
 
   // Tax labels
-  tax_impoconsumo: 'Impoconsumo (incl.)',
-  tax_impoconsumoSeparate: 'Impoconsumo (sep.)',
+  tax_impoconsumo: 'ICO (incl.)',
+  tax_impoconsumoSeparate: 'ICO (sep.)',
   tax_iva: 'IVA (incl.)',
   tax_ivaSeparate: 'IVA (sep.)',
   tax_salesTax: 'Impuesto de venta',
@@ -143,7 +143,7 @@ export const es: typeof en = {
   settings_syncContacts: 'Sincronizar contactos',
   settings_syncContactsInfo: 'Actualiza la info de contactos desde tu dispositivo al abrir la app',
   settings_taxSection: 'Impuestos',
-  settings_impoconsumoIncluded: 'Impoconsumo (8%)',
+  settings_impoconsumoIncluded: 'ICO (8%)',
   settings_impoconsumoIncludedInfo: 'Cuando está activo, los precios de comida ya incluyen el 8% de impoconsumo',
   settings_ivaIncluded: 'IVA (19%)',
   settings_ivaIncludedInfo: 'Cuando está activo, los precios de comercio/servicio ya incluyen el 19% de IVA',

@@ -109,8 +109,8 @@ export const en = {
   category_service: 'Service',
 
   // Tax labels
-  tax_impoconsumo: 'Impoconsumo (incl.)',
-  tax_impoconsumoSeparate: 'Impoconsumo (sep.)',
+  tax_impoconsumo: 'ICO (incl.)',
+  tax_impoconsumoSeparate: 'ICO (sep.)',
   tax_iva: 'IVA (incl.)',
   tax_ivaSeparate: 'IVA (sep.)',
   tax_salesTax: 'Sales Tax',
@@ -141,7 +141,7 @@ export const en = {
   settings_syncContacts: 'Sync contacts',
   settings_syncContactsInfo: 'Updates contact info from your device when the app opens',
   settings_taxSection: 'Taxes',
-  settings_impoconsumoIncluded: 'Impoconsumo (8%)',
+  settings_impoconsumoIncluded: 'ICO (8%)',
   settings_impoconsumoIncludedInfo: 'When enabled, dining item prices already include the 8% consumption tax',
   settings_ivaIncluded: 'IVA (19%)',
   settings_ivaIncludedInfo: 'When enabled, retail/service item prices already include the 19% value-added tax',
