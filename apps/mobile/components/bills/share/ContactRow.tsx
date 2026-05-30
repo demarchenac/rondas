@@ -55,7 +55,7 @@ function ContactRow({
         </View>
         <View className="flex-1">
           <View className="flex-row items-start justify-between">
-            <Text className="flex-1 text-lg font-semibold text-foreground">{displayName}</Text>
+            <Text className="flex-1 text-lg font-semibold text-foreground" numberOfLines={1}>{displayName}</Text>
             <Text className="text-xl font-bold tabular-nums text-foreground">
               {formatCurrency(total, billCountry, decimalPlaces)}
             </Text>
