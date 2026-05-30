@@ -399,4 +399,5 @@ export const en = {
   a11y_select: (name: string) => `Select ${name}`,
   a11y_deselect: (name: string) => `Deselect ${name}`,
   a11y_editGroup: (name: string) => `Edit group ${name}`,
+  a11y_tapToEdit: 'Tap to edit',
 };

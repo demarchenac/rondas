@@ -464,7 +464,7 @@ function PeopleSummary({
                       {g.name}
                     </Text>
                   </View>
-                  <Text className="mt-2 text-xs text-muted-foreground">Tap to edit</Text>
+                  <Text className="mt-2 text-xs text-muted-foreground">{t.a11y_tapToEdit}</Text>
                 </Pressable>
               </Animated.View>
             ))}

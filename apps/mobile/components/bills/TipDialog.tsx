@@ -73,7 +73,7 @@ function TipDialog({
         <Text className="px-6 pt-4 pb-4 text-2xl font-bold text-foreground">{t.tipDialog_title}</Text>
 
         {/* Percentage chips */}
-        <View className="flex-row flex-wrap gap-2 px-6">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 24 }}>
           {[0, 5, 10, 15, 18, 20].map((pct) => (
             <Pressable
               key={pct}
@@ -81,8 +81,9 @@ function TipDialog({
                 const newTip = Math.round(subtotal * (pct / 100));
                 onSelectTip(pct, newTip);
               }}
+              style={{ flexBasis: '31%', flexGrow: 1 }}
               className={cn(
-                'min-w-[70px] flex-1 items-center rounded-xl border-[1.5px] py-3',
+                'items-center rounded-xl border-[1.5px] py-3',
                 !useCustomTip && tipPercent === pct
                   ? 'border-primary/35 bg-primary/15'
                   : 'border-muted-foreground/12 bg-muted-foreground/[0.06]',

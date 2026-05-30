@@ -401,4 +401,5 @@ export const es: typeof en = {
   a11y_select: (name: string) => `Seleccionar ${name}`,
   a11y_deselect: (name: string) => `Deseleccionar ${name}`,
   a11y_editGroup: (name: string) => `Editar grupo ${name}`,
+  a11y_tapToEdit: 'Toca para editar',
 };
