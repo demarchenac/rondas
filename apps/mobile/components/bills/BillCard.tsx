@@ -273,7 +273,7 @@ function CardContent({
                 />
               ))}
               {contactCount > 3 && (
-                <View className={cn('-ml-2 h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-card', useGlass ? 'bg-muted-foreground/40' : 'bg-muted-foreground/15')}>
+                <View className="-ml-2 h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-card bg-card">
                   <Text className="text-sm font-bold text-muted-foreground">
                     +{contactCount - 3}
                   </Text>
@@ -285,13 +285,13 @@ function CardContent({
       </View>
 
       {/* Progress bar for unresolved bills */}
-      {isUnresolved && itemCount > 0 && (() => {
-        const totalPercent = Math.round(progress * 100);
-        const paidProportion = contactCount > 0 ? paidCount / contactCount : 0;
-        const paidPct = Math.round(totalPercent * paidProportion);
-        const unpaidPct = totalPercent - paidPct;
-        return <ProgressBar paidPercent={paidPct} unpaidPercent={unpaidPct} style={{ marginTop: 8 }} />;
-      })()}
+      {isUnresolved && contactCount > 0 && (
+        <ProgressBar
+          paidPercent={contactCount > 0 ? (paidCount / contactCount) * 100 : 0}
+          unpaidPercent={contactCount > 0 ? ((contactCount - paidCount) / contactCount) * 100 : 0}
+          style={{ marginTop: 8 }}
+        />
+      )}
     </>
   );
 }

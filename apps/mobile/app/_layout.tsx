@@ -21,6 +21,7 @@ import { CustomAlertProvider } from '@/components/ui/custom-alert';
 import { KeyboardToolbar } from '@/components/ui/KeyboardToolbar';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { useSubscriptionSync } from '@/hooks/useSubscriptionSync';
+import DevLogViewer from '@/components/DevLogViewer';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -60,6 +61,7 @@ function RootLayoutNav() {
         </Stack>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <KeyboardToolbar />
+        <DevLogViewer />
         <PortalHost />
       </ThemeProvider>
     </ConvexProvider>
