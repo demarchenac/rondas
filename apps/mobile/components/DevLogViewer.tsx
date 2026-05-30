@@ -45,7 +45,7 @@ export default function DevLogViewer() {
   const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
 
   const translateX = useSharedValue(screenW - 50);
-  const translateY = useSharedValue(screenH - insets.bottom - 100);
+  const translateY = useSharedValue(screenH - insets.bottom - 30);
   const offsetX = useSharedValue(0);
   const offsetY = useSharedValue(0);
   const isDragging = useSharedValue(false);

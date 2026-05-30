@@ -42,20 +42,24 @@ function ContactRow({
   const displayName = contact.isSelf ? t.self_label(contact.name) : contact.name;
 
   const content = (
-      <View className="flex-row items-start justify-between">
-        <View className="flex-1 flex-row items-start gap-3">
-          {groupSelectMode && !isLocked && (
-            <IconSymbol
-              name={isSelected ? 'checkmark.circle.fill' : 'circle'}
-              size={22}
-              color={isSelected ? iconColors.primary : iconColors.mutedLight}
-            />
-          )}
-          <View style={isLocked ? { opacity: 0.4 } : undefined} accessibilityLabel={`${displayName} avatar`}>
-            <Avatar name={contact.name} imageUri={contact.imageUri} size="lg" />
+      <View className="flex-row items-start gap-3">
+        {groupSelectMode && !isLocked && (
+          <IconSymbol
+            name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+            size={22}
+            color={isSelected ? iconColors.primary : iconColors.mutedLight}
+          />
+        )}
+        <View style={isLocked ? { opacity: 0.4 } : undefined} accessibilityLabel={`${displayName} avatar`}>
+          <Avatar name={contact.name} imageUri={contact.imageUri} size="lg" />
+        </View>
+        <View className="flex-1">
+          <View className="flex-row items-start justify-between">
+            <Text className="flex-1 text-lg font-semibold text-foreground">{displayName}</Text>
+            <Text className="text-xl font-bold tabular-nums text-foreground">
+              {formatCurrency(total, billCountry, decimalPlaces)}
+            </Text>
           </View>
-          <View className="flex-1">
-            <Text className="text-lg font-semibold text-foreground">{displayName}</Text>
             <Text className="text-sm text-muted-foreground">
               {isEqualSplit
                 ? t.share_equalPerPerson(formatCurrency(total, billCountry, decimalPlaces), contactCount)
@@ -147,10 +151,6 @@ function ContactRow({
               </View>
             )}
           </View>
-        </View>
-        <Text className="text-xl font-bold tabular-nums text-foreground">
-          {formatCurrency(total, billCountry, decimalPlaces)}
-        </Text>
       </View>
   );
 

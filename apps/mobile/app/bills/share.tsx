@@ -22,6 +22,7 @@ import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type Re
 import { buildWhatsAppMessage } from '@/lib/whatsapp';
 import { toE164 } from '@/lib/phone';
 import { getTaxLabel } from '@/lib/billHelpers';
+import Skeleton from '@/components/ui/Skeleton';
 import InfographicPreview from '@/components/bills/InfographicPreview';
 import ContactRow from '@/components/bills/share/ContactRow';
 import ContactGroupSection from '@/components/bills/share/ContactGroupSection';
@@ -360,11 +361,20 @@ export default function ShareScreen() {
 
       {/* Header — floating above MaskedView */}
       <View style={{ position: 'absolute', left: 0, right: 0, top: insets.top, zIndex: 10 }}>
-        <View className="flex-row items-center gap-3 px-5 pb-3 pt-3">
-          {backButton}
-          <Text className="flex-1 text-2xl font-bold text-foreground">{t.share_title}</Text>
-          {trailingButton}
-        </View>
+        {glassAvailable && !glassReady ? (
+          <View className="flex-row items-center gap-3 px-7 pb-3 pt-3">
+            <Skeleton width={36} height={36} borderRadius={18} />
+            <Skeleton width="50%" height={24} borderRadius={6} />
+            <View className="flex-1" />
+            <Skeleton width={72} height={28} borderRadius={14} />
+          </View>
+        ) : (
+          <View className="flex-row items-center gap-3 px-7 pb-3 pt-3">
+            {backButton}
+            <Text className="flex-1 text-2xl font-bold text-foreground">{t.share_title}</Text>
+            {trailingButton}
+          </View>
+        )}
       </View>
 
       {/* Top scroll edge — fade content under header */}
@@ -382,7 +392,7 @@ export default function ShareScreen() {
         <View className="flex-1 bg-background" />
       </MaskedView>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 60 }} contentContainerClassName="px-7 pb-8">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 80, paddingBottom: insets.bottom + 16, paddingHorizontal: 28,  }}>
         {groupSelectMode && bill.contacts.map((contact) => renderContactRow(contact))}
         {!groupSelectMode && ungroupedContacts.map((contact) => renderContactRow(contact))}
         {!groupSelectMode && contactGroups.map((group, groupIndex) => {
