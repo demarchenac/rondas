@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useMutation } from 'convex/react';
 import { useRouter, type Href } from 'expo-router';
 
+import * as Sentry from '@sentry/react-native';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Image } from '@/lib/expo-image';
@@ -89,6 +90,7 @@ export default function SettingsScreen() {
       await presentCodeRedemptionSheet();
     } catch (err) {
       if (__DEV__) console.warn('[Settings] store redeem failed:', err);
+      Sentry.captureException(err, { tags: { feature: 'settings' } });
     }
   }, []);
 

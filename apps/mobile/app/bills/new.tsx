@@ -141,6 +141,7 @@ export default function NewBillScreen() {
         }
       } catch (err) {
         console.warn('[NewBill] location resolve failed:', err);
+        Sentry.captureException(err, { tags: { feature: 'new_bill' } });
       }
     }
 
@@ -283,7 +284,7 @@ export default function NewBillScreen() {
         new Promise<void>((r) => setTimeout(r, 800)),
       ]);
 
-      if (newScanId) deleteScan({ id: newScanId, userId: user!.id }).catch((err) => console.warn('[NewBill] mutation failed:', err));
+      if (newScanId) deleteScan({ id: newScanId, userId: user!.id }).catch((err) => { console.warn('[NewBill] mutation failed:', err); Sentry.captureException(err, { tags: { feature: 'new_bill' } }); });
       setScanAttempts(0);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace(`/bills/${billId}` as Href);
@@ -380,6 +381,7 @@ export default function NewBillScreen() {
       router.replace('/(tabs)' as Href);
     } catch (err) {
       console.error('[Save] Error:', err);
+      Sentry.captureException(err, { tags: { feature: 'new_bill' } });
       alert(t.error, t.scan_saveError);
     } finally {
       setSaving(false);

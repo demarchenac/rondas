@@ -6,6 +6,7 @@ import { useColorScheme } from 'nativewind';
 import * as Haptics from 'expo-haptics';
 import type { PurchasesOffering, PurchasesPackage } from 'react-native-purchases';
 
+import * as Sentry from '@sentry/react-native';
 import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -52,6 +53,7 @@ export default function PaywallScreen() {
     }).catch((err) => {
       if (cancelled) return;
       if (__DEV__) console.warn('[Paywall] getOffering error:', err);
+      Sentry.captureException(err, { tags: { feature: 'paywall' } });
       setLoadingOffering(false);
     });
     return () => { cancelled = true; };
@@ -75,6 +77,7 @@ export default function PaywallScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       alert(t.error, t.error_mutationFailed);
       if (__DEV__) console.warn('[Paywall] purchase failed:', err);
+      Sentry.captureException(err, { tags: { feature: 'paywall' } });
     } finally {
       setPurchasing(false);
     }
@@ -93,6 +96,7 @@ export default function PaywallScreen() {
     } catch (err) {
       alert(t.error, t.error_mutationFailed);
       if (__DEV__) console.warn('[Paywall] restore failed:', err);
+      Sentry.captureException(err, { tags: { feature: 'paywall' } });
     }
   }, [router, t, alert]);
 
@@ -123,6 +127,7 @@ export default function PaywallScreen() {
       await presentCodeRedemptionSheet();
     } catch (err) {
       if (__DEV__) console.warn('[Paywall] store redeem failed:', err);
+      Sentry.captureException(err, { tags: { feature: 'paywall' } });
     }
   }, []);
 

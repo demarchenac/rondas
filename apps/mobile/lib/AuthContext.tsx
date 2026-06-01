@@ -6,6 +6,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
+import * as Sentry from '@sentry/react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import {
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch((error) => {
         if (__DEV__) console.error('Failed to load stored session:', error);
+        Sentry.captureException(error, { tags: { feature: 'auth' } });
       })
       .finally(() => setLoading(false));
   }, []);
@@ -129,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(newUser);
       } catch (err) {
         if (__DEV__) console.error('Auth callback failed:', err);
+        Sentry.captureException(err, { tags: { feature: 'auth' } });
       } finally {
         setLoading(false);
       }
@@ -189,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (error) {
       if (__DEV__) console.error('[Auth] Sign-in error:', error);
+      Sentry.captureException(error, { tags: { feature: 'auth' } });
       setLoading(false);
       return { success: false, error: String(error) };
     }

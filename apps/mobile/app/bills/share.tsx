@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, useColorScheme, View } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 import { GlassView } from 'expo-glass-effect';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -63,6 +64,17 @@ export default function ShareScreen() {
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
 
+  const [optimisticPaid, setOptimisticPaid] = useState<Map<string, boolean>>(new Map());
+  const prevBillRef = useRef(bill);
+
+  // Clear optimistic state when Convex query re-syncs (real data arrives)
+  useEffect(() => {
+    if (bill && prevBillRef.current !== bill) {
+      setOptimisticPaid(new Map());
+    }
+    prevBillRef.current = bill;
+  }, [bill]);
+
   const { glassAvailable, glassReady, useGlass } = useGlassEffect();
 
   const billCountry = (bill?.country as 'CO' | 'US') || 'CO';
@@ -113,15 +125,23 @@ export default function ShareScreen() {
   }, [bill, splitStrategy, taxConfig, tipPercent]);
 
   const handleTogglePaid = useCallback(async (contactId: string) => {
-    if (!userId) return;
+    if (!userId || !bill) return;
+    // Optimistic update: toggle immediately
+    const contact = bill.contacts.find((c) => contactKey(c) === contactId);
+    const currentPaid = optimisticPaid.has(contactId) ? optimisticPaid.get(contactId)! : (contact?.paid ?? false);
+    const newPaid = !currentPaid;
+    setOptimisticPaid((prev) => new Map(prev).set(contactId, newPaid));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await togglePaid({ id: id as Id<'bills'>, userId, contactId: contactId as Id<'contacts'> });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch {
+    } catch (err) {
+      // Revert optimistic state on failure
+      setOptimisticPaid((prev) => { const next = new Map(prev); next.delete(contactId); return next; });
+      Sentry.captureException(err, { tags: { feature: 'share' } });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       alert(t.error, t.error_mutationFailed);
     }
-  }, [id, togglePaid, t, userId, alert]);
+  }, [id, togglePaid, t, userId, alert, bill, optimisticPaid]);
 
   const handleSendWhatsApp = useCallback(async (contact: { name: string; phone?: string; items: { itemId: string; units: number }[]; amount: number }) => {
     if (!bill || !contact.phone) {
@@ -236,6 +256,7 @@ export default function ShareScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
       console.error('[Share] confirmGroup failed:', err);
+      Sentry.captureException(err, { tags: { feature: 'share' } });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       alert(t.error, err instanceof Error ? err.message : t.error_mutationFailed);
     }
@@ -335,10 +356,16 @@ export default function ShareScreen() {
     const isInEditingGroup = editingGroupMemberIds.has(contactKey(contact));
     const isLocked = isInGroup && !isInEditingGroup;
 
+    // Merge optimistic paid state — optimistic takes precedence
+    const cKey = contactKey(contact);
+    const displayContact = optimisticPaid.has(cKey)
+      ? { ...contact, paid: optimisticPaid.get(cKey)! }
+      : contact;
+
     return (
       <View key={contactKey(contact)}>
         <ContactRow
-          contact={contact}
+          contact={displayContact}
           contactIndex={billIndex}
           shareData={shareData}
           isEqualSplit={isEqualSplit}
@@ -537,12 +564,15 @@ export default function ShareScreen() {
         <ViewShot ref={billInfographicRef} options={{ format: 'png', quality: 1 }}>
           <BillSummaryInfographic
             billName={bill.name}
-            contacts={bill.contacts.map((c) => ({
-              name: c.isSelf ? t.self_label(c.name) : c.name,
-              imageUri: c.imageUri,
-              amount: shareDataMap.get(contactKey(c))?.total ?? c.amount,
-              paid: c.paid,
-            }))}
+            contacts={bill.contacts.map((c) => {
+              const ck = contactKey(c);
+              return {
+                name: c.isSelf ? t.self_label(c.name) : c.name,
+                imageUri: c.imageUri,
+                amount: shareDataMap.get(ck)?.total ?? c.amount,
+                paid: optimisticPaid.has(ck) ? optimisticPaid.get(ck)! : c.paid,
+              };
+            })}
             billTotal={bill.contacts.reduce((sum, c) => sum + (shareDataMap.get(contactKey(c))?.total ?? c.amount), 0)}
             location={bill.location?.address}
             date={new Date(bill._creationTime).toISOString()}

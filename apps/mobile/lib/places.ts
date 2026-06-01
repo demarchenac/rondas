@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import * as Sentry from '@sentry/react-native';
 
 const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ?? '';
 
@@ -88,6 +89,7 @@ export async function resolvePlace(
     }
   } catch (err) {
     console.warn('[Places] reverse geocode failed:', err);
+    Sentry.captureException(err, { tags: { feature: 'places' } });
   }
 
   // Step 2: If native fails entirely, try Google directly
