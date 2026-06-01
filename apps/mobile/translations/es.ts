@@ -280,6 +280,10 @@ export const es: typeof en = {
   share_itemCount: (n: number) => n === 1 ? '1 ítem' : `${n} ítems`,
   share_equalSplit: 'División igual',
   share_equalPerPerson: (amount: string, n: number) => `${amount} c/u · ${n} personas`,
+  share_groupWhatsapp: 'WhatsApp grupo',
+  share_groupShare: 'Compartir grupo',
+  share_shareBill: 'Compartir resumen',
+  share_unassignedWarning: (n: number) => `${n} ${n === 1 ? 'unidad sin asignar' : 'unidades sin asignar'}`,
 
   // Contact picker
   contactPicker_title: 'Seleccionar contactos',

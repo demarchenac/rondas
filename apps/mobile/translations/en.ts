@@ -278,6 +278,10 @@ export const en = {
   share_itemCount: (n: number) => n === 1 ? '1 item' : `${n} items`,
   share_equalSplit: 'Equal split',
   share_equalPerPerson: (amount: string, n: number) => `${amount} each · ${n} people`,
+  share_groupWhatsapp: 'Group WhatsApp',
+  share_groupShare: 'Share group',
+  share_shareBill: 'Share bill summary',
+  share_unassignedWarning: (n: number) => `${n} ${n === 1 ? 'unit' : 'units'} unassigned across items`,
 
   // Contact picker
   contactPicker_title: 'Select Contacts',

@@ -795,12 +795,8 @@ function recalculateAmounts(
     const contactItemsTotal = contact.items.reduce((sum, ref) => {
       const item = items.find((i) => i.id === ref.itemId);
       if (!item) return sum;
-      const totalAssignedUnits = contacts.reduce((u, c) => {
-        const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
-        return u + (cRef ? cRef.units : 0);
-      }, 0);
-      const effectiveTotal = totalAssignedUnits > 0
-        ? (ref.units / totalAssignedUnits) * item.subtotal
+      const effectiveTotal = item.quantity > 0
+        ? (ref.units / item.quantity) * item.subtotal
         : item.subtotal;
       return sum + effectiveTotal;
     }, 0);

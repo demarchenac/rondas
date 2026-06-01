@@ -25,15 +25,12 @@ export interface ItemShareResult {
 
 export function computeContactItemShare(
   itemRef: { itemId: string; units: number },
-  billItems: { id?: string; name: string; subtotal: number }[],
-  allContacts: { items: { itemId: string; units: number }[] }[],
+  billItems: { id?: string; name: string; quantity: number; subtotal: number }[],
+  _allContacts: { items: { itemId: string; units: number }[] }[],
 ): ItemShareResult | null {
   const billItem = billItems.find((bi) => (bi.id ?? '') === itemRef.itemId);
   if (!billItem) return null;
-  const totalUnits = allContacts.reduce((sum, c) => {
-    const ref = c.items.find((ci) => ci.itemId === itemRef.itemId);
-    return sum + (ref ? ref.units : 0);
-  }, 0);
+  const totalUnits = billItem.quantity;
   const share = totalUnits > 0
     ? Math.round((itemRef.units / totalUnits) * billItem.subtotal)
     : Math.round(billItem.subtotal);

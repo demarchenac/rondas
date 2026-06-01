@@ -19,7 +19,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useT } from '@/lib/i18n';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type ReceiptCategory } from '@/constants/taxes';
-import { buildWhatsAppMessage } from '@/lib/whatsapp';
+import { buildWhatsAppMessage, buildGroupWhatsAppMessage } from '@/lib/whatsapp';
 import { toE164 } from '@/lib/phone';
 import { getTaxLabel } from '@/lib/billHelpers';
 import Skeleton from '@/components/ui/Skeleton';
@@ -138,6 +138,18 @@ export default function ShareScreen() {
     }
     Linking.openURL(url);
   }, [bill, taxConfig, decimalPlaces, t, alert]);
+
+  const handleSendGroupWhatsApp = useCallback(async (group: { name: string }, members: { name: string; amount: number }[], groupTotal: number) => {
+    if (!bill) return;
+    const message = buildGroupWhatsAppMessage({ bill, groupName: group.name, members, groupTotal, decimalPlaces, t });
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (!canOpen) {
+      alert(t.error, t.error_whatsappNotAvailable);
+      return;
+    }
+    Linking.openURL(url);
+  }, [bill, decimalPlaces, t, alert]);
 
   const resetGroupMode = useCallback(() => {
     setGroupSelectMode(false);
@@ -258,6 +270,18 @@ export default function ShareScreen() {
     if (!bill) return 0;
     return bill.contacts.findIndex((billContact) => contactKey(billContact) === contactKey(contact));
   }, [bill]);
+
+  const unassignedUnits = useMemo(() => {
+    if (!bill || splitStrategy === 'equal') return 0;
+    return bill.items.reduce((total, item) => {
+      if (!item.id) return total;
+      const assignedUnits = bill.contacts.reduce((sum, c) => {
+        const ref = c.items.find((ci) => ci.itemId === item.id);
+        return sum + (ref ? ref.units : 0);
+      }, 0);
+      return total + Math.max(0, item.quantity - assignedUnits);
+    }, 0);
+  }, [bill, splitStrategy]);
 
   if (!bill || !userId) {
     return (
@@ -392,7 +416,13 @@ export default function ShareScreen() {
         <View className="flex-1 bg-background" />
       </MaskedView>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 80, paddingBottom: insets.bottom + 16, paddingHorizontal: 28,  }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 80, paddingBottom: insets.bottom + 16, paddingHorizontal: 28 }}>
+        {!groupSelectMode && unassignedUnits > 0 && (
+          <View className="mb-4 flex-row items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3">
+            <IconSymbol name="exclamationmark.triangle.fill" size={16} color={iconColors.pro} />
+            <Text className="flex-1 text-sm text-amber-600 dark:text-amber-400">{t.share_unassignedWarning(unassignedUnits)}</Text>
+          </View>
+        )}
         {groupSelectMode && bill.contacts.map((contact) => renderContactRow(contact))}
         {!groupSelectMode && ungroupedContacts.map((contact) => renderContactRow(contact))}
         {!groupSelectMode && contactGroups.map((group, groupIndex) => {
@@ -417,6 +447,7 @@ export default function ShareScreen() {
               onTogglePaid={handleTogglePaid}
               onSendWhatsApp={handleSendWhatsApp}
               onShareInfographic={handleShareInfographic}
+              onSendGroupWhatsApp={handleSendGroupWhatsApp}
               useGlass={useGlass}
               onEditGroup={handleEditGroup}
               getContactIndex={getContactIndex}

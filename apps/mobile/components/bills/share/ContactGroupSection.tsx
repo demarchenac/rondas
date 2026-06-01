@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { GlassView } from 'expo-glass-effect';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { WhatsAppIcon } from '@/components/icons/whatsapp';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import type { Id } from '@convex/_generated/dataModel';
@@ -29,13 +30,14 @@ export interface ContactGroupSectionProps {
   onTogglePaid: (contactId: string) => void;
   onSendWhatsApp: (contact: ResolvedContact) => void;
   onShareInfographic: (index: number, name: string) => void;
+  onSendGroupWhatsApp: (group: { name: string }, members: { name: string; amount: number }[], groupTotal: number) => void;
   getContactIndex: (contact: ResolvedContact) => number;
 }
 
 function ContactGroupSection({
   group, members, groupIndex, shareDataMap, isEqualSplit,
   billCountry, decimalPlaces, contactCount, translatedTaxLabel, useGlass, iconColors, t, capturingIndex,
-  onEditGroup, onTogglePaid, onSendWhatsApp, onShareInfographic, getContactIndex,
+  onEditGroup, onTogglePaid, onSendWhatsApp, onShareInfographic, onSendGroupWhatsApp, getContactIndex,
 }: ContactGroupSectionProps) {
   const tintBg = GROUP_TINTS_BG[groupIndex % GROUP_TINTS_BG.length];
 
@@ -115,6 +117,21 @@ function ContactGroupSection({
           <Text className="text-xl font-bold tabular-nums text-foreground">
             {formatCurrency(groupTotal, billCountry, decimalPlaces)}
           </Text>
+        </View>
+        <View className="mt-3 flex-row items-center gap-2">
+          <Pressable
+            onPress={() => onSendGroupWhatsApp(
+              group,
+              members.map((m) => ({ name: m.isSelf ? t.self_label(m.name) : m.name, amount: shareDataMap.get(contactKey(m))?.total ?? 0 })),
+              groupTotal,
+            )}
+            role="button"
+            accessibilityLabel={t.share_groupWhatsapp}
+            className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
+          >
+            <WhatsAppIcon size={14} />
+            <Text className="text-sm font-medium text-[#25D366]">{t.share_whatsapp}</Text>
+          </Pressable>
         </View>
       </View>
     </View>

@@ -15,7 +15,7 @@ interface BillData {
   location?: { address?: string };
   photoTakenAt?: string;
   _creationTime: number;
-  items: { id?: string; name: string; subtotal: number }[];
+  items: { id?: string; name: string; quantity: number; subtotal: number }[];
   contacts: { items: { itemId: string; units: number }[] }[];
 }
 
