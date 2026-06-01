@@ -282,8 +282,13 @@ export const es: typeof en = {
   share_equalPerPerson: (amount: string, n: number) => `${amount} c/u · ${n} personas`,
   share_groupWhatsapp: 'WhatsApp grupo',
   share_groupShare: 'Compartir grupo',
-  share_shareBill: 'Compartir resumen',
+  share_shareBill: 'Compartir cuenta',
+  share_whatsappBill: 'WhatsApp cuenta',
   share_unassignedWarning: (n: number) => `${n} ${n === 1 ? 'unidad sin asignar' : 'unidades sin asignar'}`,
+  infographic_splitSummary: 'Resumen del split',
+  infographic_person: 'Persona',
+  wa_billSummary: '*Resumen del split:*',
+  wa_billMember: (name: string, amount: string, paid: boolean) => `${paid ? '✅' : '⬜'} ${name}: ${amount}`,
 
   // Contact picker
   contactPicker_title: 'Seleccionar contactos',

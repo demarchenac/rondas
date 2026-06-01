@@ -19,11 +19,15 @@ import { useAuth } from '@/lib/AuthContext';
 import { useT } from '@/lib/i18n';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type ReceiptCategory } from '@/constants/taxes';
-import { buildWhatsAppMessage, buildGroupWhatsAppMessage } from '@/lib/whatsapp';
+import { buildWhatsAppMessage, buildGroupWhatsAppMessage, buildBillWhatsAppMessage } from '@/lib/whatsapp';
 import { toE164 } from '@/lib/phone';
 import { getTaxLabel } from '@/lib/billHelpers';
 import Skeleton from '@/components/ui/Skeleton';
+import ViewShot from 'react-native-view-shot';
+import { Share2 } from 'lucide-react-native';
+import { WhatsAppIcon } from '@/components/icons/whatsapp';
 import InfographicPreview from '@/components/bills/InfographicPreview';
+import BillSummaryInfographic from '@/components/bills/BillSummaryInfographic';
 import ContactRow from '@/components/bills/share/ContactRow';
 import ContactGroupSection from '@/components/bills/share/ContactGroupSection';
 import ContactInfographic from '@/components/bills/share/ContactInfographic';
@@ -47,7 +51,9 @@ export default function ShareScreen() {
   const updateContactGroupsMut = useMutation(api.bills.updateContactGroups);
 
   const infographicRefs = useRef<Record<number, ViewShotRef | null>>({});
+  const billInfographicRef = useRef<ViewShotRef | null>(null);
   const [capturingIndex, setCapturingIndex] = useState<number | null>(null);
+  const [capturingBill, setCapturingBill] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [previewAspect, setPreviewAspect] = useState(1);
   const [previewContactName, setPreviewContactName] = useState('');
@@ -150,6 +156,41 @@ export default function ShareScreen() {
     }
     Linking.openURL(url);
   }, [bill, decimalPlaces, t, alert]);
+
+  const handleSendBillWhatsApp = useCallback(async () => {
+    if (!bill) return;
+    const contacts = bill.contacts.map((c) => ({
+      name: c.isSelf ? t.self_label(c.name) : c.name,
+      amount: shareDataMap.get(contactKey(c))?.total ?? c.amount,
+      paid: c.paid,
+    }));
+    const billTotal = contacts.reduce((sum, c) => sum + c.amount, 0);
+    const message = buildBillWhatsAppMessage({ bill, contacts, billTotal, decimalPlaces, t });
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (!canOpen) {
+      alert(t.error, t.error_whatsappNotAvailable);
+      return;
+    }
+    Linking.openURL(url);
+  }, [bill, shareDataMap, decimalPlaces, t, alert]);
+
+  const handleShareBillInfographic = useCallback(async () => {
+    if (!billInfographicRef.current?.capture) return;
+    setCapturingBill(true);
+    try {
+      const uri = await billInfographicRef.current.capture();
+      const { width, height } = await Image.getSize(uri);
+      setPreviewAspect(width > 0 && height > 0 ? width / height : 0.55);
+      setPreviewUri(uri);
+      setPreviewContactName(bill?.name ?? '');
+    } catch {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      alert(t.error, t.error_shareFailed);
+    } finally {
+      setCapturingBill(false);
+    }
+  }, [bill, t, alert]);
 
   const resetGroupMode = useCallback(() => {
     setGroupSelectMode(false);
@@ -454,6 +495,37 @@ export default function ShareScreen() {
             />
           );
         })}
+
+        {/* Bill-level share actions */}
+        {!groupSelectMode && bill.contacts.length > 0 && (
+          <View className="mt-6 border-t border-foreground/10 pt-4">
+            <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.share_shareBill}</Text>
+            <View className="flex-row items-center gap-2">
+              <Pressable
+                onPress={handleSendBillWhatsApp}
+                role="button"
+                accessibilityLabel={t.share_whatsappBill}
+                className="flex-row items-center gap-1.5 rounded-full bg-[#25D366]/15 px-3 py-1.5"
+              >
+                <WhatsAppIcon size={14} />
+                <Text className="text-sm font-medium text-[#25D366]">{t.share_whatsapp}</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleShareBillInfographic}
+                role="button"
+                accessibilityLabel={t.share_shareBill}
+                className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
+              >
+                {capturingBill ? (
+                  <ActivityIndicator size="small" color={iconColors.muted} />
+                ) : (
+                  <Share2 size={13} color={iconColors.muted} />
+                )}
+                <Text className="text-sm font-medium text-muted-foreground">{t.share_share}</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       {groupSelectMode && (
@@ -466,6 +538,27 @@ export default function ShareScreen() {
           onConfirm={confirmGroupFromShare}
         />
       )}
+
+      {/* Offscreen bill summary infographic for capture */}
+      <View style={{ position: 'absolute', left: -9999 }}>
+        <ViewShot ref={billInfographicRef} options={{ format: 'png', quality: 1 }}>
+          <BillSummaryInfographic
+            billName={bill.name}
+            contacts={bill.contacts.map((c) => ({
+              name: c.isSelf ? t.self_label(c.name) : c.name,
+              imageUri: c.imageUri,
+              amount: shareDataMap.get(contactKey(c))?.total ?? c.amount,
+              paid: c.paid,
+            }))}
+            billTotal={bill.contacts.reduce((sum, c) => sum + (shareDataMap.get(contactKey(c))?.total ?? c.amount), 0)}
+            location={bill.location?.address}
+            date={new Date(bill._creationTime).toISOString()}
+            country={billCountry}
+            decimalPlaces={decimalPlaces}
+            t={t}
+          />
+        </ViewShot>
+      </View>
 
       <InfographicPreview
         uri={previewUri}

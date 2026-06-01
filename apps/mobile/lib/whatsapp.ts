@@ -105,6 +105,32 @@ export function buildWhatsAppMessage(params: {
   return lines.join('\n');
 }
 
+export function buildBillWhatsAppMessage(params: {
+  bill: BillData;
+  contacts: { name: string; amount: number; paid: boolean }[];
+  billTotal: number;
+  decimalPlaces?: number;
+  t: Translations;
+}): string {
+  const { bill, contacts, billTotal, decimalPlaces, t } = params;
+  const billCountry: Country = (bill.country as Country) || 'CO';
+
+  const lines = buildHeader(bill, billCountry);
+  lines.push('');
+  lines.push(t.wa_billSummary);
+  lines.push('');
+  for (const c of contacts) {
+    lines.push(t.wa_billMember(c.name, formatCurrency(c.amount, billCountry, decimalPlaces), c.paid));
+  }
+  lines.push('');
+  lines.push(SEP);
+  lines.push(t.wa_total(formatCurrency(billTotal, billCountry, decimalPlaces)));
+  lines.push('');
+  lines.push(t.wa_footer);
+
+  return lines.join('\n');
+}
+
 interface GroupMember {
   name: string;
   amount: number;

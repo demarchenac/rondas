@@ -280,8 +280,13 @@ export const en = {
   share_equalPerPerson: (amount: string, n: number) => `${amount} each · ${n} people`,
   share_groupWhatsapp: 'Group WhatsApp',
   share_groupShare: 'Share group',
-  share_shareBill: 'Share bill summary',
+  share_shareBill: 'Share bill',
+  share_whatsappBill: 'Bill WhatsApp',
   share_unassignedWarning: (n: number) => `${n} ${n === 1 ? 'unit' : 'units'} unassigned across items`,
+  infographic_splitSummary: 'Split summary',
+  infographic_person: 'Person',
+  wa_billSummary: '*Split summary:*',
+  wa_billMember: (name: string, amount: string, paid: boolean) => `${paid ? '✅' : '⬜'} ${name}: ${amount}`,
 
   // Contact picker
   contactPicker_title: 'Select Contacts',
