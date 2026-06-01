@@ -170,7 +170,7 @@ export default function NewBillScreen() {
   const [error, setError] = useState<ScanError | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const swipeOpenRef = useRef(false);
-  const scanAttempts = useRef(0);
+  const [scanAttempts, setScanAttempts] = useState(0);
   const navigation = useNavigation();
 
   // Prevent dismiss when bill data exists — shows confirmation alert
@@ -284,7 +284,7 @@ export default function NewBillScreen() {
       ]);
 
       if (newScanId) deleteScan({ id: newScanId, userId: user!.id }).catch((err) => console.warn('[NewBill] mutation failed:', err));
-      scanAttempts.current = 0;
+      setScanAttempts(0);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace(`/bills/${billId}` as Href);
     } catch (err) {
@@ -308,9 +308,9 @@ export default function NewBillScreen() {
       }
       Sentry.captureException(err, {
         tags: { feature: 'bill_scan', errorType: classified.type },
-        extra: { scanId, attempts: scanAttempts.current + 1 },
+        extra: { scanId, attempts: scanAttempts + 1 },
       });
-      scanAttempts.current += 1;
+      setScanAttempts((prev) => prev + 1);
       setError(classified);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -448,8 +448,7 @@ export default function NewBillScreen() {
                       {error.type === 'not_a_receipt' ? t.scan_tapGoBack : t.scan_tapRetry}
                     </Text>
                   </Pressable>
-                  {/* eslint-disable-next-line react-hooks/refs -- conditional render based on attempt count */}
-                  {scanAttempts.current >= 2 && (
+                  {scanAttempts >= 2 && (
                     <Pressable
                       onPress={async () => {
                         if (!user) return;

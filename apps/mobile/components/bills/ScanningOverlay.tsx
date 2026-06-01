@@ -113,6 +113,7 @@ function useStaggeredItems(
   const processedCountRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const processQueueRef = useRef<(() => void) | null>(null);
   const processQueue = useCallback(() => {
     if (processingRef.current) return;
     if (queueRef.current.length === 0) return;
@@ -120,10 +121,8 @@ function useStaggeredItems(
     processingRef.current = true;
     const next = queueRef.current.shift()!;
 
-    // Unshift: newest item at front of displayed list
     setDisplayed((prev) => [next, ...prev]);
 
-    // Haptic per individual item
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (computeConfidence(next) < 0.60) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -131,9 +130,13 @@ function useStaggeredItems(
 
     timerRef.current = setTimeout(() => {
       processingRef.current = false;
-      processQueue(); // eslint-disable-line react-hooks/immutability -- recursive queue drain
+      processQueueRef.current?.();
     }, staggerMs);
   }, [staggerMs]);
+
+  useEffect(() => {
+    processQueueRef.current = processQueue;
+  }, [processQueue]);
 
   // Enqueue new items as they arrive from Convex
   useEffect(() => {
@@ -283,7 +286,7 @@ function ScanningOverlay({
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
-  const prevPhaseGroupRef = useRef<string>('');
+  const [prevPhaseGroup, setPrevPhaseGroup] = useState('');
 
   // Determine effective phase
   const effectivePhase: ScanPhase = localPhase === 'uploading'
@@ -323,13 +326,10 @@ function ScanningOverlay({
     pricedCount,
   );
 
-  // Animate label only on phase group transitions, not counter updates
-  // eslint-disable-next-line react-hooks/refs -- previous value tracking requires render-time read
-  const isPhaseTransition = prevPhaseGroupRef.current !== '' && prevPhaseGroupRef.current !== phaseGroup;
-
-  useEffect(() => {
-    prevPhaseGroupRef.current = phaseGroup;
-  }, [phaseGroup]);
+  const isPhaseTransition = prevPhaseGroup !== '' && prevPhaseGroup !== phaseGroup;
+  if (phaseGroup !== prevPhaseGroup) {
+    setPrevPhaseGroup(phaseGroup);
+  }
 
   // Haptic on phase transitions only
   useEffect(() => {
