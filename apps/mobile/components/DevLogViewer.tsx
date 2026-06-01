@@ -33,7 +33,7 @@ function LogRow({ item }: { item: LogEntry }) {
   );
 }
 
-export default function DevLogViewer() {
+function DevLogViewer() {
   const sheetRef = useRef<TrueSheet>(null);
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
@@ -159,3 +159,5 @@ export default function DevLogViewer() {
     </>
   );
 }
+
+export default React.memo(DevLogViewer);

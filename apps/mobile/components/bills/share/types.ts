@@ -1,15 +1,4 @@
-import type { Id } from '@convex/_generated/dataModel';
-
-export interface ResolvedContact {
-  contactId: Id<'contacts'>;
-  isSelf?: boolean;
-  name: string;
-  phone?: string;
-  imageUri?: string;
-  items: { itemId: string; units: number }[];
-  amount: number;
-  paid: boolean;
-}
+export type { ResolvedContact } from '@/lib/types';
 
 export interface ItemShareInfo {
   share: number;

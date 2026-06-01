@@ -2,6 +2,21 @@ import * as Location from 'expo-location';
 
 const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ?? '';
 
+interface GoogleAddressComponent {
+  long_name: string;
+  short_name: string;
+  types?: string[];
+}
+
+interface GooglePlaceResult {
+  name: string;
+  formatted_address?: string;
+  address_components?: GoogleAddressComponent[];
+  geometry?: {
+    location: { lat: number; lng: number };
+  };
+}
+
 /** Remove comma-separated segments already contained in a prior segment. */
 function deduplicateAddress(address: string): string {
   const parts = address.split(',').map((s) => s.trim()).filter(Boolean);
@@ -72,6 +87,7 @@ export async function resolvePlace(
       return { name: geo.name ?? geo.street ?? 'Unknown', address, city, country };
     }
   } catch (err) {
+    console.warn('[Places] reverse geocode failed:', err);
   }
 
   // Step 2: If native fails entirely, try Google directly
@@ -159,10 +175,10 @@ async function googleTextSearch(
   }
 }
 
-function parseGooglePlace(place: any): PlaceResult {
+function parseGooglePlace(place: GooglePlaceResult): PlaceResult {
   const components = place.address_components ?? [];
-  const city = components.find((c: any) => c.types?.includes('locality'))?.long_name;
-  const country = components.find((c: any) => c.types?.includes('country'))?.long_name;
+  const city = components.find((c) => c.types?.includes('locality'))?.long_name;
+  const country = components.find((c) => c.types?.includes('country'))?.long_name;
 
   return {
     name: place.name,

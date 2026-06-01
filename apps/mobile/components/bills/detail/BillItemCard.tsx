@@ -13,25 +13,10 @@ import CurrencyInput from '@/components/form/CurrencyInput';
 import SwipeableItem from '@/components/bills/SwipeableItem';
 import type { Id } from '@convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
+import type { BillItem, ResolvedContact } from '@/lib/types';
+import type { IconPalette } from '@/constants/colors';
 
-interface BillItem {
-  id?: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
-
-interface AssignedContact {
-  contactId: Id<'contacts'>;
-  isSelf?: boolean;
-  name: string;
-  phone?: string;
-  imageUri?: string;
-  items: { itemId: string; units: number }[];
-  amount: number;
-  paid: boolean;
-}
+type AssignedContact = ResolvedContact;
 
 interface BillItemCardProps {
   item: BillItem;
@@ -43,7 +28,7 @@ interface BillItemCardProps {
   isDeleting: boolean;
   multiSelectMode: boolean;
   isSelected: boolean;
-  iconColors: Record<string, string>;
+  iconColors: IconPalette;
   t: Translations;
   swipeOpenRef: React.MutableRefObject<boolean>;
   onPress: (itemId: string) => void;
@@ -68,7 +53,7 @@ function ContactChip({ contact, units, itemId, iconColors, t, onPress }: {
   contact: AssignedContact;
   units: number;
   itemId: string;
-  iconColors: Record<string, string>;
+  iconColors: IconPalette;
   t: Translations;
   onPress: (itemId: string, contactId: Id<'contacts'>) => void;
 }) {
@@ -127,7 +112,7 @@ function BillItemEditForm({
   item: BillItem;
   billCountry: string;
   decimalPlaces?: number;
-  iconColors: Record<string, string>;
+  iconColors: IconPalette;
   t: Translations;
   onSubmit: (values: { name: string; quantity: number; unitPrice: number }) => void;
   onCancel: () => void;

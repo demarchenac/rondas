@@ -13,25 +13,8 @@ import type { TaxConfig } from '@/constants/taxes';
 import type { Id } from '@convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
 import { useProGate } from '@/hooks/useProGate';
-
-interface ResolvedContact {
-  contactId: Id<'contacts'>;
-  isSelf?: boolean;
-  name: string;
-  phone?: string;
-  imageUri?: string;
-  items: { itemId: string; units: number }[];
-  amount: number;
-  paid: boolean;
-}
-
-interface BillItem {
-  id?: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
+import type { BillItem, ResolvedContact } from '@/lib/types';
+import type { IconPalette } from '@/constants/colors';
 
 interface ContactGroup {
   id: string;
@@ -54,7 +37,7 @@ interface PeopleSummaryProps {
   taxConfig: TaxConfig;
   tipPercent: number;
   decimalPlaces?: number;
-  iconColors: Record<string, string>;
+  iconColors: IconPalette;
   t: Translations;
   onTogglePaid: (contactId: Id<'contacts'>) => void;
   contactGroups?: ContactGroup[];

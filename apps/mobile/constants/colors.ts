@@ -28,7 +28,7 @@ export const TAB_COLORS: Record<string, TabPalette> = new Proxy(_TAB_COLORS, {
   },
 });
 
-type IconPalette = {
+export type IconPalette = {
   primary: string;
   primaryForeground: string;
   foreground: string;

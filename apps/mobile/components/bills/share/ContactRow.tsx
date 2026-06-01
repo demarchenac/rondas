@@ -8,6 +8,7 @@ import Avatar from '@/components/ui/avatar';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import type { Translations } from '@/lib/i18n';
+import type { IconPalette } from '@/constants/colors';
 import type { ResolvedContact, ContactShareData } from './types';
 
 export interface ContactRowProps {
@@ -19,7 +20,7 @@ export interface ContactRowProps {
   decimalPlaces?: number;
   contactCount: number;
   translatedTaxLabel: string;
-  iconColors: Record<string, string>;
+  iconColors: IconPalette;
   t: Translations;
   groupSelectMode?: boolean;
   isLocked?: boolean;

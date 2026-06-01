@@ -5,6 +5,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { formatCurrency } from '@/lib/format';
 import type { TaxConfig } from '@/constants/taxes';
 import type { Translations } from '@/lib/i18n';
+import type { IconPalette } from '@/constants/colors';
 
 interface BillSummaryCardProps {
   base: number;
@@ -17,7 +18,7 @@ interface BillSummaryCardProps {
   billCountry: string;
   translatedTaxLabel: string;
   taxConfig: TaxConfig;
-  iconColors: Record<string, string>;
+  iconColors: IconPalette;
   t: Translations;
   showTaxToggle?: boolean;
   taxIncluded?: boolean;

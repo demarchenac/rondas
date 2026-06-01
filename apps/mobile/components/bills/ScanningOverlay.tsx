@@ -19,7 +19,7 @@ import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { formatCurrency } from '@/lib/format';
-import type { useT } from '@/lib/i18n';
+import { useT } from '@/lib/i18n';
 
 // --- Types ---
 
@@ -49,7 +49,6 @@ interface ScanningOverlayProps {
   localPhase: ScanPhase;
   billCountry: string;
   decimalPlaces?: number;
-  t: ReturnType<typeof useT>;
 }
 
 // --- Confidence heuristic ---
@@ -132,7 +131,7 @@ function useStaggeredItems(
 
     timerRef.current = setTimeout(() => {
       processingRef.current = false;
-      processQueue();
+      processQueue(); // eslint-disable-line react-hooks/immutability -- recursive queue drain
     }, staggerMs);
   }, [staggerMs]);
 
@@ -186,14 +185,13 @@ function RunningTotal({
   pricedCount,
   billCountry,
   decimalPlaces,
-  t,
 }: {
   total: number;
   pricedCount: number;
   billCountry: string;
   decimalPlaces?: number;
-  t: ReturnType<typeof useT>;
 }) {
+  const t = useT();
   const scale = useSharedValue(1);
   const prevTotal = useRef(total);
 
@@ -232,7 +230,7 @@ function RunningTotal({
 
 // --- Streaming item row ---
 
-function StreamItem({
+const StreamItem = React.memo(function StreamItem({
   item,
   isModifier,
   billCountry,
@@ -271,7 +269,7 @@ function StreamItem({
       )}
     </Animated.View>
   );
-}
+});
 
 // --- Main overlay ---
 
@@ -280,8 +278,8 @@ function ScanningOverlay({
   localPhase,
   billCountry,
   decimalPlaces,
-  t,
 }: ScanningOverlayProps) {
+  const t = useT();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
@@ -326,6 +324,7 @@ function ScanningOverlay({
   );
 
   // Animate label only on phase group transitions, not counter updates
+  // eslint-disable-next-line react-hooks/refs -- previous value tracking requires render-time read
   const isPhaseTransition = prevPhaseGroupRef.current !== '' && prevPhaseGroupRef.current !== phaseGroup;
 
   useEffect(() => {
@@ -420,7 +419,6 @@ function ScanningOverlay({
           pricedCount={pricedCount}
           billCountry={billCountry}
           decimalPlaces={decimalPlaces ?? scanProgress?.result?.decimalPlaces}
-          t={t}
         />
       </View>
     </View>

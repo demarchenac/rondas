@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, useColorScheme, View } from 'react-native';
-import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, useColorScheme, View } from 'react-native';
+import { GlassView } from 'expo-glass-effect';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -34,6 +34,7 @@ import ContactInfographic from '@/components/bills/share/ContactInfographic';
 import GroupConfirmToolbar from '@/components/bills/share/GroupConfirmToolbar';
 import { buildGroupName, contactKey, computeContactItemShare } from '@/components/bills/share/utils';
 import type { ResolvedContact, ContactShareData, ItemShareInfo } from '@/components/bills/share/types';
+import { useGlassEffect } from '@/hooks/useGlassEffect';
 
 export default function ShareScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -62,15 +63,7 @@ export default function ShareScreen() {
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
 
-  const glassAvailable = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
-  const [glassReady, setGlassReady] = useState(false);
-  useEffect(() => {
-    if (glassAvailable && !glassReady) {
-      const id = setTimeout(() => setGlassReady(true), 500);
-      return () => clearTimeout(id);
-    }
-  }, [glassAvailable, glassReady]);
-  const useGlass = glassAvailable && glassReady;
+  const { glassAvailable, glassReady, useGlass } = useGlassEffect();
 
   const billCountry = (bill?.country as 'CO' | 'US') || 'CO';
   const billCategory = (bill?.tags?.find((tag) => tag.isPlatform)?.slug || 'dining') as ReceiptCategory;

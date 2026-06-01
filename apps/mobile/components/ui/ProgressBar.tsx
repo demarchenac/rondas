@@ -19,7 +19,8 @@ function ProgressBar({ paidPercent, unpaidPercent, height = 3, radius = 2, style
     paidFlex.value = withTiming(paidPercent, { duration: 400 });
     unpaidFlex.value = withTiming(unpaidPercent, { duration: 400 });
     emptyFlex.value = withTiming(Math.max(0, 100 - paidPercent - unpaidPercent), { duration: 400 });
-  }, [paidPercent, unpaidPercent, paidFlex, unpaidFlex, emptyFlex]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- shared values are stable refs
+  }, [paidPercent, unpaidPercent]);
 
   const paidStyle = useAnimatedStyle(() => ({ flex: paidFlex.value }));
   const unpaidStyle = useAnimatedStyle(() => ({ flex: unpaidFlex.value }));

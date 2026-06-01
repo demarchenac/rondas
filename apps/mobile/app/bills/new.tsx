@@ -139,7 +139,9 @@ export default function NewBillScreen() {
             address: place?.address,
           });
         }
-      } catch {}
+      } catch (err) {
+        console.warn('[NewBill] location resolve failed:', err);
+      }
     }
 
     resolve();
@@ -281,7 +283,7 @@ export default function NewBillScreen() {
         new Promise<void>((r) => setTimeout(r, 800)),
       ]);
 
-      if (newScanId) deleteScan({ id: newScanId, userId: user!.id }).catch(() => {});
+      if (newScanId) deleteScan({ id: newScanId, userId: user!.id }).catch((err) => console.warn('[NewBill] mutation failed:', err));
       scanAttempts.current = 0;
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace(`/bills/${billId}` as Href);
@@ -446,6 +448,7 @@ export default function NewBillScreen() {
                       {error.type === 'not_a_receipt' ? t.scan_tapGoBack : t.scan_tapRetry}
                     </Text>
                   </Pressable>
+                  {/* eslint-disable-next-line react-hooks/refs -- conditional render based on attempt count */}
                   {scanAttempts.current >= 2 && (
                     <Pressable
                       onPress={async () => {
@@ -523,7 +526,7 @@ export default function NewBillScreen() {
 
         {/* Scanning overlay */}
         {scanning && (
-          <ScanningOverlay scanProgress={scanProgress} localPhase={localPhase} billCountry={country} t={t} />
+          <ScanningOverlay scanProgress={scanProgress} localPhase={localPhase} billCountry={country} />
         )}
       </View>
     );

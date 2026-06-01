@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, TextInput, View } from 'react-native';
-import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import React from 'react';
+import { Pressable, TextInput, View } from 'react-native';
+import { GlassView } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -11,6 +11,8 @@ import { useCustomAlert } from '@/components/ui/custom-alert';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
 import { STATE_STYLES, type BillState } from '@/lib/billHelpers';
 import type { Translations } from '@/lib/i18n';
+import type { IconPalette } from '@/constants/colors';
+import { useGlassEffect } from '@/hooks/useGlassEffect';
 import ProgressBar from '@/components/ui/ProgressBar';
 
 function HeaderSkeleton({ hasProgressBar }: { hasProgressBar: boolean }) {
@@ -43,7 +45,7 @@ interface BillHeaderProps {
   hasContacts: boolean;
   splitStrategy?: string;
   multiSelectMode: boolean;
-  iconColors: Record<string, string>;
+  iconColors: IconPalette;
   t: Translations;
   onBack: () => void;
   onUpdateName: (name: string) => void;
@@ -77,16 +79,7 @@ function BillHeader({
 }: BillHeaderProps) {
   const nameInput = useBufferedInput(billName, onUpdateName);
   const { alert, actionSheet } = useCustomAlert();
-
-  const glassAvailable = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
-  const [glassReady, setGlassReady] = useState(false);
-  useEffect(() => {
-    if (glassAvailable && !glassReady) {
-      const id = setTimeout(() => setGlassReady(true), 500);
-      return () => clearTimeout(id);
-    }
-  }, [glassAvailable, glassReady]);
-  const useGlass = glassAvailable && glassReady;
+  const { glassAvailable, glassReady, useGlass } = useGlassEffect();
 
   const stateStyle = STATE_STYLES[state];
 

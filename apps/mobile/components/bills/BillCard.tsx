@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Platform, Pressable, View } from 'react-native';
-import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import { GlassView } from 'expo-glass-effect';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Path } from 'react-native-svg';
 import Animated, {
   Easing,
@@ -21,6 +21,7 @@ import { relativeTime } from '@/lib/date';
 import { STATE_STYLES, stateLabel, type BillState } from '@/lib/billHelpers';
 import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride } from '@/constants/taxes';
 import { ICON_COLORS } from '@/constants/colors';
+import { useGlassEffect } from '@/hooks/useGlassEffect';
 import { useColorScheme } from 'nativewind';
 import { buildGlowTheme, type ColorMode } from '@/lib/stateTheme';
 import type { Translations } from '@/lib/i18n';
@@ -337,15 +338,8 @@ function BillCardIOS({
     setCardHeight(e.nativeEvent.layout.height);
   }, []);
 
-  const glassAvailable = isGlassEffectAPIAvailable();
-  const [glassReady, setGlassReady] = useState(false);
-  useEffect(() => {
-    if (glassAvailable && !isDraft && !glassReady) {
-      const id = setTimeout(() => setGlassReady(true), 500);
-      return () => clearTimeout(id);
-    }
-  }, [glassAvailable, isDraft, glassReady]);
-  const useGlass = glassAvailable && glassReady && !isDraft;
+  const { glassAvailable, glassReady, useGlass: glassEnabled } = useGlassEffect();
+  const useGlass = glassEnabled && !isDraft;
 
   if (glassAvailable && !glassReady && !isDraft) {
     return (

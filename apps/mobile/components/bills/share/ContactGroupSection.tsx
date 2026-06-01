@@ -8,6 +8,7 @@ import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import type { Id } from '@convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
+import type { IconPalette } from '@/constants/colors';
 import ContactRow from './ContactRow';
 import type { ResolvedContact, ContactShareData } from './types';
 import { contactKey, GROUP_TINTS_BG } from './utils';
@@ -23,7 +24,7 @@ export interface ContactGroupSectionProps {
   contactCount: number;
   translatedTaxLabel: string;
   useGlass: boolean;
-  iconColors: Record<string, string>;
+  iconColors: IconPalette;
   t: Translations;
   capturingIndex: number | null;
   onEditGroup: (groupId: string, memberIds: Set<string>) => void;

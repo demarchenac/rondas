@@ -13,25 +13,8 @@ import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import type { Id } from '@convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
-
-interface BillItem {
-  id?: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
-
-interface ResolvedContact {
-  contactId: Id<'contacts'>;
-  isSelf?: boolean;
-  name: string;
-  phone?: string;
-  imageUri?: string;
-  items: { itemId: string; units: number }[];
-  amount: number;
-  paid: boolean;
-}
+import type { BillItem, ResolvedContact } from '@/lib/types';
+import type { IconPalette } from '@/constants/colors';
 
 interface EqualSplitViewProps {
   items: BillItem[];
@@ -40,7 +23,7 @@ interface EqualSplitViewProps {
   numPeople: number;
   billCountry: string;
   decimalPlaces?: number;
-  iconColors: Record<string, string>;
+  iconColors: IconPalette;
   t: Translations;
   editingItemId: string | null;
   onNumPeopleChange: (n: number) => void;

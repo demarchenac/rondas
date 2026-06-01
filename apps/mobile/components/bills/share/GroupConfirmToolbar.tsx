@@ -3,12 +3,13 @@ import { Pressable, View } from 'react-native';
 import { GlassView } from 'expo-glass-effect';
 import { Text } from '@/components/ui/text';
 import type { Translations } from '@/lib/i18n';
+import type { IconPalette } from '@/constants/colors';
 
 export interface GroupConfirmToolbarProps {
   selectedCount: number;
   isEditing: boolean;
   useGlass: boolean;
-  iconColors: Record<string, string>;
+  iconColors: IconPalette;
   t: Translations;
   onConfirm: () => void;
 }
