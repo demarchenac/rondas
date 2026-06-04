@@ -142,9 +142,9 @@ function useStaggeredItems(
   useEffect(() => {
     const alreadyCount = processedCountRef.current + queueRef.current.length;
     if (sourceItems.length > alreadyCount) {
-      const newItems = sourceItems.slice(alreadyCount).map((item, i) => ({
+      const newItems = sourceItems.slice(alreadyCount).map((item, idx) => ({
         ...item,
-        _key: `item-${alreadyCount + i}`,
+        _key: `item-${alreadyCount + idx}`,
       }));
       processedCountRef.current += newItems.length;
       queueRef.current.push(...newItems);
@@ -305,12 +305,12 @@ function ScanningOverlay({
   const displayedItems = useStaggeredItems(sourceItems, isComplete);
 
   const pricedCount = useMemo(
-    () => displayedItems.filter((i) => i.subtotal > 0).length,
+    () => displayedItems.filter((item) => item.subtotal > 0).length,
     [displayedItems],
   );
 
   const runningTotal = useMemo(
-    () => displayedItems.reduce((sum, i) => sum + i.subtotal, 0),
+    () => displayedItems.reduce((sum, item) => sum + item.subtotal, 0),
     [displayedItems],
   );
 

@@ -115,7 +115,7 @@ export default function ShareScreen() {
         const info = computeContactItemShare(itemRef, bill.items, bill.contacts);
         if (info) items.set(itemRef.itemId, info);
       }
-      const itemsTotal = [...items.values()].reduce((sum, shareInfo) => sum + shareInfo.share, 0);
+      const itemsTotal = [...items.values()].reduce((totalShare, shareInfo) => totalShare + shareInfo.share, 0);
       const base = computeBase(itemsTotal, taxConfig);
       const contactTax = computeTax(itemsTotal, taxConfig);
       const contactTip = Math.round(base * (tipPercent / 100));
@@ -127,7 +127,7 @@ export default function ShareScreen() {
   const handleTogglePaid = useCallback(async (contactId: string) => {
     if (!userId || !bill) return;
     // Optimistic update: toggle immediately
-    const contact = bill.contacts.find((c) => contactKey(c) === contactId);
+    const contact = bill.contacts.find((entry) => contactKey(entry) === contactId);
     const currentPaid = optimisticPaid.has(contactId) ? optimisticPaid.get(contactId)! : (contact?.paid ?? false);
     const newPaid = !currentPaid;
     setOptimisticPaid((prev) => new Map(prev).set(contactId, newPaid));
@@ -172,12 +172,12 @@ export default function ShareScreen() {
 
   const handleSendBillWhatsApp = useCallback(async () => {
     if (!bill) return;
-    const contacts = bill.contacts.map((c) => ({
-      name: c.isSelf ? t.self_label(c.name) : c.name,
-      amount: shareDataMap.get(contactKey(c))?.total ?? c.amount,
-      paid: c.paid,
+    const contacts = bill.contacts.map((contact) => ({
+      name: contact.isSelf ? t.self_label(contact.name) : contact.name,
+      amount: shareDataMap.get(contactKey(contact))?.total ?? contact.amount,
+      paid: contact.paid,
     }));
-    const billTotal = contacts.reduce((sum, c) => sum + c.amount, 0);
+    const billTotal = contacts.reduce((runningTotal, contact) => runningTotal + contact.amount, 0);
     const message = buildBillWhatsAppMessage({ bill, contacts, billTotal, decimalPlaces, t });
     const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
     const canOpen = await Linking.canOpenURL(url);
@@ -232,21 +232,24 @@ export default function ShareScreen() {
     if (!bill || !userId) return;
     const selectedIds = Array.from(selectedForGroup) as Id<'contacts'>[];
 
+    // Not editing and too few selected — nothing to do
+    if (!editingGroupId && selectedIds.length < 2) return;
+
     const members = selectedIds
       .map((cId) => bill.contacts.find((contact) => contactKey(contact) === String(cId)))
       .filter((contact): contact is NonNullable<typeof contact> => contact != null);
 
     let updated: typeof contactGroups;
 
-    if (editingGroupId) {
-      if (selectedIds.length < 2) {
-        updated = contactGroups.filter((group) => group.id !== editingGroupId);
-      } else {
-        const groupName = buildGroupName(members, t.self_label);
-        updated = contactGroups.map((group) => group.id === editingGroupId ? { ...group, contactIds: selectedIds, name: groupName } : group);
-      }
+    if (editingGroupId && selectedIds.length < 2) {
+      // Editing but fewer than 2 — remove the group
+      updated = contactGroups.filter((group) => group.id !== editingGroupId);
+    } else if (editingGroupId) {
+      // Editing with enough members — update the group
+      const groupName = buildGroupName(members, t.self_label);
+      updated = contactGroups.map((group) => group.id === editingGroupId ? { ...group, contactIds: selectedIds, name: groupName } : group);
     } else {
-      if (selectedIds.length < 2) return;
+      // Creating a new group
       const groupName = buildGroupName(members, t.self_label);
       updated = [...contactGroups, { id: randomUUID(), contactIds: selectedIds, name: groupName }];
     }
@@ -330,9 +333,9 @@ export default function ShareScreen() {
     if (!bill || splitStrategy === 'equal') return 0;
     return bill.items.reduce((total, item) => {
       if (!item.id) return total;
-      const assignedUnits = bill.contacts.reduce((sum, c) => {
-        const ref = c.items.find((ci) => ci.itemId === item.id);
-        return sum + (ref ? ref.units : 0);
+      const assignedUnits = bill.contacts.reduce((assigned, contact) => {
+        const ref = contact.items.find((itemRef) => itemRef.itemId === item.id);
+        return assigned + (ref ? ref.units : 0);
       }, 0);
       return total + Math.max(0, item.quantity - assignedUnits);
     }, 0);
@@ -385,7 +388,7 @@ export default function ShareScreen() {
           onToggleSelection={() => toggleGroupSelection(contactKey(contact))}
         />
         <ContactInfographic
-          viewShotRef={(r) => { infographicRefs.current[billIndex] = r; }}
+          viewShotRef={(ref) => { infographicRefs.current[billIndex] = ref; }}
           contact={contact}
           shareData={shareData}
           billName={bill.name}
@@ -564,16 +567,16 @@ export default function ShareScreen() {
         <ViewShot ref={billInfographicRef} options={{ format: 'png', quality: 1 }}>
           <BillSummaryInfographic
             billName={bill.name}
-            contacts={bill.contacts.map((c) => {
-              const ck = contactKey(c);
+            contacts={bill.contacts.map((contact) => {
+              const key = contactKey(contact);
               return {
-                name: c.isSelf ? t.self_label(c.name) : c.name,
-                imageUri: c.imageUri,
-                amount: shareDataMap.get(ck)?.total ?? c.amount,
-                paid: optimisticPaid.has(ck) ? optimisticPaid.get(ck)! : c.paid,
+                name: contact.isSelf ? t.self_label(contact.name) : contact.name,
+                imageUri: contact.imageUri,
+                amount: shareDataMap.get(key)?.total ?? contact.amount,
+                paid: optimisticPaid.has(key) ? optimisticPaid.get(key)! : contact.paid,
               };
             })}
-            billTotal={bill.contacts.reduce((sum, c) => sum + (shareDataMap.get(contactKey(c))?.total ?? c.amount), 0)}
+            billTotal={bill.contacts.reduce((runningTotal, contact) => runningTotal + (shareDataMap.get(contactKey(contact))?.total ?? contact.amount), 0)}
             location={bill.location?.address}
             date={new Date(bill._creationTime).toISOString()}
             country={billCountry}

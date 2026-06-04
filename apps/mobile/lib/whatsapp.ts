@@ -32,10 +32,10 @@ function buildHeader(bill: BillData, billCountry: Country): string[] {
   lines.push(`🧾 *${bill.name}*`);
   if (bill.location?.address) lines.push(`📍 ${bill.location.address}`);
   const billDate = bill.photoTakenAt ?? new Date(bill._creationTime).toISOString();
-  const d = new Date(billDate);
-  if (!isNaN(d.getTime())) {
+  const parsedDate = new Date(billDate);
+  if (!isNaN(parsedDate.getTime())) {
     const locale = billCountry === 'US' ? 'en-US' : 'es-CO';
-    lines.push(`🕐 ${d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`);
+    lines.push(`🕐 ${parsedDate.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`);
   }
   return lines;
 }
@@ -71,13 +71,13 @@ export function buildWhatsAppMessage(params: {
       const result = computeContactItemShare(ref, bill.items, bill.contacts);
       return result ? { ref, ...result } : null;
     })
-    .filter((r): r is NonNullable<typeof r> => r != null);
+    .filter((result): result is NonNullable<typeof result> => result != null);
 
   const itemLines = itemResults
-    .map((r) => `- ${r.name} — ${formatCurrency(r.share, billCountry, decimalPlaces)}`)
+    .map((result) => `- ${result.name} — ${formatCurrency(result.share, billCountry, decimalPlaces)}`)
     .join('\n');
 
-  const contactItemsTotal = itemResults.reduce((sum, r) => sum + r.share, 0);
+  const contactItemsTotal = itemResults.reduce((sum, result) => sum + result.share, 0);
   const contactBase = computeBase(contactItemsTotal, taxConfig);
   const contactTax = computeTax(contactItemsTotal, taxConfig);
   const contactTip = Math.round(contactBase * (tipPercent / 100));
@@ -119,8 +119,8 @@ export function buildBillWhatsAppMessage(params: {
   lines.push('');
   lines.push(t.wa_billSummary);
   lines.push('');
-  for (const c of contacts) {
-    lines.push(t.wa_billMember(c.name, formatCurrency(c.amount, billCountry, decimalPlaces), c.paid));
+  for (const contact of contacts) {
+    lines.push(t.wa_billMember(contact.name, formatCurrency(contact.amount, billCountry, decimalPlaces), contact.paid));
   }
   lines.push('');
   lines.push(SEP);
@@ -151,8 +151,8 @@ export function buildGroupWhatsAppMessage(params: {
   lines.push('');
   lines.push(t.wa_groupBreakdown(groupName));
   lines.push('');
-  for (const m of members) {
-    lines.push(t.wa_groupMember(m.name, formatCurrency(m.amount, billCountry, decimalPlaces)));
+  for (const member of members) {
+    lines.push(t.wa_groupMember(member.name, formatCurrency(member.amount, billCountry, decimalPlaces)));
   }
   lines.push('');
   lines.push(SEP);

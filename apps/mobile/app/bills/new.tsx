@@ -66,7 +66,7 @@ function prepareItems(items: BillItem[]): BillItem[] {
     .map((item) => ({
       ...item,
       id: item.id || generateItemId(),
-      name: item.name.trim().replace(/^\w/, (c) => c.toUpperCase()),
+      name: item.name.trim().replace(/^\w/, (char) => char.toUpperCase()),
       unitPrice: item.quantity > 0 ? item.subtotal / item.quantity : item.subtotal,
     }));
 }
@@ -108,6 +108,8 @@ export default function NewBillScreen() {
   }>({});
 
   useEffect(() => {
+    if (!resolveLocation) return;
+
     let cancelled = false;
 
     async function resolve() {
@@ -126,7 +128,10 @@ export default function NewBillScreen() {
             placeName: place?.name,
             address: place?.address,
           });
-        } else if (resolveLocation === 'exif' && latitude && longitude) {
+          return;
+        }
+
+        if (resolveLocation === 'exif' && latitude && longitude) {
           // Library: resolve from EXIF GPS
           const lat = parseFloat(latitude);
           const lng = parseFloat(longitude);
@@ -162,6 +167,29 @@ export default function NewBillScreen() {
 
   type ScanErrorType = 'timeout' | 'api' | 'not_a_receipt' | 'generic';
   interface ScanError { type: ScanErrorType; message: string; hint: string; }
+
+  function classifyScanError(err: unknown): ScanError {
+    const msg = String(err).toLowerCase();
+    if (msg.includes('not_a_receipt')) {
+      return { type: 'not_a_receipt', message: t.error_notReceipt, hint: t.error_hintNotReceipt };
+    }
+    if (msg.includes('timeout') || msg.includes('timed out')) {
+      return { type: 'timeout', message: t.error_timeout, hint: t.error_hintTimeout };
+    }
+    if (msg.includes('429') || msg.includes('rate limit')) {
+      return { type: 'api', message: t.error_rateLimited, hint: t.error_hintRateLimited };
+    }
+    if (msg.includes('403')) {
+      return { type: 'api', message: t.error_serviceUnavailable, hint: t.error_hintServiceUnavailable };
+    }
+    if (msg.includes('500') || msg.includes('503')) {
+      return { type: 'api', message: t.error_api, hint: t.error_hintApi };
+    }
+    if (msg.includes('failed to parse')) {
+      return { type: 'generic', message: t.error_parseError, hint: t.error_hintParseError };
+    }
+    return { type: 'generic', message: t.error_scanGeneric, hint: t.error_hintScan };
+  }
 
   type ScanPhase = 'uploading' | 'analyzing' | 'thinking' | 'extracting' | 'complete';
   const [scanning, setScanning] = useState(false);
@@ -211,7 +239,7 @@ export default function NewBillScreen() {
     setLocalPhase('uploading');
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const minPhaseDelay = () => new Promise<void>((r) => setTimeout(r, 700));
+    const minPhaseDelay = () => new Promise<void>((resolve) => setTimeout(resolve, 700));
 
     try {
       // "Subiendo imagen..." phase — local, before any backend state
@@ -246,7 +274,7 @@ export default function NewBillScreen() {
 
         const { country, defaultTipPercent, impoconsumoIncluded, ivaIncluded } = useSettingsStore.getState();
         const category = result.category || 'dining';
-        const itemsTotal = preparedItems.reduce((sum, i) => sum + i.subtotal, 0);
+        const itemsTotal = preparedItems.reduce((total, item) => total + item.subtotal, 0);
         const rawTaxConfig = getTaxConfig(country, category);
 
         const taxIncludedOverride = country === 'CO'
@@ -281,7 +309,7 @@ export default function NewBillScreen() {
       // Show celebration for 800ms while bill creation runs in parallel
       const [billId] = await Promise.all([
         createBillAsync(),
-        new Promise<void>((r) => setTimeout(r, 800)),
+        new Promise<void>((resolve) => setTimeout(resolve, 800)),
       ]);
 
       if (newScanId) deleteScan({ id: newScanId, userId: user!.id }).catch((err) => { console.warn('[NewBill] mutation failed:', err); Sentry.captureException(err, { tags: { feature: 'new_bill' } }); });
@@ -290,23 +318,7 @@ export default function NewBillScreen() {
       router.replace(`/bills/${billId}` as Href);
     } catch (err) {
       console.error('[Scan] Error:', err);
-      const msg = String(err).toLowerCase();
-      let classified: ScanError;
-      if (msg.includes('not_a_receipt')) {
-        classified = { type: 'not_a_receipt', message: t.error_notReceipt, hint: t.error_hintNotReceipt };
-      } else if (msg.includes('timeout') || msg.includes('timed out')) {
-        classified = { type: 'timeout', message: t.error_timeout, hint: t.error_hintTimeout };
-      } else if (msg.includes('429') || msg.includes('rate limit')) {
-        classified = { type: 'api', message: t.error_rateLimited, hint: t.error_hintRateLimited };
-      } else if (msg.includes('403')) {
-        classified = { type: 'api', message: t.error_serviceUnavailable, hint: t.error_hintServiceUnavailable };
-      } else if (msg.includes('500') || msg.includes('503')) {
-        classified = { type: 'api', message: t.error_api, hint: t.error_hintApi };
-      } else if (msg.includes('failed to parse')) {
-        classified = { type: 'generic', message: t.error_parseError, hint: t.error_hintParseError };
-      } else {
-        classified = { type: 'generic', message: t.error_scanGeneric, hint: t.error_hintScan };
-      }
+      const classified = classifyScanError(err);
       Sentry.captureException(err, {
         tags: { feature: 'bill_scan', errorType: classified.type },
         extra: { scanId, attempts: scanAttempts + 1 },
@@ -358,7 +370,7 @@ export default function NewBillScreen() {
   };
 
   const calculatedTotal = bill
-    ? bill.items.reduce((sum, i) => sum + i.subtotal, 0) + bill.tax + bill.tip
+    ? bill.items.reduce((total, item) => total + item.subtotal, 0) + bill.tax + bill.tip
     : 0;
 
   const handleConfirm = async () => {
@@ -373,7 +385,7 @@ export default function NewBillScreen() {
         total: calculatedTotal,
         tax: bill.tax,
         tip: bill.tip,
-        items: bill.items.filter((i) => i.name.trim() !== ''),
+        items: bill.items.filter((item) => item.name.trim() !== ''),
         isPro,
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -612,7 +624,7 @@ export default function NewBillScreen() {
                 <View className="mb-3 flex-row items-center justify-between">
                   <Input
                     value={item.name}
-                    onChangeText={(v) => updateItem(index, 'name', v)}
+                    onChangeText={(text) => updateItem(index, 'name', text)}
                     className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-lg font-semibold shadow-none"
                     placeholder={t.scan_itemName}
                     placeholderTextColor={iconColors.mutedLight}
@@ -630,7 +642,7 @@ export default function NewBillScreen() {
                     <Text className="mb-1 text-sm font-medium uppercase tracking-wider text-muted-foreground">{t.scan_qty}</Text>
                     <Input
                       value={String(item.quantity)}
-                      onChangeText={(v) => updateItem(index, 'quantity', v)}
+                      onChangeText={(text) => updateItem(index, 'quantity', text)}
                       className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-base font-medium shadow-none"
                       keyboardType="number-pad"
                     />
@@ -639,7 +651,7 @@ export default function NewBillScreen() {
                     <Text className="mb-1 text-sm font-medium uppercase tracking-wider text-muted-foreground">{t.scan_unitPrice}</Text>
                     <Input
                       value={formatCurrency(item.unitPrice, country)}
-                      onChangeText={(v) => updateItem(index, 'unitPrice', v)}
+                      onChangeText={(text) => updateItem(index, 'unitPrice', text)}
                       className="h-9 rounded-lg border-0 bg-muted px-3 py-1 text-base font-medium shadow-none"
                       keyboardType="number-pad"
                     />
@@ -711,14 +723,14 @@ export default function NewBillScreen() {
         <View className="flex-row items-center justify-between px-7 py-3">
           <Text className="text-base text-muted-foreground">{t.scan_subtotal}</Text>
           <Text className="text-base font-semibold tabular-nums text-foreground">
-            {formatCurrency(bill.items.reduce((sum, i) => sum + i.subtotal, 0), country)}
+            {formatCurrency(bill.items.reduce((total, item) => total + item.subtotal, 0), country)}
           </Text>
         </View>
         <View className="flex-row items-center justify-between px-7 py-3">
           <Text className="text-base text-foreground">{t.scan_taxIva}</Text>
           <Input
             value={formatCurrency(bill.tax, country)}
-            onChangeText={(v) => setBill({ ...bill, tax: parseCurrency(v, country) })}
+            onChangeText={(text) => setBill({ ...bill, tax: parseCurrency(text, country) })}
             className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-base font-semibold tabular-nums shadow-none"
             keyboardType="number-pad"
           />
@@ -727,7 +739,7 @@ export default function NewBillScreen() {
           <Text className="text-base text-foreground">{t.scan_tipPropina}</Text>
           <Input
             value={bill.tip === 0 ? '' : formatCurrency(bill.tip, country)}
-            onChangeText={(v) => setBill({ ...bill, tip: parseCurrency(v, country) })}
+            onChangeText={(text) => setBill({ ...bill, tip: parseCurrency(text, country) })}
             className="h-auto w-32 border-0 bg-transparent px-0 py-0 text-right text-base font-semibold tabular-nums shadow-none"
             placeholder="$0"
             placeholderTextColor={iconColors.mutedLight}

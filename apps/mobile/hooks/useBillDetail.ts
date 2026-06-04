@@ -67,7 +67,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
       const targetItemId = singleAssignItemId ?? (selectedItemIds.size === 1 ? Array.from(selectedItemIds)[0] : null);
       if (!targetItemId) return undefined;
       for (const c of bill.contacts) {
-        if (c.items.some((i) => i.itemId === targetItemId) && c.phone) phones.add(c.phone);
+        if (c.items.some((ref) => ref.itemId === targetItemId) && c.phone) phones.add(c.phone);
       }
     }
 
@@ -81,13 +81,13 @@ export function useBillDetail(id: string, userId: string | undefined) {
     }
     const targetItemId = singleAssignItemId ?? (selectedItemIds.size === 1 ? Array.from(selectedItemIds)[0] : null);
     if (!targetItemId) return false;
-    return bill.contacts.some((c) => c.isSelf && c.items.some((i) => i.itemId === targetItemId));
+    return bill.contacts.some((c) => c.isSelf && c.items.some((ref) => ref.itemId === targetItemId));
   }, [bill, equalSplitMode, singleAssignItemId]);
 
   // ── Derived: bill computations ──
   const billDerived = useMemo(() => {
     if (!bill) return null;
-    const itemsTotal = bill.items.reduce((sum, billItem) => sum + billItem.subtotal, 0);
+    const itemsTotal = bill.items.reduce((runningTotal, billItem) => runningTotal + billItem.subtotal, 0);
     const billCountry = (bill.country as 'CO' | 'US') || 'CO';
     const billCategory = (bill.tags?.find((tag) => tag.isPlatform)?.slug || 'dining') as ReceiptCategory;
     const rawTaxConfig = getTaxConfig(billCountry, billCategory);
@@ -130,30 +130,28 @@ export function useBillDetail(id: string, userId: string | undefined) {
     return true;
   }, [t, alert]);
 
-  const loadContacts = useCallback(() => {
+  const loadContacts = useCallback(async () => {
     const cache = contactsCacheRef.current;
     if (cache && Date.now() - cache.fetchedAt < CONTACTS_CACHE_TTL) {
       setPhoneContacts(cache.data);
       return;
     }
 
-    Contacts.getContactsAsync({
+    const { data } = await Contacts.getContactsAsync({
       fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name],
       sort: Contacts.SortTypes.FirstName,
-    }).then(({ data }) => {
-      const filtered = data.filter((c): c is typeof c & { id: string } => !!c.id);
-      setPhoneContacts(filtered);
-      contactsCacheRef.current = { data: filtered, fetchedAt: Date.now() };
-
-      Contacts.getContactsAsync({
-        fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name, Contacts.Fields.Image],
-        sort: Contacts.SortTypes.FirstName,
-      }).then(({ data: withImages }) => {
-        const enriched = withImages.filter((c): c is typeof c & { id: string } => !!c.id);
-        setPhoneContacts(enriched);
-        contactsCacheRef.current = { data: enriched, fetchedAt: Date.now() };
-      });
     });
+    const filtered = data.filter((c): c is typeof c & { id: string } => !!c.id);
+    setPhoneContacts(filtered);
+    contactsCacheRef.current = { data: filtered, fetchedAt: Date.now() };
+
+    const { data: withImages } = await Contacts.getContactsAsync({
+      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name, Contacts.Fields.Image],
+      sort: Contacts.SortTypes.FirstName,
+    });
+    const enriched = withImages.filter((c): c is typeof c & { id: string } => !!c.id);
+    setPhoneContacts(enriched);
+    contactsCacheRef.current = { data: enriched, fetchedAt: Date.now() };
   }, []);
 
   // ── Callbacks ──
@@ -194,14 +192,39 @@ export function useBillDetail(id: string, userId: string | undefined) {
     return true;
   }, [ensureContactPermission, loadContacts]);
 
+  const resolveContactInfo = useCallback((
+    selectedId: string,
+    bill: NonNullable<typeof billRef.current>,
+    allSuggested: { _id: string; name: string; phone?: string; imageUri?: string }[],
+  ): { name: string; phone?: string; imageUri?: string; isSelf?: boolean } | null => {
+    if (selectedId.startsWith(ANON_PREFIX)) {
+      const anonNum = parseInt(selectedId.slice(ANON_PREFIX.length), 10);
+      const existingAnonCount = bill.contacts.filter((c) => !c.phone && !c.isSelf).length;
+      return { name: t.bill_persona(existingAnonCount + anonNum) };
+    }
+
+    if (selectedId.startsWith(SELF_PREFIX)) {
+      if (!selfContact) return null;
+      return { name: selfContact.name, imageUri: selfContact.imageUri, isSelf: true };
+    }
+
+    if (selectedId.startsWith(SUGGESTED_PREFIX)) {
+      const convexId = selectedId.slice(SUGGESTED_PREFIX.length);
+      const suggested = allSuggested.find((c) => c._id === convexId);
+      if (!suggested) return null;
+      return { name: suggested.name, phone: suggested.phone, imageUri: suggested.imageUri };
+    }
+
+    const contact = phoneContacts.find((c) => c.id === selectedId);
+    if (!contact) return null;
+    const phone = contact.phoneNumbers?.[0]?.number ?? '';
+    const name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
+    return { name, phone, imageUri: contact.image?.uri };
+  }, [phoneContacts, selfContact, t]);
+
   const handleConfirmContactPicker = useCallback(async (selectedItemIds: Set<string>) => {
     if (selectedContactIds.size === 0 || !bill || !userId) return false;
-    let itemIds: string[];
-    if (singleAssignItemId !== null) {
-      itemIds = [singleAssignItemId];
-    } else {
-      itemIds = Array.from(selectedItemIds);
-    }
+    const itemIds = singleAssignItemId !== null ? [singleAssignItemId] : Array.from(selectedItemIds);
     if (itemIds.length === 0) return false;
 
     const allSuggested = [
@@ -211,40 +234,14 @@ export function useBillDetail(id: string, userId: string | undefined) {
 
     try {
       for (const selectedId of selectedContactIds) {
-        let name: string;
-        let phone: string | undefined;
-        let imageUri: string | undefined;
-        let isSelf: boolean | undefined;
-
-        if (selectedId.startsWith(ANON_PREFIX)) {
-          const anonNum = parseInt(selectedId.slice(ANON_PREFIX.length), 10);
-          const existingAnonCount = bill.contacts.filter((c) => !c.phone && !c.isSelf).length;
-          name = t.bill_persona(existingAnonCount + anonNum);
-        } else if (selectedId.startsWith(SELF_PREFIX)) {
-          if (!selfContact) continue;
-          name = selfContact.name;
-          imageUri = selfContact.imageUri;
-          isSelf = true;
-        } else if (selectedId.startsWith(SUGGESTED_PREFIX)) {
-          const convexId = selectedId.slice(SUGGESTED_PREFIX.length);
-          const sc = allSuggested.find((c) => c._id === convexId);
-          if (!sc) continue;
-          name = sc.name;
-          phone = sc.phone;
-          imageUri = sc.imageUri;
-        } else {
-          const contact = phoneContacts.find((c) => c.id === selectedId);
-          if (!contact) continue;
-          phone = contact.phoneNumbers?.[0]?.number ?? '';
-          name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
-          imageUri = contact.image?.uri;
-        }
+        const contactInfo = resolveContactInfo(selectedId, bill, allSuggested);
+        if (!contactInfo) continue;
 
         await assignContactToItems({
           id: id as Id<'bills'>,
           userId,
           itemIds,
-          contact: { name, phone, isSelf, imageUri },
+          contact: contactInfo,
         });
       }
 
@@ -258,7 +255,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
       alert(t.error, t.error_mutationFailed);
       return false;
     }
-  }, [selectedContactIds, singleAssignItemId, phoneContacts, suggestedContacts, selfContact, bill, id, assignContactToItems, t, userId, alert]);
+  }, [selectedContactIds, singleAssignItemId, suggestedContacts, bill, id, assignContactToItems, t, userId, alert, resolveContactInfo]);
 
   const handleBulkDelete = useCallback((selectedItemIds: Set<string>) => {
     if (selectedItemIds.size === 0 || !bill || !userId) return;
@@ -301,8 +298,8 @@ export function useBillDetail(id: string, userId: string | undefined) {
       return;
     }
     if (contactsOnSelected.length === 1) {
-      const c = contactsOnSelected[0];
-      alert(t.bill_removeContact, t.bill_removeFromSelected(c.name), [
+      const contactToRemove = contactsOnSelected[0];
+      alert(t.bill_removeContact, t.bill_removeFromSelected(contactToRemove.name), [
         { text: t.cancel, style: 'cancel' },
         {
           text: t.remove,
@@ -312,7 +309,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
               await removeContactsBatch({
                 id: id as Id<'bills'>, userId,
                 itemIds: selectedIds.filter((itemId): itemId is string => !!itemId),
-                contactIds: [c.contactId],
+                contactIds: [contactToRemove.contactId],
               });
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (err) {
@@ -523,9 +520,9 @@ export function useBillDetail(id: string, userId: string | undefined) {
     }
   }, [bill, userId, id, numPeople, assignEqualSplit, t, alert]);
 
-  const handleNumPeopleChange = useCallback((n: number) => {
+  const handleNumPeopleChange = useCallback((newCount: number) => {
     if (!bill || !userId) return;
-    if (n < numPeople && bill.contacts.length > n) {
+    if (newCount < numPeople && bill.contacts.length > newCount) {
       const contactToRemove = bill.contacts[bill.contacts.length - 1];
       alert(
         t.bill_equalSwitchTitle,
@@ -536,15 +533,15 @@ export function useBillDetail(id: string, userId: string | undefined) {
             text: t.remove,
             style: 'destructive',
             onPress: () => {
-              setNumPeople(n);
-              handleRemoveEqualContact(contactToRemove.contactId, n);
+              setNumPeople(newCount);
+              handleRemoveEqualContact(contactToRemove.contactId, newCount);
             },
           },
         ],
       );
       return;
     }
-    setNumPeople(n);
+    setNumPeople(newCount);
     if (numPeopleDebounceRef.current) clearTimeout(numPeopleDebounceRef.current);
     numPeopleDebounceRef.current = setTimeout(() => {
       if (bill.contacts.length > 0) {
@@ -554,9 +551,9 @@ export function useBillDetail(id: string, userId: string | undefined) {
           isSelf: c.isSelf || undefined,
           imageUri: c.imageUri,
         }));
-        assignEqualSplit({ id: id as Id<'bills'>, userId, numPeople: n, contacts: contactArgs });
+        assignEqualSplit({ id: id as Id<'bills'>, userId, numPeople: newCount, contacts: contactArgs });
       } else {
-        updateBill({ id: id as Id<'bills'>, userId, numPeople: n });
+        updateBill({ id: id as Id<'bills'>, userId, numPeople: newCount });
       }
     }, 500);
   }, [bill, numPeople, t, alert, handleRemoveEqualContact, id, userId, updateBill, assignEqualSplit]);

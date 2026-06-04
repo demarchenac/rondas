@@ -20,7 +20,7 @@ interface GooglePlaceResult {
 
 /** Remove comma-separated segments already contained in a prior segment. */
 function deduplicateAddress(address: string): string {
-  const parts = address.split(',').map((s) => s.trim()).filter(Boolean);
+  const parts = address.split(',').map((segment) => segment.trim()).filter(Boolean);
   const kept: string[] = [];
   for (const part of parts) {
     const lower = part.toLowerCase();
@@ -48,57 +48,70 @@ export async function resolvePlace(
   latitude: number,
   longitude: number
 ): Promise<PlaceResult | null> {
-  // Step 1: Try native reverse geocode
-  try {
-    const [geo] = await Location.reverseGeocodeAsync({ latitude, longitude });
-    if (geo) {
-      const address = deduplicateAddress(
-        [geo.name, geo.street, geo.city, geo.country].filter(Boolean).join(', '),
-      );
-      const city = geo.city ?? undefined;
-      const country = geo.country ?? undefined;
+  const nativeResult = await tryNativeGeocode(latitude, longitude);
+  if (nativeResult) return nativeResult;
 
-      // Check if name looks like a real business (not a street address)
-      const streetPatterns = /^(carrera|calle|avenida|av\.|cra\.|cl\.|transversal|diagonal|autopista|km\s)/i;
-      const isBusinessName = geo.name
-        && geo.name !== geo.street
-        && geo.name !== geo.streetNumber
-        && !/^\d/.test(geo.name)
-        && !streetPatterns.test(geo.name);
-
-      if (isBusinessName) {
-        // Native found a business, but try Google for a better match
-        if (GOOGLE_PLACES_API_KEY) {
-          const gResult = await searchGooglePlaces(geo.name!, city, latitude, longitude);
-          if (gResult) {
-            return { name: gResult.name, address: gResult.address || address, city: gResult.city || city, country: gResult.country || country };
-          }
-        }
-        return { name: geo.name!, address, city, country };
-      }
-
-      // Not a business name — try Google Places
-      if (GOOGLE_PLACES_API_KEY) {
-        const gResult = await searchGooglePlaces(geo.name ?? geo.street ?? '', city, latitude, longitude);
-        if (gResult) {
-          return { name: gResult.name, address: gResult.address || address, city: gResult.city || city, country: gResult.country || country };
-        }
-      }
-
-      return { name: geo.name ?? geo.street ?? 'Unknown', address, city, country };
-    }
-  } catch (err) {
-    console.warn('[Places] reverse geocode failed:', err);
-    Sentry.captureException(err, { tags: { feature: 'places' } });
-  }
-
-  // Step 2: If native fails entirely, try Google directly
+  // Native failed entirely — try Google directly
   if (GOOGLE_PLACES_API_KEY) {
-    const gResult = await searchGooglePlaces('', undefined, latitude, longitude);
-    if (gResult) return gResult;
+    const googleResult = await searchGooglePlaces('', undefined, latitude, longitude);
+    if (googleResult) return googleResult;
   }
 
   return null;
+}
+
+async function tryNativeGeocode(
+  latitude: number,
+  longitude: number
+): Promise<PlaceResult | null> {
+  let geo: Location.LocationGeocodedAddress;
+  try {
+    const [result] = await Location.reverseGeocodeAsync({ latitude, longitude });
+    if (!result) return null;
+    geo = result;
+  } catch (err) {
+    console.warn('[Places] reverse geocode failed:', err);
+    Sentry.captureException(err, { tags: { feature: 'places' } });
+    return null;
+  }
+
+  const address = deduplicateAddress(
+    [geo.name, geo.street, geo.city, geo.country].filter(Boolean).join(', '),
+  );
+  const city = geo.city ?? undefined;
+  const country = geo.country ?? undefined;
+  const isBusinessName = checkIsBusinessName(geo);
+
+  if (isBusinessName && GOOGLE_PLACES_API_KEY) {
+    const googleResult = await searchGooglePlaces(geo.name!, city, latitude, longitude);
+    if (googleResult) {
+      return { name: googleResult.name, address: googleResult.address || address, city: googleResult.city || city, country: googleResult.country || country };
+    }
+  }
+
+  if (isBusinessName) {
+    return { name: geo.name!, address, city, country };
+  }
+
+  if (GOOGLE_PLACES_API_KEY) {
+    const googleResult = await searchGooglePlaces(geo.name ?? geo.street ?? '', city, latitude, longitude);
+    if (googleResult) {
+      return { name: googleResult.name, address: googleResult.address || address, city: googleResult.city || city, country: googleResult.country || country };
+    }
+  }
+
+  return { name: geo.name ?? geo.street ?? 'Unknown', address, city, country };
+}
+
+function checkIsBusinessName(geo: Location.LocationGeocodedAddress): boolean {
+  const streetPatterns = /^(carrera|calle|avenida|av\.|cra\.|cl\.|transversal|diagonal|autopista|km\s)/i;
+  return Boolean(
+    geo.name
+    && geo.name !== geo.street
+    && geo.name !== geo.streetNumber
+    && !/^\d/.test(geo.name)
+    && !streetPatterns.test(geo.name),
+  );
 }
 
 async function searchGooglePlaces(
@@ -179,8 +192,8 @@ async function googleTextSearch(
 
 function parseGooglePlace(place: GooglePlaceResult): PlaceResult {
   const components = place.address_components ?? [];
-  const city = components.find((c) => c.types?.includes('locality'))?.long_name;
-  const country = components.find((c) => c.types?.includes('country'))?.long_name;
+  const city = components.find((component) => component.types?.includes('locality'))?.long_name;
+  const country = components.find((component) => component.types?.includes('country'))?.long_name;
 
   return {
     name: place.name,

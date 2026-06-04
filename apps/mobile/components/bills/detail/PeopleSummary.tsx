@@ -46,7 +46,7 @@ interface PeopleSummaryProps {
 }
 
 function generateGroupName(members: ResolvedContact[], t: Translations): string {
-  const names = members.map((m) => m.isSelf ? t.self_label(m.name) : m.name);
+  const names = members.map((member) => member.isSelf ? t.self_label(member.name) : member.name);
   if (names.length <= 2) return names.join(', ');
   return `${names[0]}, ${names[1]} +${names.length - 2}`;
 }
@@ -67,7 +67,7 @@ function PeopleSummary({
   onToggleGroupPaid,
 }: PeopleSummaryProps) {
   const { unlocked, showPaywall } = useProGate();
-  const paidCount = contacts.filter((c) => c.paid).length;
+  const paidCount = contacts.filter((contact) => contact.paid).length;
   const allPaid = paidCount === contacts.length;
 
   const isEqualSplit = splitStrategy === 'equal';
@@ -80,30 +80,30 @@ function PeopleSummary({
 
   const groupedContactIds = useMemo(() => {
     const ids = new Set<string>();
-    for (const g of contactGroups) {
-      for (const cid of g.contactIds) ids.add(String(cid));
+    for (const group of contactGroups) {
+      for (const cid of group.contactIds) ids.add(String(cid));
     }
     return ids;
   }, [contactGroups]);
 
   const contactTotals = useMemo(() => {
-    const positiveTotal = billItems.reduce((sum, i) => sum + Math.max(0, i.subtotal), 0);
-    const discountTotal = billItems.reduce((sum, i) => sum + Math.min(0, i.subtotal), 0);
-    return contacts.map((c) => ({
-      ...c,
-      total: isEqualSplit ? c.amount : computeContactTotal(c, billItems, contacts, taxConfig, tipPercent, positiveTotal, discountTotal),
+    const positiveTotal = billItems.reduce((sum, item) => sum + Math.max(0, item.subtotal), 0);
+    const discountTotal = billItems.reduce((sum, item) => sum + Math.min(0, item.subtotal), 0);
+    return contacts.map((contact) => ({
+      ...contact,
+      total: isEqualSplit ? contact.amount : computeContactTotal(contact, billItems, contacts, taxConfig, tipPercent, positiveTotal, discountTotal),
     }));
   }, [contacts, billItems, taxConfig, tipPercent, isEqualSplit]);
 
   const contactTotalMap = useMemo(() => {
     const map = new Map<string, typeof contactTotals[0]>();
-    for (const c of contactTotals) map.set(String(c.contactId), c);
+    for (const contact of contactTotals) map.set(String(contact.contactId), contact);
     return map;
   }, [contactTotals]);
 
   const ungroupedContacts = useMemo(() => {
     return contactTotals
-      .filter((c) => !groupedContactIds.has(String(c.contactId)))
+      .filter((contact) => !groupedContactIds.has(String(contact.contactId)))
       .sort((a, b) => {
         if (a.paid !== b.paid) return a.paid ? 1 : -1;
         if (a.isSelf) return -1;
@@ -113,15 +113,15 @@ function PeopleSummary({
   }, [contactTotals, groupedContactIds]);
 
   const groupData = useMemo(() => {
-    return contactGroups.map((g, i) => {
-      const members = g.contactIds
+    return contactGroups.map((group, index) => {
+      const members = group.contactIds
         .map((cid) => contactTotalMap.get(String(cid)))
-        .filter((m): m is NonNullable<typeof m> => m != null);
-      const total = members.reduce((sum, m) => sum + m.total, 0);
-      const allMembersPaid = members.length > 0 && members.every((m) => m.paid);
-      const tint = GROUP_TINTS[i % GROUP_TINTS.length];
-      return { ...g, members, total, allMembersPaid, tint };
-    }).filter((g) => g.members.length >= 2);
+        .filter((member): member is NonNullable<typeof member> => member != null);
+      const total = members.reduce((sum, member) => sum + member.total, 0);
+      const allMembersPaid = members.length > 0 && members.every((member) => member.paid);
+      const tint = GROUP_TINTS[index % GROUP_TINTS.length];
+      return { ...group, members, total, allMembersPaid, tint };
+    }).filter((group) => group.members.length >= 2);
   }, [contactGroups, contactTotalMap]);
 
   const handleToggle = useCallback((contactId: Id<'contacts'>) => {
@@ -155,7 +155,7 @@ function PeopleSummary({
   }, []);
 
   const handleExpandGroup = useCallback((groupId: string) => {
-    const group = contactGroups.find((g) => g.id === groupId);
+    const group = contactGroups.find((grp) => grp.id === groupId);
     if (!group) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setExpandedGroupIds((prev) => {
@@ -197,9 +197,10 @@ function PeopleSummary({
     const expandedGroupIdList = Array.from(expandedGroupIds);
     const isEditing = expandedGroupIdList.length > 0;
 
+    if (selectedIds.length < 2 && !isEditing) return;
+
     if (selectedIds.length < 2) {
-      if (!isEditing) return;
-      const updatedGroups = contactGroups.filter((g) => !expandedGroupIdList.includes(g.id));
+      const updatedGroups = contactGroups.filter((grp) => !expandedGroupIdList.includes(grp.id));
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onUpdateGroups(updatedGroups);
       cancelSelectMode();
@@ -208,19 +209,18 @@ function PeopleSummary({
 
     const members = selectedIds
       .map((id) => contactTotalMap.get(String(id)))
-      .filter((m): m is NonNullable<typeof m> => m != null);
+      .filter((member): member is NonNullable<typeof member> => member != null);
 
-    let updatedGroups = contactGroups.filter((g) => !expandedGroupIdList.includes(g.id));
+    const remainingGroups = contactGroups.filter((grp) => !expandedGroupIdList.includes(grp.id));
 
     const newGroup: ContactGroup = {
       id: randomUUID(),
       contactIds: selectedIds,
       name: generateGroupName(members, t),
     };
-    updatedGroups = [...updatedGroups, newGroup];
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    onUpdateGroups(updatedGroups);
+    onUpdateGroups([...remainingGroups, newGroup]);
     cancelSelectMode();
   }, [selectedForGroup, expandedGroupIds, contactGroups, contactTotalMap, t, onUpdateGroups, cancelSelectMode]);
 
@@ -234,8 +234,8 @@ function PeopleSummary({
       setEditingNameGroupId(null);
       return;
     }
-    const updated = contactGroups.map((g) =>
-      g.id === editingNameGroupId ? { ...g, name: editingNameValue.trim() } : g,
+    const updated = contactGroups.map((group) =>
+      group.id === editingNameGroupId ? { ...group, name: editingNameValue.trim() } : group,
     );
     onUpdateGroups(updated);
     setEditingNameGroupId(null);
@@ -245,15 +245,15 @@ function PeopleSummary({
     if (!groupSelectMode) return [];
     const expandedIds = new Set<string>();
     for (const gid of expandedGroupIds) {
-      const group = contactGroups.find((g) => g.id === gid);
+      const group = contactGroups.find((grp) => grp.id === gid);
       if (group) for (const cid of group.contactIds) expandedIds.add(String(cid));
     }
     const nonExpandedGroupIds = new Set(
-      contactGroups.filter((g) => !expandedGroupIds.has(g.id)).flatMap((g) => g.contactIds.map(String)),
+      contactGroups.filter((grp) => !expandedGroupIds.has(grp.id)).flatMap((grp) => grp.contactIds.map(String)),
     );
 
     return contactTotals
-      .filter((c) => !nonExpandedGroupIds.has(String(c.contactId)))
+      .filter((contact) => !nonExpandedGroupIds.has(String(contact.contactId)))
       .sort((a, b) => {
         if (a.isSelf) return -1;
         if (b.isSelf) return 1;
@@ -263,7 +263,7 @@ function PeopleSummary({
 
   const nonExpandedGroups = useMemo(() => {
     if (!groupSelectMode) return [];
-    return groupData.filter((g) => !expandedGroupIds.has(g.id));
+    return groupData.filter((group) => !expandedGroupIds.has(group.id));
   }, [groupSelectMode, groupData, expandedGroupIds]);
 
   return (
@@ -313,71 +313,71 @@ function PeopleSummary({
           showsHorizontalScrollIndicator={false}
           contentContainerClassName="gap-2 px-7 pb-2"
         >
-          {ungroupedContacts.map((c) => (
-            <Animated.View key={String(c.contactId)} layout={LinearTransition}>
+          {ungroupedContacts.map((contact) => (
+            <Animated.View key={String(contact.contactId)} layout={LinearTransition}>
               <Pressable
-                onPress={() => handleToggle(c.contactId)}
+                onPress={() => handleToggle(contact.contactId)}
                 className={cn(
                   'w-[160px] rounded-xl border-l-[3px] bg-card px-3.5 py-3 active:opacity-80',
-                  c.paid ? 'border-l-emerald-500' : 'border-l-amber-500',
+                  contact.paid ? 'border-l-emerald-500' : 'border-l-amber-500',
                 )}
               >
                 <View className="flex-row items-center gap-2.5">
                   <View className="rounded-full border-2 border-card">
-                    <Avatar name={c.name} imageUri={c.imageUri} size="sm" />
+                    <Avatar name={contact.name} imageUri={contact.imageUri} size="sm" />
                   </View>
                   <Text className="flex-1 text-sm font-semibold text-foreground" numberOfLines={1}>
-                    {c.isSelf ? t.self_label(c.name) : c.name}
+                    {contact.isSelf ? t.self_label(contact.name) : contact.name}
                   </Text>
                 </View>
                 <View className="mt-2 flex-row items-center justify-between">
                   <Text className="text-sm font-bold tabular-nums text-foreground">
-                    {formatCurrency(c.total, billCountry, decimalPlaces)}
+                    {formatCurrency(contact.total, billCountry, decimalPlaces)}
                   </Text>
                   <IconSymbol
-                    name={c.paid ? 'checkmark.circle.fill' : 'circle'}
+                    name={contact.paid ? 'checkmark.circle.fill' : 'circle'}
                     size={16}
-                    color={c.paid ? '#10b981' : iconColors.mutedLight}
+                    color={contact.paid ? '#10b981' : iconColors.mutedLight}
                   />
                 </View>
               </Pressable>
             </Animated.View>
           ))}
 
-          {groupData.map((g) => (
-            <Animated.View key={g.id} layout={LinearTransition}>
+          {groupData.map((group) => (
+            <Animated.View key={group.id} layout={LinearTransition}>
               <Pressable
-                onPress={() => handleGroupToggle(g.id)}
+                onPress={() => handleGroupToggle(group.id)}
                 className={cn(
                   'w-[160px] rounded-xl border-l-[3px] px-3.5 py-3 active:opacity-80',
-                  g.tint.bg,
-                  g.allMembersPaid ? 'border-l-emerald-500' : 'border-l-amber-500',
+                  group.tint.bg,
+                  group.allMembersPaid ? 'border-l-emerald-500' : 'border-l-amber-500',
                 )}
               >
                 <View className="flex-row items-center gap-2.5">
                   <View className="flex-row">
-                    {g.members.slice(0, 3).map((m, i) => (
+                    {group.members.slice(0, 3).map((member, idx) => (
                       <View
-                        key={String(m.contactId)}
-                        style={{ marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }}
+                        key={String(member.contactId)}
+                        style={{ marginLeft: idx > 0 ? -8 : 0, zIndex: 3 - idx }}
                         className="rounded-full border-2 border-card"
                       >
-                        <Avatar name={m.name} imageUri={m.imageUri} size="sm" />
+                        <Avatar name={member.name} imageUri={member.imageUri} size="sm" />
                       </View>
                     ))}
-                    {g.members.length > 3 && (
+                    {group.members.length > 3 && (
                       <View
                         style={{ marginLeft: -8, zIndex: 0 }}
                         className="h-6 w-6 items-center justify-center rounded-full border-2 border-card bg-muted"
                       >
                         <Text className="text-[10px] font-bold text-muted-foreground">
-                          +{g.members.length - 3}
+                          +{group.members.length - 3}
                         </Text>
                       </View>
                     )}
                   </View>
                   <View className="flex-1">
-                    {editingNameGroupId === g.id ? (
+                    {editingNameGroupId === group.id ? (
                       <TextInput
                         value={editingNameValue}
                         onChangeText={setEditingNameValue}
@@ -388,9 +388,9 @@ function PeopleSummary({
                         returnKeyType="done"
                       />
                     ) : (
-                      <Pressable onPress={() => handleNameEdit(g.id, g.name)}>
+                      <Pressable onPress={() => handleNameEdit(group.id, group.name)}>
                         <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
-                          {g.name}
+                          {group.name}
                         </Text>
                       </Pressable>
                     )}
@@ -398,12 +398,12 @@ function PeopleSummary({
                 </View>
                 <View className="mt-2 flex-row items-center justify-between">
                   <Text className="text-sm font-bold tabular-nums text-foreground">
-                    {formatCurrency(g.total, billCountry, decimalPlaces)}
+                    {formatCurrency(group.total, billCountry, decimalPlaces)}
                   </Text>
                   <IconSymbol
-                    name={g.allMembersPaid ? 'checkmark.circle.fill' : 'circle'}
+                    name={group.allMembersPaid ? 'checkmark.circle.fill' : 'circle'}
                     size={16}
-                    color={g.allMembersPaid ? '#10b981' : iconColors.mutedLight}
+                    color={group.allMembersPaid ? '#10b981' : iconColors.mutedLight}
                   />
                 </View>
               </Pressable>
@@ -421,30 +421,30 @@ function PeopleSummary({
             contentContainerClassName="gap-2 px-7 pb-2"
           >
             {/* Non-expanded group pills (tappable to expand) */}
-            {nonExpandedGroups.map((g) => (
-              <Animated.View key={g.id} layout={LinearTransition}>
+            {nonExpandedGroups.map((group) => (
+              <Animated.View key={group.id} layout={LinearTransition}>
                 <Pressable
-                  onPress={() => handleExpandGroup(g.id)}
+                  onPress={() => handleExpandGroup(group.id)}
                   className={cn(
                     'w-[160px] rounded-xl border-l-[3px] px-3.5 py-3 active:opacity-80',
-                    g.tint.bg,
-                    g.tint.border,
+                    group.tint.bg,
+                    group.tint.border,
                   )}
                 >
                   <View className="flex-row items-center gap-2.5">
                     <View className="flex-row">
-                      {g.members.slice(0, 2).map((m, i) => (
+                      {group.members.slice(0, 2).map((member, idx) => (
                         <View
-                          key={String(m.contactId)}
-                          style={{ marginLeft: i > 0 ? -8 : 0, zIndex: 2 - i }}
+                          key={String(member.contactId)}
+                          style={{ marginLeft: idx > 0 ? -8 : 0, zIndex: 2 - idx }}
                           className="rounded-full border-2 border-card"
                         >
-                          <Avatar name={m.name} imageUri={m.imageUri} size="sm" />
+                          <Avatar name={member.name} imageUri={member.imageUri} size="sm" />
                         </View>
                       ))}
                     </View>
                     <Text className="flex-1 text-sm font-semibold text-foreground" numberOfLines={1}>
-                      {g.name}
+                      {group.name}
                     </Text>
                   </View>
                   <Text className="mt-2 text-xs text-muted-foreground">{t.a11y_tapToEdit}</Text>
@@ -453,12 +453,12 @@ function PeopleSummary({
             ))}
 
             {/* Individual pills (ungrouped + expanded group members) */}
-            {pillsInSelectMode.map((c) => {
-              const isSelected = selectedForGroup.has(String(c.contactId));
+            {pillsInSelectMode.map((contact) => {
+              const isSelected = selectedForGroup.has(String(contact.contactId));
               return (
-                <Animated.View key={String(c.contactId)} layout={LinearTransition}>
+                <Animated.View key={String(contact.contactId)} layout={LinearTransition}>
                   <Pressable
-                    onPress={() => toggleSelection(String(c.contactId))}
+                    onPress={() => toggleSelection(String(contact.contactId))}
                     className={cn(
                       'w-[160px] rounded-xl border-l-[3px] bg-card px-3.5 py-3 active:opacity-80',
                       isSelected ? 'border-l-primary' : 'border-l-muted',
@@ -466,10 +466,10 @@ function PeopleSummary({
                   >
                     <View className="flex-row items-center gap-2.5">
                       <View className="rounded-full border-2 border-card">
-                        <Avatar name={c.name} imageUri={c.imageUri} size="sm" />
+                        <Avatar name={contact.name} imageUri={contact.imageUri} size="sm" />
                       </View>
                       <Text className="flex-1 text-sm font-semibold text-foreground" numberOfLines={1}>
-                        {c.isSelf ? t.self_label(c.name) : c.name}
+                        {contact.isSelf ? t.self_label(contact.name) : contact.name}
                       </Text>
                       <Animated.View entering={FadeIn.duration(200)}>
                         <IconSymbol
@@ -481,7 +481,7 @@ function PeopleSummary({
                     </View>
                     <View className="mt-2">
                       <Text className="text-sm font-bold tabular-nums text-foreground">
-                        {formatCurrency(c.total, billCountry, decimalPlaces)}
+                        {formatCurrency(contact.total, billCountry, decimalPlaces)}
                       </Text>
                     </View>
                   </Pressable>

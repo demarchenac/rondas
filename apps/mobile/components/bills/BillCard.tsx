@@ -207,7 +207,7 @@ function CardContent({
   isIOS: boolean;
   useGlass?: boolean;
 }) {
-  const platformTag = bill.tags?.find((t) => t.isPlatform);
+  const platformTag = bill.tags?.find((tag) => tag.isPlatform);
   const categorySlug = platformTag?.slug;
   const categoryIcon = categorySlug ? CATEGORY_ICONS[categorySlug] : null;
   const billCountry = (bill.country as 'CO' | 'US') || 'CO';
@@ -262,13 +262,13 @@ function CardContent({
               </Text>
             )}
             <View className="flex-row items-center">
-              {bill.contacts.slice(0, 3).map((c, i) => (
+              {bill.contacts.slice(0, 3).map((contact, idx) => (
                 <Avatar
-                  key={c.contactId}
-                  name={c.name}
-                  imageUri={c.imageUri}
+                  key={contact.contactId}
+                  name={contact.name}
+                  imageUri={contact.imageUri}
                   size="xs"
-                  className={cn('border-2 border-card', i > 0 && '-ml-2')}
+                  className={cn('border-2 border-card', idx > 0 && '-ml-2')}
                   bgClassName={useGlass ? stateStyle.dotClass : stateStyle.bgClass}
                   textClassName={useGlass ? 'text-white' : stateStyle.textClass}
                 />
@@ -481,6 +481,21 @@ function BillCardAndroid({
   );
 }
 
+// --- Helpers ---
+
+function computeDisplayTotal(bill: Bill): number {
+  const billCountry = (bill.country as 'CO' | 'US') || 'CO';
+  const billCategory = (bill.tags?.find((tag) => tag.isPlatform)?.slug as 'dining' | 'retail' | 'service') || 'dining';
+  const rawTaxConfig = getTaxConfig(billCountry, billCategory);
+  const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill.taxIncludedOverride ?? undefined);
+  const itemsTotal = bill.items.reduce((sum, item) => sum + item.subtotal, 0);
+  const base = computeBase(itemsTotal, taxConfig);
+  const computedTax = computeTax(itemsTotal, taxConfig);
+  const tipPercent = bill.tipPercent ?? 0;
+  const computedTip = bill.useCustomTip ? (bill.tip ?? 0) : base * (tipPercent / 100);
+  return base + computedTax + computedTip;
+}
+
 // --- Main component ---
 
 function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
@@ -496,29 +511,15 @@ function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
   // Use denormalized fields from Convex when available, fallback to client computation
   const itemCount = bill.totalItemCount ?? bill.items.length;
   const contactCount = bill.totalContactCount ?? bill.contacts.length;
-  const paidCount = bill.paidContactCount ?? bill.contacts.filter((c) => c.paid).length;
+  const paidCount = bill.paidContactCount ?? bill.contacts.filter((contact) => contact.paid).length;
   const assignedItems = bill.assignedItemCount ??
     (bill.state !== 'unsplit' && bill.state !== 'draft'
-      ? new Set(bill.contacts.flatMap((c) => c.items.map((i) => i.itemId))).size
+      ? new Set(bill.contacts.flatMap((contact) => contact.items.map((item) => item.itemId))).size
       : 0);
   const progress = bill.progress ?? (itemCount > 0 ? assignedItems / itemCount : 0);
 
   // displayTotal: prefer denormalized, fallback to client tax computation
-  let displayTotal: number;
-  if (bill.displayTotal != null) {
-    displayTotal = bill.displayTotal;
-  } else {
-    const billCountry = (bill.country as 'CO' | 'US') || 'CO';
-    const billCategory = (bill.tags?.find((t) => t.isPlatform)?.slug as 'dining' | 'retail' | 'service') || 'dining';
-    const rawTaxConfig = getTaxConfig(billCountry, billCategory);
-    const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill.taxIncludedOverride ?? undefined);
-    const itemsTotal = bill.items.reduce((sum, i) => sum + i.subtotal, 0);
-    const base = computeBase(itemsTotal, taxConfig);
-    const computedTax = computeTax(itemsTotal, taxConfig);
-    const tipPercent = bill.tipPercent ?? 0;
-    const computedTip = bill.useCustomTip ? (bill.tip ?? 0) : base * (tipPercent / 100);
-    displayTotal = base + computedTax + computedTip;
-  }
+  const displayTotal = bill.displayTotal ?? computeDisplayTotal(bill);
 
   const shared = {
     bill,

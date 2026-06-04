@@ -399,7 +399,7 @@ export default function BillDetailScreen() {
             {/* Items */}
             {sortedItems.map((item, index) => {
               const itemId = item.id!;
-              const assignedContacts = bill.contacts.filter((c) => c.items.some((i) => i.itemId === itemId));
+              const assignedContacts = bill.contacts.filter((contact) => contact.items.some((itemRef) => itemRef.itemId === itemId));
               return (
                 <Animated.View
                   key={item.id ?? `legacy-${index}`}
@@ -522,7 +522,7 @@ export default function BillDetailScreen() {
         {multiSelectMode && selectedItemIds.size > 0 && (
           <BulkToolbar
             selectedItemIds={selectedItemIds}
-            hasContactsOnSelection={bill.contacts.some((c) => c.items.some((ref) => selectedItemIds.has(ref.itemId)))}
+            hasContactsOnSelection={bill.contacts.some((contact) => contact.items.some((ref) => selectedItemIds.has(ref.itemId)))}
             onAssign={onMultiAssign}
             onUnassign={onBulkRemoveContact}
             onDelete={onBulkDelete}
@@ -553,7 +553,7 @@ export default function BillDetailScreen() {
         phoneContacts={phoneContacts}
         suggestedContacts={suggestedContacts ?? undefined}
         selfContact={selfContact}
-        billContacts={bill.contacts.filter((c) => !c.isSelf).map((c) => ({ _id: c.contactId, _creationTime: 0, userId: userId!, name: c.name, phone: c.phone, imageUri: c.imageUri, referenceCount: 0, lastReferencedAt: 0 }))}
+        billContacts={bill.contacts.filter((contact) => !contact.isSelf).map((contact) => ({ _id: contact.contactId, _creationTime: 0, userId: userId!, name: contact.name, phone: contact.phone, imageUri: contact.imageUri, referenceCount: 0, lastReferencedAt: 0 }))}
         selectedContactIds={selectedContactIds}
         excludePhones={excludePhones}
         excludeSelf={excludeSelf}
@@ -578,10 +578,10 @@ export default function BillDetailScreen() {
       )}
 
       {unitSheetTarget && bill && (() => {
-        const targetItem = bill.items.find((i) => i.id === unitSheetTarget.itemId);
-        const targetContact = bill.contacts.find((c) => c.contactId === unitSheetTarget.contactId);
+        const targetItem = bill.items.find((item) => item.id === unitSheetTarget.itemId);
+        const targetContact = bill.contacts.find((contact) => contact.contactId === unitSheetTarget.contactId);
         if (!targetItem || !targetContact) return null;
-        const ref = targetContact.items.find((i) => i.itemId === unitSheetTarget.itemId);
+        const ref = targetContact.items.find((itemRef) => itemRef.itemId === unitSheetTarget.itemId);
         if (!ref) return null;
         return (
           <ContactUnitSheet
