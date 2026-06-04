@@ -189,7 +189,7 @@ function CardContent({
   t,
   locked,
   isIOS,
-  useGlass = false,
+  shouldUseGlass = false,
 }: {
   bill: Bill;
   stateStyle: (typeof STATE_STYLES)[BillState];
@@ -205,7 +205,7 @@ function CardContent({
   t: Translations;
   locked: boolean;
   isIOS: boolean;
-  useGlass?: boolean;
+  shouldUseGlass?: boolean;
 }) {
   const platformTag = bill.tags?.find((tag) => tag.isPlatform);
   const categorySlug = platformTag?.slug;
@@ -269,8 +269,8 @@ function CardContent({
                   imageUri={contact.imageUri}
                   size="xs"
                   className={cn('border-2 border-card', idx > 0 && '-ml-2')}
-                  bgClassName={useGlass ? stateStyle.dotClass : stateStyle.bgClass}
-                  textClassName={useGlass ? 'text-white' : stateStyle.textClass}
+                  bgClassName={shouldUseGlass ? stateStyle.dotClass : stateStyle.bgClass}
+                  textClassName={shouldUseGlass ? 'text-white' : stateStyle.textClass}
                 />
               ))}
               {contactCount > 3 && (
@@ -338,8 +338,8 @@ function BillCardIOS({
     setCardHeight(e.nativeEvent.layout.height);
   }, []);
 
-  const { glassAvailable, isGlassReady, useGlass: glassEnabled } = useGlassEffect();
-  const useGlass = glassEnabled && !isDraft;
+  const { glassAvailable, isGlassReady, shouldUseGlass: glassEnabled } = useGlassEffect();
+  const shouldUseGlass = glassEnabled && !isDraft;
 
   if (glassAvailable && !isGlassReady && !isDraft) {
     return (
@@ -352,7 +352,7 @@ function BillCardIOS({
   return (
     <Pressable onPress={onPress} style={{ opacity: locked ? 0.5 : 1 }}>
       <View style={{ marginBottom: 10 }}>
-        {useGlass ? (
+        {shouldUseGlass ? (
           <GlassView
             onLayout={onCardLayout}
             glassEffectStyle="regular"
@@ -376,7 +376,7 @@ function BillCardIOS({
               t={t}
               locked={locked}
               isIOS
-              useGlass
+              shouldUseGlass
             />
           </GlassView>
         ) : (

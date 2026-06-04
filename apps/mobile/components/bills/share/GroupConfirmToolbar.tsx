@@ -8,13 +8,13 @@ import type { IconPalette } from '@/constants/colors';
 export interface GroupConfirmToolbarProps {
   selectedCount: number;
   isEditing: boolean;
-  useGlass: boolean;
+  shouldUseGlass: boolean;
   iconColors: IconPalette;
   t: Translations;
   onConfirm: () => void;
 }
 
-function GroupConfirmToolbar({ selectedCount, isEditing, useGlass, iconColors, t, onConfirm }: GroupConfirmToolbarProps) {
+function GroupConfirmToolbar({ selectedCount, isEditing, shouldUseGlass, iconColors, t, onConfirm }: GroupConfirmToolbarProps) {
   const canGroup = selectedCount >= 2;
   const showUngroup = isEditing && !canGroup;
 
@@ -40,7 +40,7 @@ function GroupConfirmToolbar({ selectedCount, isEditing, useGlass, iconColors, t
     bgClass = 'items-center rounded-xl bg-muted py-3.5';
   }
 
-  const showGlass = useGlass && (showUngroup || canGroup);
+  const showGlass = shouldUseGlass && (showUngroup || canGroup);
 
   return (
     <View className="px-7 pb-4">

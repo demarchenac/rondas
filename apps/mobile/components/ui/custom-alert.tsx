@@ -80,12 +80,12 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  const dismissAlert = useCallback(() => {
+  const handleDismissAlert = useCallback(() => {
     setAlertConfig(null);
     callbacksRef.current = [];
   }, []);
 
-  const dismissSheet = useCallback(() => {
+  const handleDismissSheet = useCallback(() => {
     setSheetConfig(null);
     sheetCallbackRef.current = null;
   }, []);
@@ -93,16 +93,16 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
   const handleAlertButton = useCallback((btn: AlertButton) => {
     const style = btn.style === 'destructive' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light;
     Haptics.impactAsync(style);
-    dismissAlert();
+    handleDismissAlert();
     btn.onPress?.();
-  }, [dismissAlert]);
+  }, [handleDismissAlert]);
 
   const handleSheetOption = useCallback((index: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const cb = sheetCallbackRef.current;
-    dismissSheet();
+    handleDismissSheet();
     cb?.(index);
-  }, [dismissSheet]);
+  }, [handleDismissSheet]);
 
   return (
     <CustomAlertContext.Provider value={{ alert, actionSheet }}>
@@ -110,8 +110,8 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
 
       {/* Alert Modal (Android only) */}
       {alertConfig && (
-        <Modal visible transparent animationType="fade" onRequestClose={dismissAlert}>
-          <TouchableWithoutFeedback onPress={dismissAlert}>
+        <Modal visible transparent animationType="fade" onRequestClose={handleDismissAlert}>
+          <TouchableWithoutFeedback onPress={handleDismissAlert}>
             <View className="flex-1 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
               <TouchableWithoutFeedback>
                 <View className="mx-8 w-80 rounded-2xl border border-border bg-card p-6">
@@ -171,8 +171,8 @@ export function CustomAlertProvider({ children }: { children: React.ReactNode })
 
       {/* Action Sheet Modal (Android only) */}
       {sheetConfig && (
-        <Modal visible transparent animationType="fade" onRequestClose={dismissSheet}>
-          <TouchableWithoutFeedback onPress={dismissSheet}>
+        <Modal visible transparent animationType="fade" onRequestClose={handleDismissSheet}>
+          <TouchableWithoutFeedback onPress={handleDismissSheet}>
             <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
               <TouchableWithoutFeedback>
                 <View className="mx-4 mb-4 rounded-2xl border border-border bg-card overflow-hidden">

@@ -29,7 +29,7 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
-  const useGlass = isGlassEffectAPIAvailable();
+  const shouldUseGlass = isGlassEffectAPIAvailable();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const imageWidth = screenWidth - 64;
   const translateY = useSharedValue(0);
@@ -92,7 +92,7 @@ function InfographicPreview({ uri, imageAspect, visible, onShare, onClose }: Inf
 
           <View className="px-6 pt-3">
             <Pressable onPress={onShare} accessibilityLabel={t.share_share} className="active:opacity-80">
-              {useGlass ? (
+              {shouldUseGlass ? (
                 <GlassView isInteractive tintColor={iconColors.primary + '0D'} style={{ borderRadius: 16, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
                   <Text className="text-lg font-bold text-primary">{t.share_share}</Text>
                 </GlassView>

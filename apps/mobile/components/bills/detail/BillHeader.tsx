@@ -79,7 +79,7 @@ function BillHeader({
 }: BillHeaderProps) {
   const nameInput = useBufferedInput(billName, onUpdateName);
   const { alert, actionSheet } = useCustomAlert();
-  const { glassAvailable, isGlassReady, useGlass } = useGlassEffect();
+  const { glassAvailable, isGlassReady, shouldUseGlass } = useGlassEffect();
 
   const stateStyle = STATE_STYLES[state];
 
@@ -128,7 +128,7 @@ function BillHeader({
     );
   };
 
-  const backButton = useGlass ? (
+  const backButton = shouldUseGlass ? (
     <Pressable onPress={onBack} className="active:opacity-80">
       <GlassView isInteractive style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}>
           <IconSymbol name="chevron.left" size={18} color={iconColors.primary} />
@@ -141,7 +141,7 @@ function BillHeader({
   );
 
   const percentChip = hasContacts && !isMultiSelectMode ? (
-    useGlass ? (
+    shouldUseGlass ? (
       <GlassView style={{ borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 }}>
           <Text className={`text-sm font-semibold ${stateTextClass}`}>
             {Math.round(completionPercent)}%
@@ -155,7 +155,7 @@ function BillHeader({
   ) : null;
 
   const statusBadge = !isMultiSelectMode ? (
-    useGlass ? (
+    shouldUseGlass ? (
       <GlassView style={{ borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateStyle.color }} />
           <Text style={{ fontSize: 13, fontWeight: '600', color: stateStyle.color }}>
@@ -169,7 +169,7 @@ function BillHeader({
 
   const overflowButton = isMultiSelectMode ? (
     <Pressable onPress={onDoneEdit} className="active:opacity-80">
-      {useGlass ? (
+      {shouldUseGlass ? (
         <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 18, paddingHorizontal: 14, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}>
           <Text className="text-sm font-semibold text-primary">{t.done}</Text>
         </GlassView>
@@ -179,7 +179,7 @@ function BillHeader({
         </View>
       )}
     </Pressable>
-  ) : useGlass ? (
+  ) : shouldUseGlass ? (
     <Pressable onPress={handleOverflowPress} className="active:opacity-80">
       <GlassView isInteractive style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}>
           <IconSymbol name="ellipsis" size={16} color={iconColors.muted} />
@@ -218,7 +218,7 @@ function BillHeader({
       </View>
       {/* Progress bar */}
       {hasContacts && !isMultiSelectMode && (
-        useGlass ? (
+        shouldUseGlass ? (
           <GlassView style={{ borderRadius: 4, height: 6, overflow: 'hidden', marginTop: 10 }}>
             <ProgressBar paidPercent={paidPercent} unpaidPercent={unpaidPercent} height={6} radius={4} style={{ backgroundColor: 'transparent' }} />
           </GlassView>

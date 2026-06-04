@@ -59,7 +59,7 @@ function ContactPickerSheet({
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
-  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
+  const shouldUseGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
   const sheetRef = useRef<TrueSheet>(null);
 
   useEffect(() => {
@@ -312,7 +312,7 @@ function ContactPickerSheet({
           <Text className="pt-7 pb-3 text-2xl font-bold text-foreground">{t.contactPicker_title}</Text>
 
           {/* Glass search input */}
-          {useGlass ? (
+          {shouldUseGlass ? (
             <GlassView tintColor={iconColors.primary + '0D'} style={{ borderRadius: 12, marginBottom: 8 }}>
               <TextInput
                 value={search}
@@ -339,7 +339,7 @@ function ContactPickerSheet({
             style={{ backgroundColor: 'transparent', opacity: atCapacity ? 0.4 : 1, alignSelf: 'flex-start' }}
             className="active:opacity-80"
           >
-            {useGlass ? (
+            {shouldUseGlass ? (
               <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <IconSymbol name="person.badge.plus" size={18} color={iconColors.primary} />
                 <Text className="text-base font-medium text-primary">{t.contactPicker_addAnonymous}</Text>
@@ -393,7 +393,7 @@ function ContactPickerSheet({
               style={{ backgroundColor: 'transparent' }}
               className="active:opacity-80"
             >
-              {useGlass ? (
+              {shouldUseGlass ? (
                 <GlassView isInteractive tintColor={iconColors.primary + '0D'} style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}>
                   <Text className="text-lg font-bold text-primary">
                     {t.contactPicker_assign(selectedContactIds.size)}

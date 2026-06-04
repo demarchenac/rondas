@@ -20,7 +20,7 @@ function BulkToolbar({ selectedItemIds, hasContactsOnSelection, onAssign, onUnas
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
 
-  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
+  const shouldUseGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
 
   if (selectedItemIds.size === 0) return null;
 
@@ -28,7 +28,7 @@ function BulkToolbar({ selectedItemIds, hasContactsOnSelection, onAssign, onUnas
     <View style={{ backgroundColor: 'transparent', marginBottom: 8 }}>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Pressable onPress={onAssign} style={{ flex: 1, backgroundColor: 'transparent' }} className="active:opacity-80">
-          {useGlass ? (
+          {shouldUseGlass ? (
             <GlassView isInteractive tintColor={iconColors.primary + '0D'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
               <IconSymbol name="person.crop.circle" size={16} color={iconColors.primary} />
               <Text className="text-sm font-semibold text-primary">{t.bulk_assign}</Text>
@@ -43,7 +43,7 @@ function BulkToolbar({ selectedItemIds, hasContactsOnSelection, onAssign, onUnas
 
         {hasContactsOnSelection && (
           <Pressable onPress={onUnassign} style={{ flex: 1, backgroundColor: 'transparent' }} className="active:opacity-80">
-            {useGlass ? (
+            {shouldUseGlass ? (
               <GlassView isInteractive tintColor={iconColors.pro + '0D'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
                 <IconSymbol name="person.crop.circle" size={16} color={iconColors.pro} />
                 <Text className="text-sm font-semibold text-state-unresolved">{t.bulk_unassign}</Text>
@@ -58,7 +58,7 @@ function BulkToolbar({ selectedItemIds, hasContactsOnSelection, onAssign, onUnas
         )}
 
         <Pressable onPress={onDelete} style={{ flex: 1, backgroundColor: 'transparent' }} className="active:opacity-80">
-          {useGlass ? (
+          {shouldUseGlass ? (
             <GlassView isInteractive tintColor={iconColors.destructive + '0D'} style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
               <IconSymbol name="xmark" size={14} color={iconColors.destructive} />
               <Text className="text-sm font-semibold text-destructive">{t.bulk_delete}</Text>

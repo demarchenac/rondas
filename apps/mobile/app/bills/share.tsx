@@ -75,7 +75,7 @@ export default function ShareScreen() {
     prevBillRef.current = bill;
   }, [bill]);
 
-  const { glassAvailable, isGlassReady, useGlass } = useGlassEffect();
+  const { glassAvailable, isGlassReady, shouldUseGlass } = useGlassEffect();
 
   const billCountry = (bill?.country as 'CO' | 'US') || 'CO';
   const billCategory = (bill?.tags?.find((tag) => tag.isPlatform)?.slug || 'dining') as ReceiptCategory;
@@ -205,13 +205,13 @@ export default function ShareScreen() {
     }
   }, [bill, t, alert]);
 
-  const resetGroupMode = useCallback(() => {
+  const handleResetGroupMode = useCallback(() => {
     setIsGroupSelectMode(false);
     setSelectedForGroup(new Set());
     setEditingGroupId(null);
   }, []);
 
-  const enterGroupMode = useCallback(() => {
+  const handleEnterGroupMode = useCallback(() => {
     setIsGroupSelectMode(true);
     setSelectedForGroup(new Set());
     setEditingGroupId(null);
@@ -263,8 +263,8 @@ export default function ShareScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       alert(t.error, err instanceof Error ? err.message : t.error_mutationFailed);
     }
-    resetGroupMode();
-  }, [bill, userId, selectedForGroup, editingGroupId, contactGroups, updateContactGroupsMut, id, t, alert, resetGroupMode]);
+    handleResetGroupMode();
+  }, [bill, userId, selectedForGroup, editingGroupId, contactGroups, updateContactGroupsMut, id, t, alert, handleResetGroupMode]);
 
   const handleShareInfographic = useCallback(async (contactIndex: number, contactName: string) => {
     const viewShotRef = infographicRefs.current[contactIndex];
@@ -404,7 +404,7 @@ export default function ShareScreen() {
     );
   };
 
-  const backButton = useGlass ? (
+  const backButton = shouldUseGlass ? (
     <Pressable onPress={() => router.back()} role="button" accessibilityLabel={t.a11y_goBack} className="active:opacity-80">
       <GlassView isInteractive style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}>
         <IconSymbol name="chevron.left" size={18} color={iconColors.primary} />
@@ -417,8 +417,8 @@ export default function ShareScreen() {
   );
 
   const trailingButton = isGroupSelectMode ? (
-    <Pressable onPress={resetGroupMode} role="button" accessibilityLabel={t.cancel} className="active:opacity-80">
-      {useGlass ? (
+    <Pressable onPress={handleResetGroupMode} role="button" accessibilityLabel={t.cancel} className="active:opacity-80">
+      {shouldUseGlass ? (
         <GlassView isInteractive style={{ borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 }}>
           <Text className="text-xs font-semibold text-muted-foreground">{t.cancel}</Text>
         </GlassView>
@@ -429,8 +429,8 @@ export default function ShareScreen() {
       )}
     </Pressable>
   ) : bill.contacts.length >= 2 ? (
-    <Pressable onPress={enterGroupMode} role="button" accessibilityLabel={t.people_group} className="active:opacity-80">
-      {useGlass ? (
+    <Pressable onPress={handleEnterGroupMode} role="button" accessibilityLabel={t.people_group} className="active:opacity-80">
+      {shouldUseGlass ? (
         <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <IconSymbol name="rectangle.stack.person.crop" size={14} color={iconColors.primary} />
           <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
@@ -512,7 +512,7 @@ export default function ShareScreen() {
               onSendWhatsApp={handleSendWhatsApp}
               onShareInfographic={handleShareInfographic}
               onSendGroupWhatsApp={handleSendGroupWhatsApp}
-              useGlass={useGlass}
+              shouldUseGlass={shouldUseGlass}
               onEditGroup={handleEditGroup}
               getContactIndex={getContactIndex}
             />
@@ -555,7 +555,7 @@ export default function ShareScreen() {
         <GroupConfirmToolbar
           selectedCount={selectedForGroup.size}
           isEditing={!!editingGroupId}
-          useGlass={useGlass}
+          shouldUseGlass={shouldUseGlass}
           iconColors={iconColors}
           t={t}
           onConfirm={confirmGroupFromShare}

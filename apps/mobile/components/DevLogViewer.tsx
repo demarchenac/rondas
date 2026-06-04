@@ -39,10 +39,10 @@ function DevLogViewer() {
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const logs = useLogStore((s) => s.logs);
-  const clearLogs = useLogStore((s) => s.clear);
+  const handleClearLogs = useLogStore((s) => s.clear);
   const { width: screenW, height: screenH } = useWindowDimensions();
 
-  const useGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
+  const shouldUseGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
 
   const translateX = useSharedValue(screenW - 50);
   const translateY = useSharedValue(screenH - insets.bottom - 30);
@@ -77,7 +77,7 @@ function DevLogViewer() {
 
   // eslint-disable-next-line react-hooks/refs -- gesture callbacks run outside render
   const tapGesture = Gesture.Tap().onEnd(() => { runOnJS(sheetRefCallback.current)(); });
-  const longPressGesture = Gesture.LongPress().minDuration(500).onEnd(() => { runOnJS(clearLogs)(); });
+  const longPressGesture = Gesture.LongPress().minDuration(500).onEnd(() => { runOnJS(handleClearLogs)(); });
 
   const composed = Gesture.Race(panGesture, Gesture.Exclusive(longPressGesture, tapGesture));
 
@@ -104,7 +104,7 @@ function DevLogViewer() {
             zIndex: 999,
           }, pillStyle]}
         >
-          {useGlass ? (
+          {shouldUseGlass ? (
             <GlassView
               isInteractive
               tintColor={iconColors.primary + '1A'}
@@ -138,7 +138,7 @@ function DevLogViewer() {
               <Pressable onPress={handleShare} style={{ padding: 4 }}>
                 <IconSymbol name="square.and.arrow.up" size={18} color={iconColors.primary} />
               </Pressable>
-              <Pressable onPress={clearLogs} style={{ padding: 4 }}>
+              <Pressable onPress={handleClearLogs} style={{ padding: 4 }}>
                 <IconSymbol name="trash" size={18} color="#ef4444" />
               </Pressable>
             </View>

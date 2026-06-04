@@ -5,7 +5,7 @@ import { useSubscriptionStore } from '@/stores/useSubscriptionStore';
 
 export const PRO_ENTITLEMENT_ID = 'Rondas Pro';
 
-let configured = false;
+let isConfigured = false;
 
 export async function initRevenueCat(workosId: string): Promise<void> {
   const apiKey = Platform.OS === 'ios' ? ENV.REVENUECAT_IOS_KEY : ENV.REVENUECAT_ANDROID_KEY;
@@ -18,9 +18,9 @@ export async function initRevenueCat(workosId: string): Promise<void> {
 
   try {
     Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
-    if (!configured) {
+    if (!isConfigured) {
       Purchases.configure({ apiKey, appUserID: workosId });
-      configured = true;
+      isConfigured = true;
     } else {
       await Purchases.logIn(workosId);
     }
@@ -103,7 +103,7 @@ export async function presentRemotePaywall(): Promise<'purchased' | 'cancelled' 
 }
 
 export async function logoutRevenueCat(): Promise<void> {
-  if (!configured) return;
+  if (!isConfigured) return;
   try {
     await Purchases.logOut();
     useSubscriptionStore.getState().reset();

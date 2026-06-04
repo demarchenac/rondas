@@ -53,26 +53,7 @@ async function syncAfterLogin(user: User): Promise<void> {
     authProvider: user.authProvider,
   };
 
-  if (existing?.config) {
-    await convex.mutation(api.users.updateProfile, profileData);
-    await convex.mutation(api.contacts.syncSelfContact, {
-      userId: user.id,
-      name: profileData.name,
-      imageUri: profileData.avatarUrl,
-    });
-    const config = existing.config;
-    const settings = useSettingsStore.getState();
-    settings.setCountry(config.country as 'CO' | 'US');
-    if (config.usState) settings.setUsState(config.usState);
-    settings.setDefaultTipPercent(config.defaultTipPercent);
-    settings.setLanguage(config.language as 'en' | 'es');
-    settings.setExtractPhotoTime(config.extractPhotoTime);
-    settings.setUseLocation(config.useLocation);
-    if (config.impoconsumoIncluded !== undefined) settings.setImpoconsumoIncluded(config.impoconsumoIncluded);
-    if (config.ivaIncluded !== undefined) settings.setIvaIncluded(config.ivaIncluded);
-    useThemeStore.getState().setMode(config.theme as 'light' | 'dark' | 'system');
-    settings.setHasCompletedSetup(true);
-  } else {
+  if (!existing?.config) {
     await convex.mutation(api.users.createUser, profileData);
     await convex.mutation(api.contacts.syncSelfContact, {
       userId: user.id,
@@ -80,7 +61,27 @@ async function syncAfterLogin(user: User): Promise<void> {
       imageUri: profileData.avatarUrl,
     });
     useSettingsStore.getState().setHasCompletedSetup(false);
+    return;
   }
+
+  await convex.mutation(api.users.updateProfile, profileData);
+  await convex.mutation(api.contacts.syncSelfContact, {
+    userId: user.id,
+    name: profileData.name,
+    imageUri: profileData.avatarUrl,
+  });
+  const config = existing.config;
+  const settings = useSettingsStore.getState();
+  settings.setCountry(config.country as 'CO' | 'US');
+  if (config.usState) settings.setUsState(config.usState);
+  settings.setDefaultTipPercent(config.defaultTipPercent);
+  settings.setLanguage(config.language as 'en' | 'es');
+  settings.setExtractPhotoTime(config.extractPhotoTime);
+  settings.setUseLocation(config.useLocation);
+  if (config.impoconsumoIncluded !== undefined) settings.setImpoconsumoIncluded(config.impoconsumoIncluded);
+  if (config.ivaIncluded !== undefined) settings.setIvaIncluded(config.ivaIncluded);
+  useThemeStore.getState().setMode(config.theme as 'light' | 'dark' | 'system');
+  settings.setHasCompletedSetup(true);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

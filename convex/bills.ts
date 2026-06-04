@@ -68,7 +68,7 @@ export const list = query({
     toDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    let q = ctx.db
+    let billsQuery = ctx.db
       .query('bills')
       .withIndex('by_user', (q) => q.eq('userId', args.userId))
       .order('desc');
@@ -82,7 +82,7 @@ export const list = query({
       args.toDate != null;
 
     if (hasFilters) {
-      q = q.filter((qb) => {
+      billsQuery = billsQuery.filter((qb) => {
         const conditions = [];
         if (args.state) conditions.push(qb.eq(qb.field('state'), args.state));
         if (args.minAmount != null) conditions.push(qb.gte(qb.field('total'), args.minAmount));
@@ -94,7 +94,7 @@ export const list = query({
       });
     }
 
-    const paginatedBills = await q.paginate(args.paginationOpts);
+    const paginatedBills = await billsQuery.paginate(args.paginationOpts);
 
     // Fetch all user tags once for in-memory resolution
     const user = await ctx.db.query('users').withIndex('by_workos_id', (q) => q.eq('workosId', args.userId)).unique();

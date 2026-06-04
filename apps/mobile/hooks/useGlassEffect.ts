@@ -11,5 +11,5 @@ export function useGlassEffect(delay = 500) {
       return () => clearTimeout(id);
     }
   }, [glassAvailable, isGlassReady, delay]);
-  return { glassAvailable, isGlassReady, useGlass: glassAvailable && isGlassReady };
+  return { glassAvailable, isGlassReady, shouldUseGlass: glassAvailable && isGlassReady };
 }

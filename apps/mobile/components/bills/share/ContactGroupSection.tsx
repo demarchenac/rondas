@@ -23,7 +23,7 @@ export interface ContactGroupSectionProps {
   decimalPlaces?: number;
   contactCount: number;
   translatedTaxLabel: string;
-  useGlass: boolean;
+  shouldUseGlass: boolean;
   iconColors: IconPalette;
   t: Translations;
   capturingIndex: number | null;
@@ -37,7 +37,7 @@ export interface ContactGroupSectionProps {
 
 function ContactGroupSection({
   group, members, groupIndex, shareDataMap, isEqualSplit,
-  billCountry, decimalPlaces, contactCount, translatedTaxLabel, useGlass, iconColors, t, capturingIndex,
+  billCountry, decimalPlaces, contactCount, translatedTaxLabel, shouldUseGlass, iconColors, t, capturingIndex,
   onEditGroup, onTogglePaid, onSendWhatsApp, onShareInfographic, onSendGroupWhatsApp, getContactIndex,
 }: ContactGroupSectionProps) {
   const tintBg = GROUP_TINTS_BG[groupIndex % GROUP_TINTS_BG.length];
@@ -59,7 +59,7 @@ function ContactGroupSection({
           accessibilityLabel={t.a11y_editGroup(group.name)}
           style={{ backgroundColor: 'transparent' }}
         >
-          {useGlass ? (
+          {shouldUseGlass ? (
             <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }}>
               <IconSymbol name="pencil" size={12} color={iconColors.primary} />
             </GlassView>

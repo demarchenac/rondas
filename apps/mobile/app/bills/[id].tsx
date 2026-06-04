@@ -120,7 +120,7 @@ export default function BillDetailScreen() {
       return () => clearTimeout(timerId);
     }
   }, [glassAvailable, isGlassReady]);
-  const useGlass = glassAvailable && isGlassReady;
+  const shouldUseGlass = glassAvailable && isGlassReady;
 
   // ── Derived (depends on UI state) ──
   const excludePhones = useMemo(() => computeExcludePhones(selectedItemIds), [computeExcludePhones, selectedItemIds]);
@@ -501,7 +501,7 @@ export default function BillDetailScreen() {
             <Skeleton width="100%" height={52} borderRadius={12} style={{ marginBottom: 8 }} />
           ) : (
             <Pressable onPress={() => router.push(`/bills/share?id=${id}`)} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
-              {useGlass ? (
+              {shouldUseGlass ? (
                 <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
                   <IconSymbol name="person.2.fill" size={18} color={iconColors.primary} />
                   <Text className="text-lg font-semibold text-foreground">
@@ -532,7 +532,7 @@ export default function BillDetailScreen() {
           <Skeleton width="100%" height={44} borderRadius={12} style={{ marginBottom: 8 }} />
         ) : (
           <Pressable onPress={onAddItem} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
-            {useGlass ? (
+            {shouldUseGlass ? (
               <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
                 <IconSymbol name="plus" size={14} color={iconColors.primary} />
                 <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>

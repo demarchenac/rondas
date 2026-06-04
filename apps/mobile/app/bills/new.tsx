@@ -338,12 +338,13 @@ export default function NewBillScreen() {
     const items = [...bill.items];
     if (field === 'name') {
       items[index] = { ...items[index], name: value };
-    } else {
-      const num = parseCurrency(value, country);
-      items[index] = { ...items[index], [field]: num };
-      if (field === 'quantity' || field === 'unitPrice') {
-        items[index].subtotal = items[index].quantity * items[index].unitPrice;
-      }
+      setBill({ ...bill, items });
+      return;
+    }
+    const num = parseCurrency(value, country);
+    items[index] = { ...items[index], [field]: num };
+    if (field === 'quantity' || field === 'unitPrice') {
+      items[index].subtotal = items[index].quantity * items[index].unitPrice;
     }
     setBill({ ...bill, items });
   };
