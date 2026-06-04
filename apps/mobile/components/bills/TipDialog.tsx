@@ -11,7 +11,7 @@ import { useColorScheme } from 'nativewind';
 interface TipDialogProps {
   visible: boolean;
   tipPercent: number;
-  useCustomTip: boolean;
+  shouldUseCustomTip: boolean;
   customTip: number;
   subtotal: number;
   billCountry: 'CO' | 'US';
@@ -26,7 +26,7 @@ interface TipDialogProps {
 function TipDialog({
   visible,
   tipPercent,
-  useCustomTip,
+  shouldUseCustomTip,
   customTip,
   subtotal,
   billCountry,
@@ -84,12 +84,12 @@ function TipDialog({
               style={{ flexBasis: '31%', flexGrow: 1 }}
               className={cn(
                 'items-center rounded-xl border-[1.5px] py-3',
-                !useCustomTip && tipPercent === pct
+                !shouldUseCustomTip && tipPercent === pct
                   ? 'border-primary/35 bg-primary/15'
                   : 'border-muted-foreground/12 bg-muted-foreground/[0.06]',
               )}
             >
-              <Text className={cn('text-lg font-bold', !useCustomTip && tipPercent === pct ? 'text-primary' : 'text-muted-foreground')}>
+              <Text className={cn('text-lg font-bold', !shouldUseCustomTip && tipPercent === pct ? 'text-primary' : 'text-muted-foreground')}>
                 {pct}%
               </Text>
             </Pressable>
@@ -102,14 +102,14 @@ function TipDialog({
         <View className="flex-row items-center justify-between px-6">
           <Text className="text-base font-medium text-foreground">{t.bill_customTip}</Text>
           <Switch
-            value={useCustomTip}
+            value={shouldUseCustomTip}
             onValueChange={(v) => onToggleCustomTip(v)}
             trackColor={{ true: iconColors.primary }}
             style={{ transform: [{ scale: 0.8 }] }}
           />
         </View>
 
-        {useCustomTip && (
+        {shouldUseCustomTip && (
           <View className="px-6 mt-3">
             <CurrencyInput
               value={localCustomTip}

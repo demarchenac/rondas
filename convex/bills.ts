@@ -94,7 +94,7 @@ export const list = query({
       });
     }
 
-    const result = await q.paginate(args.paginationOpts);
+    const paginatedBills = await q.paginate(args.paginationOpts);
 
     // Fetch all user tags once for in-memory resolution
     const user = await ctx.db.query('users').withIndex('by_workos_id', (q) => q.eq('workosId', args.userId)).unique();
@@ -104,14 +104,14 @@ export const list = query({
     const tagMap = new Map(userTags.map((t) => [t._id, t]));
 
     const page = await Promise.all(
-      result.page.map(async (bill) => ({
+      paginatedBills.page.map(async (bill) => ({
         ...bill,
         contacts: await resolveContacts(ctx, bill.contacts),
         tags: (bill.tagIds ?? []).map((id) => tagMap.get(id)).filter((t): t is NonNullable<typeof t> => t != null),
       })),
     );
 
-    return { ...result, page };
+    return { ...paginatedBills, page };
   },
 });
 

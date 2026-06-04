@@ -12,7 +12,7 @@ interface BillSummaryCardProps {
   computedTax: number;
   beforeTip: number;
   tipPercent: number;
-  useCustomTip: boolean;
+  shouldUseCustomTip: boolean;
   computedTip: number;
   total: number;
   billCountry: string;
@@ -32,7 +32,7 @@ function BillSummaryCard({
   computedTax,
   beforeTip,
   tipPercent,
-  useCustomTip,
+  shouldUseCustomTip,
   computedTip,
   total,
   billCountry,
@@ -103,7 +103,7 @@ function BillSummaryCard({
       >
         <View className="flex-row items-center gap-1">
           <Text className="text-base text-foreground">
-            {useCustomTip ? t.bill_tipCustom : t.bill_tip(tipPercent)}
+            {shouldUseCustomTip ? t.bill_tipCustom : t.bill_tip(tipPercent)}
           </Text>
           <IconSymbol name="chevron.right" size={12} color={iconColors.mutedLight} />
         </View>

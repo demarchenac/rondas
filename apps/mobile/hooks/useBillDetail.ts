@@ -96,14 +96,14 @@ export function useBillDetail(id: string, userId: string | undefined) {
     const base = computeBase(itemsTotal, taxConfig);
     const computedTax = computeTax(itemsTotal, taxConfig);
     const tipPercent = bill.tipPercent ?? 0;
-    const useCustomTip = bill.useCustomTip ?? false;
-    const computedTip = useCustomTip ? (bill.tip ?? 0) : base * (tipPercent / 100);
+    const shouldUseCustomTip = bill.useCustomTip ?? false;
+    const computedTip = shouldUseCustomTip ? (bill.tip ?? 0) : base * (tipPercent / 100);
     const beforeTip = base + computedTax;
     const total = base + computedTax + computedTip;
     const stateStyle = STATE_STYLES[bill.state];
     const stateLabel = t[STATE_LABEL_KEYS[bill.state]] as string;
     const decimalPlaces = bill.decimalPlaces;
-    return { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, useCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel, decimalPlaces };
+    return { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, shouldUseCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel, decimalPlaces };
   }, [bill, t]);
 
   const computeSortedItems = useCallback((sortStrategy: SortStrategy) => {

@@ -95,10 +95,10 @@ function ContactPickerSheet({
 
   const filteredContacts = useMemo(() => {
     if (!search) return baseContacts;
-    const q = search.toLowerCase();
+    const lowercaseSearch = search.toLowerCase();
     return baseContacts.filter((c) => {
       const name = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase();
-      return name.includes(q);
+      return name.includes(lowercaseSearch);
     });
   }, [baseContacts, search]);
 

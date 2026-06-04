@@ -9,12 +9,12 @@ function KeyboardDoneButton() {
   const t = useT();
   const height = useSharedValue(0);
 
-  const opening = useSharedValue(false);
+  const isOpening = useSharedValue(false);
 
   useKeyboardHandler({
     onStart: (e) => {
       'worklet';
-      opening.value = e.height > 0;
+      isOpening.value = e.height > 0;
     },
     onMove: (e) => {
       'worklet';
@@ -31,8 +31,8 @@ function KeyboardDoneButton() {
     left: 0,
     right: 0,
     bottom: height.value,
-    opacity: opening.value ? 1 : 0,
-    pointerEvents: opening.value ? 'auto' as const : 'none' as const,
+    opacity: isOpening.value ? 1 : 0,
+    pointerEvents: isOpening.value ? 'auto' as const : 'none' as const,
   }));
 
   return (

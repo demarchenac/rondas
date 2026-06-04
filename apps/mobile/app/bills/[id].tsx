@@ -282,7 +282,7 @@ export default function BillDetailScreen() {
     );
   }
 
-  const { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, useCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel, decimalPlaces } = billDerived;
+  const { base, billCountry, taxConfig, translatedTaxLabel, computedTax, tipPercent, shouldUseCustomTip, computedTip, beforeTip, total, stateStyle, stateLabel, decimalPlaces } = billDerived;
 
   return (
     <View className="flex-1 bg-background">
@@ -462,7 +462,7 @@ export default function BillDetailScreen() {
             computedTax={computedTax}
             beforeTip={beforeTip}
             tipPercent={tipPercent}
-            useCustomTip={useCustomTip}
+            shouldUseCustomTip={shouldUseCustomTip}
             computedTip={computedTip}
             total={total}
             billCountry={billCountry}
@@ -607,7 +607,7 @@ export default function BillDetailScreen() {
       <TipDialog
         visible={activeDialog === 'tip'}
         tipPercent={tipPercent}
-        useCustomTip={useCustomTip}
+        shouldUseCustomTip={shouldUseCustomTip}
         customTip={bill.tip ?? 0}
         subtotal={base}
         billCountry={billCountry}

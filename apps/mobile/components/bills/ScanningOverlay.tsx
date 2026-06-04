@@ -109,16 +109,16 @@ function useStaggeredItems(
 ): KeyedScanItem[] {
   const [displayed, setDisplayed] = useState<KeyedScanItem[]>([]);
   const queueRef = useRef<KeyedScanItem[]>([]);
-  const processingRef = useRef(false);
+  const isProcessingRef = useRef(false);
   const processedCountRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const processQueueRef = useRef<(() => void) | null>(null);
   const processQueue = useCallback(() => {
-    if (processingRef.current) return;
+    if (isProcessingRef.current) return;
     if (queueRef.current.length === 0) return;
 
-    processingRef.current = true;
+    isProcessingRef.current = true;
     const next = queueRef.current.shift()!;
 
     setDisplayed((prev) => [next, ...prev]);
@@ -129,7 +129,7 @@ function useStaggeredItems(
     }
 
     timerRef.current = setTimeout(() => {
-      processingRef.current = false;
+      isProcessingRef.current = false;
       processQueueRef.current?.();
     }, staggerMs);
   }, [staggerMs]);
@@ -162,7 +162,7 @@ function useStaggeredItems(
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-    processingRef.current = false;
+    isProcessingRef.current = false;
 
     // Flush all remaining items at once
     const remaining = queueRef.current.splice(0);
