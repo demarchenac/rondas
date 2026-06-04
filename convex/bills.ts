@@ -346,7 +346,7 @@ export const update = mutation({
       contacts = recalculateAmounts(newItems, [...contacts], newTax, newTip);
     }
 
-    const itemsTotal = newItems.reduce((sum, i) => sum + i.subtotal, 0);
+    const itemsTotal = newItems.reduce((subtotalSum, i) => subtotalSum + i.subtotal, 0);
     const overrideVal = (defined.taxIncludedOverride as boolean | undefined) ?? bill.taxIncludedOverride;
     const isTaxIncluded = overrideVal !== undefined ? overrideVal : billCountry === 'CO';
     const newTotal = isTaxIncluded ? itemsTotal + newTip : itemsTotal + newTax + newTip;
@@ -759,7 +759,7 @@ function computeDisplayTotal(
   const category = (platformSlug as ReceiptCategory) || 'dining';
   const rawConfig = getTaxConfig(country, category);
   const taxConfig = withTaxIncludedOverride(rawConfig, bill.taxIncludedOverride ?? undefined);
-  const itemsTotal = items.reduce((sum, i) => sum + i.subtotal, 0);
+  const itemsTotal = items.reduce((subtotalSum, i) => subtotalSum + i.subtotal, 0);
   const base = computeBase(itemsTotal, taxConfig);
   const computedTax = computeTax(itemsTotal, taxConfig);
   const tipPercent = bill.tipPercent ?? 0;
@@ -785,20 +785,20 @@ function recalculateAmounts(
   tax: number,
   tip: number,
 ): ContactRef[] {
-  const positiveTotal = items.reduce((sum, i) => sum + Math.max(0, i.subtotal), 0);
-  const discountTotal = items.reduce((sum, i) => sum + Math.min(0, i.subtotal), 0);
+  const positiveTotal = items.reduce((positivesSum, i) => positivesSum + Math.max(0, i.subtotal), 0);
+  const discountTotal = items.reduce((discountsSum, i) => discountsSum + Math.min(0, i.subtotal), 0);
   const itemsTotal = positiveTotal + discountTotal;
 
   for (const contact of contacts) {
     contact.items = contact.items.filter((ref) => items.some((i) => i.id === ref.itemId));
 
-    const contactItemsTotal = contact.items.reduce((sum, ref) => {
+    const contactItemsTotal = contact.items.reduce((itemsTotal, ref) => {
       const item = items.find((i) => i.id === ref.itemId);
-      if (!item) return sum;
+      if (!item) return itemsTotal;
       const effectiveTotal = item.quantity > 0
         ? (ref.units / item.quantity) * item.subtotal
         : item.subtotal;
-      return sum + effectiveTotal;
+      return itemsTotal + effectiveTotal;
     }, 0);
 
     const share = positiveTotal > 0 ? contactItemsTotal / positiveTotal : 0;
@@ -809,7 +809,7 @@ function recalculateAmounts(
 
   if (activeContacts.length > 0) {
     const expectedTotal = itemsTotal + tax + tip;
-    const roundedSum = activeContacts.reduce((sum, c) => sum + c.amount, 0);
+    const roundedSum = activeContacts.reduce((amountsTotal, c) => amountsTotal + c.amount, 0);
     const remainder = Math.round(expectedTotal) - roundedSum;
     if (remainder !== 0) {
       activeContacts[0].amount += remainder;

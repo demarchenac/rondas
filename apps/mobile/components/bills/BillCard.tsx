@@ -488,7 +488,7 @@ function computeDisplayTotal(bill: Bill): number {
   const billCategory = (bill.tags?.find((tag) => tag.isPlatform)?.slug as 'dining' | 'retail' | 'service') || 'dining';
   const rawTaxConfig = getTaxConfig(billCountry, billCategory);
   const taxConfig = withTaxIncludedOverride(rawTaxConfig, bill.taxIncludedOverride ?? undefined);
-  const itemsTotal = bill.items.reduce((sum, item) => sum + item.subtotal, 0);
+  const itemsTotal = bill.items.reduce((subtotalSum, item) => subtotalSum + item.subtotal, 0);
   const base = computeBase(itemsTotal, taxConfig);
   const computedTax = computeTax(itemsTotal, taxConfig);
   const tipPercent = bill.tipPercent ?? 0;

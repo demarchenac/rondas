@@ -177,15 +177,15 @@ export default function HomeScreen() {
 
   const billsTotal = useMemo(() => {
     if (bills.length === 0) return 0;
-    return bills.reduce((sum, bill) => {
+    return bills.reduce((grandTotal, bill) => {
       const billCountry = (bill.country as 'CO' | 'US') || 'CO';
       const category = (bill.tags?.find((tag) => tag.isPlatform)?.slug as 'dining' | 'retail' | 'service') || 'dining';
       const tc = withTaxIncludedOverride(getTaxConfig(billCountry, category), bill.taxIncludedOverride ?? undefined);
-      const items = bill.items.reduce((s, i) => s + i.subtotal, 0);
+      const items = bill.items.reduce((subtotalSum, i) => subtotalSum + i.subtotal, 0);
       const base = computeBase(items, tc);
       const tax = computeTax(items, tc);
       const tip = bill.useCustomTip ? (bill.tip ?? 0) : base * ((bill.tipPercent ?? 0) / 100);
-      return sum + base + tax + tip;
+      return grandTotal + base + tax + tip;
     }, 0);
   }, [bills]);
 

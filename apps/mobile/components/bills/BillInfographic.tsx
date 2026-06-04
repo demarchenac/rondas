@@ -92,7 +92,7 @@ function BillInfographic({
     ? parsedDate.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
     : '';
 
-  const contactItemsTotal = items.reduce((sum, i) => sum + i.amount, 0);
+  const contactItemsTotal = items.reduce((amountsTotal, i) => amountsTotal + i.amount, 0);
   const contactBase = computeBase(contactItemsTotal, infTaxConfig);
   const contactTax = computeTax(contactItemsTotal, infTaxConfig);
   const contactTip = Math.round(contactBase * (tipPercent / 100));

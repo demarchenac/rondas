@@ -23,17 +23,17 @@ export function computeContactTotal(
   positiveTotal: number,
   discountTotal: number,
 ): number {
-  const contactItemsTotal = contact.items.reduce((sum, ref) => {
+  const contactItemsTotal = contact.items.reduce((itemsTotal, ref) => {
     const item = billItems.find((i) => i.id === ref.itemId);
-    if (!item) return sum;
-    const totalAssignedUnits = allContacts.reduce((u, c) => {
+    if (!item) return itemsTotal;
+    const totalAssignedUnits = allContacts.reduce((totalUnits, c) => {
       const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
-      return u + (cRef ? cRef.units : 0);
+      return totalUnits + (cRef ? cRef.units : 0);
     }, 0);
     const share = totalAssignedUnits > 0
       ? (ref.units / totalAssignedUnits) * item.subtotal
       : item.subtotal;
-    return sum + Math.round(share);
+    return itemsTotal + Math.round(share);
   }, 0);
 
   const share = positiveTotal > 0 ? contactItemsTotal / positiveTotal : 0;

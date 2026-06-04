@@ -310,7 +310,7 @@ function ScanningOverlay({
   );
 
   const runningTotal = useMemo(
-    () => displayedItems.reduce((sum, item) => sum + item.subtotal, 0),
+    () => displayedItems.reduce((itemsTotal, item) => itemsTotal + item.subtotal, 0),
     [displayedItems],
   );
 

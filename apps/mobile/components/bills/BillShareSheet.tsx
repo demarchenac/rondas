@@ -101,15 +101,15 @@ function BillShareSheet({
                   const contactItemAmounts = contact.items.map((ref) => {
                     const item = bill.items.find((i) => i.id === ref.itemId);
                     if (!item) return 0;
-                    const totalUnits = bill.contacts.reduce((u, c) => {
+                    const totalUnits = bill.contacts.reduce((assignedUnits, c) => {
                       const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
-                      return u + (cRef ? cRef.units : 0);
+                      return assignedUnits + (cRef ? cRef.units : 0);
                     }, 0);
                     return totalUnits > 0
                       ? Math.round((ref.units / totalUnits) * item.subtotal)
                       : Math.round(item.subtotal);
                   });
-                  const contactItemsTotal = contactItemAmounts.reduce((s, a) => s + a, 0);
+                  const contactItemsTotal = contactItemAmounts.reduce((runningTotal, amount) => runningTotal + amount, 0);
                   const contactBase = computeBase(contactItemsTotal, taxConfig);
                   contactTax = computeTax(contactItemsTotal, taxConfig);
                   contactTip = Math.round(contactBase * (tipPercent / 100));
@@ -148,9 +148,9 @@ function BillShareSheet({
                       {contact.items.map((ref) => {
                         const item = bill.items.find((i) => i.id === ref.itemId);
                         if (!item) return null;
-                        const totalUnits = bill.contacts.reduce((u, c) => {
+                        const totalUnits = bill.contacts.reduce((assignedUnits, c) => {
                           const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
-                          return u + (cRef ? cRef.units : 0);
+                          return assignedUnits + (cRef ? cRef.units : 0);
                         }, 0);
                         const share = totalUnits > 0
                           ? Math.round((ref.units / totalUnits) * item.subtotal)
@@ -252,9 +252,9 @@ function BillShareSheet({
                             .map((ref) => {
                               const item = bill.items.find((i) => i.id === ref.itemId);
                               if (!item) return null;
-                              const totalUnits = bill.contacts.reduce((u, c) => {
+                              const totalUnits = bill.contacts.reduce((assignedUnits, c) => {
                                 const cRef = c.items.find((ci) => ci.itemId === ref.itemId);
-                                return u + (cRef ? cRef.units : 0);
+                                return assignedUnits + (cRef ? cRef.units : 0);
                               }, 0);
                               const amount = totalUnits > 0
                                 ? Math.round((ref.units / totalUnits) * item.subtotal)

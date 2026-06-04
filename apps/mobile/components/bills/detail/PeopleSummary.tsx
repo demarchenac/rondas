@@ -87,8 +87,8 @@ function PeopleSummary({
   }, [contactGroups]);
 
   const contactTotals = useMemo(() => {
-    const positiveTotal = billItems.reduce((sum, item) => sum + Math.max(0, item.subtotal), 0);
-    const discountTotal = billItems.reduce((sum, item) => sum + Math.min(0, item.subtotal), 0);
+    const positiveTotal = billItems.reduce((positivesSum, item) => positivesSum + Math.max(0, item.subtotal), 0);
+    const discountTotal = billItems.reduce((discountsSum, item) => discountsSum + Math.min(0, item.subtotal), 0);
     return contacts.map((contact) => ({
       ...contact,
       total: isEqualSplit ? contact.amount : computeContactTotal(contact, billItems, contacts, taxConfig, tipPercent, positiveTotal, discountTotal),
@@ -117,7 +117,7 @@ function PeopleSummary({
       const members = group.contactIds
         .map((cid) => contactTotalMap.get(String(cid)))
         .filter((member): member is NonNullable<typeof member> => member != null);
-      const total = members.reduce((sum, member) => sum + member.total, 0);
+      const total = members.reduce((membersTotal, member) => membersTotal + member.total, 0);
       const allMembersPaid = members.length > 0 && members.every((member) => member.paid);
       const tint = GROUP_TINTS[index % GROUP_TINTS.length];
       return { ...group, members, total, allMembersPaid, tint };

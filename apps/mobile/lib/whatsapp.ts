@@ -77,7 +77,7 @@ export function buildWhatsAppMessage(params: {
     .map((result) => `- ${result.name} — ${formatCurrency(result.share, billCountry, decimalPlaces)}`)
     .join('\n');
 
-  const contactItemsTotal = itemResults.reduce((sum, result) => sum + result.share, 0);
+  const contactItemsTotal = itemResults.reduce((sharesTotal, result) => sharesTotal + result.share, 0);
   const contactBase = computeBase(contactItemsTotal, taxConfig);
   const contactTax = computeTax(contactItemsTotal, taxConfig);
   const contactTip = Math.round(contactBase * (tipPercent / 100));
