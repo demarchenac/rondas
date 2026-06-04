@@ -25,17 +25,17 @@ export function useContactSync(userId: string | undefined) {
           sort: Contacts.SortTypes.FirstName,
         });
 
-        const withImages = data.filter((c) => c.image?.uri).length;
+        const withImages = data.filter((contact) => contact.image?.uri).length;
         Sentry.logger.info(`[ContactSync] device contacts: ${data.length}, with images: ${withImages}`);
 
         const deviceContacts = data
-          .filter((c) => c.phoneNumbers?.[0]?.number)
-          .map((c) => {
+          .filter((contact) => contact.phoneNumbers?.[0]?.number)
+          .map((contact) => {
             const entry: { phone: string; name: string; imageUri?: string } = {
-              phone: c.phoneNumbers![0]!.number!,
-              name: `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || (c.name ?? ''),
+              phone: contact.phoneNumbers![0]!.number!,
+              name: `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim() || (contact.name ?? ''),
             };
-            if (c.image?.uri) entry.imageUri = c.image.uri;
+            if (contact.image?.uri) entry.imageUri = contact.image.uri;
             return entry;
           });
 

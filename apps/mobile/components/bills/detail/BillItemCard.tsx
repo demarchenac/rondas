@@ -335,13 +335,13 @@ function BillItemCard({
             {/* Contact chips — full width below the top row */}
             {hasContacts && (
               <View className="mt-1.5 flex-row flex-wrap gap-1.5">
-                {assignedContacts.map((c) => {
-                  const ref = c.items.find((i) => i.itemId === item.id);
+                {assignedContacts.map((contact) => {
+                  const ref = contact.items.find((itemRef) => itemRef.itemId === item.id);
                   const units = ref?.units ?? 1;
                   return (
                     <ContactChip
-                      key={String(c.contactId)}
-                      contact={c}
+                      key={String(contact.contactId)}
+                      contact={contact}
                       units={units}
                       itemId={itemId}
                       iconColors={iconColors}

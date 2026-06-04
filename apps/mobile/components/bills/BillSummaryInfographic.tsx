@@ -61,11 +61,11 @@ function BillSummaryInfographic({
   decimalPlaces?: number;
   t: Translations;
 }) {
-  const d = new Date(date);
-  const isValidDate = !isNaN(d.getTime());
+  const parsedDate = new Date(date);
+  const isValidDate = !isNaN(parsedDate.getTime());
   const locale = country === 'US' ? 'en-US' : 'es-CO';
   const dateStr = isValidDate
-    ? d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
+    ? parsedDate.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
     : '';
 
   const flag = country === 'CO' ? '\u{1F1E8}\u{1F1F4}' : '\u{1F1FA}\u{1F1F8}';

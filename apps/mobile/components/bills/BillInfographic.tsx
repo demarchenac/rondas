@@ -85,11 +85,11 @@ function BillInfographic({
   country: 'CO' | 'US';
   t: Translations;
 }) {
-  const d = new Date(date);
-  const isValidDate = !isNaN(d.getTime());
+  const parsedDate = new Date(date);
+  const isValidDate = !isNaN(parsedDate.getTime());
   const locale = country === 'US' ? 'en-US' : 'es-CO';
   const dateStr = isValidDate
-    ? d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
+    ? parsedDate.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
     : '';
 
   const contactItemsTotal = items.reduce((sum, i) => sum + i.amount, 0);

@@ -251,12 +251,12 @@ function FilterSheet({
             />
             <View className="max-h-[280px]">
               <ScrollView nestedScrollEnabled>
-                {filteredContacts.map((c) => {
-                  const isSelected = selectedContactSet.has(String(c._id));
+                {filteredContacts.map((contact) => {
+                  const isSelected = selectedContactSet.has(String(contact._id));
                   return (
                     <Pressable
-                      key={String(c._id)}
-                      onPress={() => toggleContact(c._id)}
+                      key={String(contact._id)}
+                      onPress={() => toggleContact(contact._id)}
                       className={cn(
                         'flex-row items-center gap-3 rounded-lg px-1 py-2.5',
                         isSelected && 'bg-primary/[0.06]',
@@ -267,19 +267,19 @@ function FilterSheet({
                         size={20}
                         color={isSelected ? iconColors.primary : iconColors.mutedLight}
                       />
-                      {c.imageUri ? (
-                        <Image source={{ uri: c.imageUri }} className="h-8 w-8 rounded-full" />
+                      {contact.imageUri ? (
+                        <Image source={{ uri: contact.imageUri }} className="h-8 w-8 rounded-full" />
                       ) : (
                         <View className="h-8 w-8 items-center justify-center rounded-full bg-primary/10">
                           <Text className="text-base font-bold text-primary">
-                            {(c.name[0] ?? '?').toUpperCase()}
+                            {(contact.name[0] ?? '?').toUpperCase()}
                           </Text>
                         </View>
                       )}
                       <View className="flex-1">
-                        <Text className="text-base font-medium text-foreground">{c.name}</Text>
-                        {c.phone && (
-                          <Text className="text-sm text-muted-foreground">{formatPhone(c.phone)}</Text>
+                        <Text className="text-base font-medium text-foreground">{contact.name}</Text>
+                        {contact.phone && (
+                          <Text className="text-sm text-muted-foreground">{formatPhone(contact.phone)}</Text>
                         )}
                       </View>
                     </Pressable>
