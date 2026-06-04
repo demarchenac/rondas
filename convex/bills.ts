@@ -392,7 +392,7 @@ export const assignContactToItem = mutation({
 
     const contactId = await getOrCreate(ctx, args.userId, args.contact);
     const contacts = [...bill.contacts];
-    const selfFlag = args.contact.isSelf ? true : undefined;
+    const isSelfOverride = args.contact.isSelf ? true : undefined;
 
     const idx = contacts.findIndex((c) => c.contactId === contactId);
     const isNewOnBill = idx < 0;
@@ -401,10 +401,10 @@ export const assignContactToItem = mutation({
         contacts[idx] = { ...contacts[idx], items: [...contacts[idx].items, { itemId: args.itemId, units: 1 }] };
       }
     } else {
-      contacts.push({ contactId, isSelf: selfFlag, items: [{ itemId: args.itemId, units: 1 }], amount: 0, paid: false });
+      contacts.push({ contactId, isSelf: isSelfOverride, items: [{ itemId: args.itemId, units: 1 }], amount: 0, paid: false });
     }
 
-    if (isNewOnBill && !selfFlag) await incrementReference(ctx, contactId);
+    if (isNewOnBill && !isSelfOverride) await incrementReference(ctx, contactId);
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(updated);
@@ -429,7 +429,7 @@ export const assignContactToItems = mutation({
 
     const contactId = await getOrCreate(ctx, args.userId, args.contact);
     const contacts = [...bill.contacts];
-    const selfFlag = args.contact.isSelf ? true : undefined;
+    const isSelfOverride = args.contact.isSelf ? true : undefined;
 
     const idx = contacts.findIndex((c) => c.contactId === contactId);
     const isNewOnBill = idx < 0;
@@ -443,10 +443,10 @@ export const assignContactToItems = mutation({
       }
       contacts[idx] = { ...contacts[idx], items: newItems };
     } else {
-      contacts.push({ contactId, isSelf: selfFlag, items: args.itemIds.map((itemId) => ({ itemId, units: 1 })), amount: 0, paid: false });
+      contacts.push({ contactId, isSelf: isSelfOverride, items: args.itemIds.map((itemId) => ({ itemId, units: 1 })), amount: 0, paid: false });
     }
 
-    if (isNewOnBill && !selfFlag) await incrementReference(ctx, contactId);
+    if (isNewOnBill && !isSelfOverride) await incrementReference(ctx, contactId);
 
     const updated = recalculateAmounts(bill.items, contacts, bill.tax ?? 0, bill.tip ?? 0);
     const state = computeBillState(updated);
@@ -615,11 +615,11 @@ export const assignEqualSplit = mutation({
     for (let i = 0; i < args.contacts.length; i++) {
       const contact = args.contacts[i];
       const contactId = await getOrCreate(ctx, args.userId, contact);
-      const selfFlag = contact.isSelf ? true : undefined;
-      if (!selfFlag) await incrementReference(ctx, contactId);
+      const isSelfOverride = contact.isSelf ? true : undefined;
+      if (!isSelfOverride) await incrementReference(ctx, contactId);
       contacts.push({
         contactId,
-        isSelf: selfFlag,
+        isSelf: isSelfOverride,
         items: [],
         amount: i === 0 ? perPerson + remainder : perPerson,
         paid: false,
