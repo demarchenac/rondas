@@ -55,11 +55,11 @@ export default function SettingsScreen() {
   const router = useRouter();
   const updateConfigMutation = useMutation(api.users.updateConfig);
   const redeemCode = useMutation(api.promoCodes.redeemCode);
-  const [statePickerVisible, setStatePickerVisible] = useState(false);
+  const [isStatePickerVisible, setStatePickerVisible] = useState(false);
   const { isPro } = useProGate();
   const [promoCode, setPromoCode] = useState('');
-  const [redeeming, setRedeeming] = useState(false);
-  const [showPromoInput, setShowPromoInput] = useState(false);
+  const [isRedeeming, setRedeeming] = useState(false);
+  const [isShowingPromoInput, setShowPromoInput] = useState(false);
   const { alert } = useCustomAlert();
 
   const handleRedeemCode = useCallback(async () => {
@@ -250,7 +250,7 @@ export default function SettingsScreen() {
         {/* Promo code section */}
         {!isPro && (
           <View className="gap-2">
-            {!showPromoInput ? (
+            {!isShowingPromoInput ? (
               <Pressable onPress={() => setShowPromoInput(true)} className="items-center py-2">
                 <Text className="text-base font-medium text-muted-foreground">{t.settings_promoCode}</Text>
               </Pressable>
@@ -268,13 +268,13 @@ export default function SettingsScreen() {
                   />
                   <Pressable
                     onPress={handleRedeemCode}
-                    disabled={redeeming || !promoCode.trim()}
+                    disabled={isRedeeming || !promoCode.trim()}
                     className={cn(
                       'items-center justify-center rounded-xl bg-primary px-4',
-                      (redeeming || !promoCode.trim()) && 'opacity-50',
+                      (isRedeeming || !promoCode.trim()) && 'opacity-50',
                     )}
                   >
-                    {redeeming ? (
+                    {isRedeeming ? (
                       <ActivityIndicator color={iconColors.primaryForeground} size="small" />
                     ) : (
                       <Text className="text-base font-semibold text-primary-foreground">
@@ -347,7 +347,7 @@ export default function SettingsScreen() {
           )}
           {country === 'US' && (
             <USStatePicker
-              visible={statePickerVisible}
+              visible={isStatePickerVisible}
               selected={usState}
               onSelect={handleUsStateChange}
               onClose={() => setStatePickerVisible(false)}

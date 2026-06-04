@@ -65,8 +65,8 @@ function FilterSheet({
 
   const [draft, setDraft] = useState<FilterState>(filters);
   const [contactSearch, setContactSearch] = useState('');
-  const [prevVisible, setPrevVisible] = useState(false);
-  if (visible !== prevVisible) {
+  const [wasPrevVisible, setPrevVisible] = useState(false);
+  if (visible !== wasPrevVisible) {
     setPrevVisible(visible);
     if (visible) {
       setDraft(filters);

@@ -29,7 +29,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextValue {
   user: User | null;
-  loading: boolean;
+  isLoading: boolean;
   signIn: (provider?: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<{ success: boolean; error?: string }>;
 }
@@ -86,7 +86,7 @@ async function syncAfterLogin(user: User): Promise<void> {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setLoading] = useState(true);
 
   useEffect(() => {
     getUser()
@@ -161,9 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // On Android, OAuth redirects often return 'dismiss' even when successful.
       // The deep link handler (Linking.addEventListener) picks up the callback
-      // independently, so 'dismiss' is not an error — keep loading state active
+      // independently, so 'dismiss' is not an error — keep isLoading state active
       // and let the deep link handler complete authentication.
-      // Safety timeout: if deep link doesn't arrive within 15s, clear loading.
+      // Safety timeout: if deep link doesn't arrive within 15s, clear isLoading.
       if (result.type !== 'success' || !result.url) {
         setTimeout(() => setLoading(false), 15_000);
         return { success: true };
@@ -216,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

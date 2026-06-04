@@ -24,13 +24,13 @@ export default function TabLayout() {
   const { pickFromCamera, pickFromLibrary, createBlankBill } = useNewBillAction();
   const glassAvailable = isGlassEffectAPIAvailable();
 
-  const [menuVisible, setMenuVisible] = useState(false);
+  const [isMenuVisible, setMenuVisible] = useState(false);
   const fabRotation = useSharedValue(0);
 
   const fabBottom = insets.bottom + 70;
 
   const handleFabPress = () => {
-    const next = !menuVisible;
+    const next = !isMenuVisible;
     setMenuVisible(next);
     fabRotation.value = withSpring(next ? 45 : 0, { damping: 18, stiffness: 280 });
   };
@@ -104,7 +104,7 @@ export default function TabLayout() {
 
       <LiquidGlassMenu
         items={menuItems}
-        visible={menuVisible}
+        visible={isMenuVisible}
         onClose={handleMenuClose}
         anchorBottom={fabBottom + FAB_SIZE}
         anchorRight={FAB_RIGHT}

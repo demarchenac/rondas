@@ -51,7 +51,7 @@ export default function HomeScreen() {
   const {
     activeFilters,
     setActiveFilters,
-    filterSheetVisible,
+    isFilterSheetVisible,
     setFilterSheetVisible,
     filterOptions,
     bills,
@@ -68,7 +68,7 @@ export default function HomeScreen() {
   const maxTotal = filterOptions?.maxTotal;
 
   const removeBill = useMutation(api.bills.remove);
-  const [refreshing, setRefreshing] = useState(false);
+  const [isRefreshing, setRefreshing] = useState(false);
   const { isPro, showPaywall } = useProGate();
   const [historyCutoff] = useState(() => Date.now() - FREE_HISTORY_DAYS * 24 * 60 * 60 * 1000);
   const { country } = useSettingsStore();
@@ -379,7 +379,7 @@ export default function HomeScreen() {
         onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isRefreshing}
             onRefresh={() => {
               setRefreshing(true);
               setTimeout(() => setRefreshing(false), 800);
@@ -429,7 +429,7 @@ export default function HomeScreen() {
 
       {/* Filter Sheet */}
       <FilterSheet
-        visible={filterSheetVisible}
+        visible={isFilterSheetVisible}
         filters={activeFilters}
         billsByState={billsByState}
         activeBillCount={activeBillCount}

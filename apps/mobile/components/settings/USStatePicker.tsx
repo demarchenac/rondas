@@ -26,8 +26,8 @@ function USStatePicker({ visible, selected, onSelect, onClose }: USStatePickerPr
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);
   const [search, setSearch] = useState('');
-  const [prevVisible, setPrevVisible] = useState(false);
-  if (visible !== prevVisible) {
+  const [wasPrevVisible, setPrevVisible] = useState(false);
+  if (visible !== wasPrevVisible) {
     setPrevVisible(visible);
     if (visible) setSearch('');
   }

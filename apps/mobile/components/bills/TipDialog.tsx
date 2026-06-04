@@ -42,8 +42,8 @@ function TipDialog({
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);
   const [localCustomTip, setLocalCustomTip] = useState(customTip);
-  const [prevVisible, setPrevVisible] = useState(false);
-  if (visible !== prevVisible) {
+  const [wasPrevVisible, setPrevVisible] = useState(false);
+  if (visible !== wasPrevVisible) {
     setPrevVisible(visible);
     if (visible) setLocalCustomTip(customTip);
   }

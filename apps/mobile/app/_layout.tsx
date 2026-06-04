@@ -31,7 +31,7 @@ Sentry.init({
 });
 
 function RootLayoutNav() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const { colorScheme, setColorScheme } = useColorScheme();
   const mode = useThemeStore((s) => s.mode);
   const hasCompletedSetup = useSettingsStore((s) => s.hasCompletedSetup);
@@ -44,7 +44,7 @@ function RootLayoutNav() {
     }
   }, [mode, setColorScheme]);
 
-  useAuthRedirect({ user, loading, hasCompletedSetup });
+  useAuthRedirect({ user, isLoading, hasCompletedSetup });
 
   return (
     <ConvexProvider client={convex}>

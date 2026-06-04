@@ -37,12 +37,12 @@ export default function PaywallScreen() {
   const { alert } = useCustomAlert();
 
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
-  const [loadingOffering, setLoadingOffering] = useState(true);
+  const [isLoadingOffering, setLoadingOffering] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<SelectedPlan>('yearly');
-  const [purchasing, setPurchasing] = useState(false);
-  const [showPromoInput, setShowPromoInput] = useState(false);
+  const [isPurchasing, setPurchasing] = useState(false);
+  const [isShowingPromoInput, setShowPromoInput] = useState(false);
   const [promoCode, setPromoCode] = useState('');
-  const [redeeming, setRedeeming] = useState(false);
+  const [isRedeeming, setRedeeming] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -178,7 +178,7 @@ export default function PaywallScreen() {
         </View>
 
         <View className="mt-8 gap-3 px-6">
-          {loadingOffering ? (
+          {isLoadingOffering ? (
             <View className="items-center py-8">
               <ActivityIndicator color={iconColors.primary} />
               <Text className="mt-3 text-base text-muted-foreground">{t.paywall_loading}</Text>
@@ -226,13 +226,13 @@ export default function PaywallScreen() {
           <View className="mt-6 px-6">
             <Pressable
               onPress={handlePurchase}
-              disabled={purchasing}
+              disabled={isPurchasing}
               className={cn(
                 'items-center justify-center rounded-2xl bg-primary py-4',
-                purchasing && 'opacity-60',
+                isPurchasing && 'opacity-60',
               )}
             >
-              {purchasing ? (
+              {isPurchasing ? (
                 <ActivityIndicator color={iconColors.primaryForeground} />
               ) : (
                 <Text className="text-lg font-bold text-primary-foreground">
@@ -248,7 +248,7 @@ export default function PaywallScreen() {
             <Text className="text-base font-medium text-primary">{t.paywall_restore}</Text>
           </Pressable>
 
-          {!showPromoInput ? (
+          {!isShowingPromoInput ? (
             <Pressable onPress={() => setShowPromoInput(true)} className="items-center py-2">
               <Text className="text-base font-medium text-muted-foreground">{t.paywall_promoCode}</Text>
             </Pressable>
@@ -265,13 +265,13 @@ export default function PaywallScreen() {
                 />
                 <Pressable
                   onPress={handleRedeem}
-                  disabled={redeeming || !promoCode.trim()}
+                  disabled={isRedeeming || !promoCode.trim()}
                   className={cn(
                     'items-center justify-center rounded-xl bg-primary px-4',
-                    (redeeming || !promoCode.trim()) && 'opacity-50',
+                    (isRedeeming || !promoCode.trim()) && 'opacity-50',
                   )}
                 >
-                  {redeeming ? (
+                  {isRedeeming ? (
                     <ActivityIndicator color={iconColors.primaryForeground} size="small" />
                   ) : (
                     <Text className="text-base font-semibold text-primary-foreground">

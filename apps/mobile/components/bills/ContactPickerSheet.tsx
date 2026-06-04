@@ -71,8 +71,8 @@ function ContactPickerSheet({
 
   const [search, setSearch] = useState('');
   const [anonCounter, setAnonCounter] = useState(0);
-  const [prevVisible, setPrevVisible] = useState(false);
-  if (visible !== prevVisible) {
+  const [wasPrevVisible, setPrevVisible] = useState(false);
+  if (visible !== wasPrevVisible) {
     setPrevVisible(visible);
     if (visible) { setSearch(''); setAnonCounter(0); }
   }

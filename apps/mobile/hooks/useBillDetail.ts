@@ -451,48 +451,48 @@ export function useBillDetail(id: string, userId: string | undefined) {
 
   const handleSplitEqually = useCallback(() => {
     if (!bill || !userId) return;
-    if (bill.contacts.length > 0) {
-      alert(t.bill_equalSwitchTitle, t.bill_equalSwitchWarning, [
-        { text: t.cancel, style: 'cancel' },
-        {
-          text: t.confirm,
-          onPress: async () => {
-            try {
-              await clearSplit({ id: id as Id<'bills'>, userId });
-              setEqualSplitMode(true);
-              setNumPeople(2);
-            } catch {
-              alert(t.error, t.error_mutationFailed);
-            }
-          },
-        },
-      ]);
-    } else {
+    if (bill.contacts.length === 0) {
       setEqualSplitMode(true);
       setNumPeople(bill.numPeople ?? 2);
+      return;
     }
+    alert(t.bill_equalSwitchTitle, t.bill_equalSwitchWarning, [
+      { text: t.cancel, style: 'cancel' },
+      {
+        text: t.confirm,
+        onPress: async () => {
+          try {
+            await clearSplit({ id: id as Id<'bills'>, userId });
+            setEqualSplitMode(true);
+            setNumPeople(2);
+          } catch {
+            alert(t.error, t.error_mutationFailed);
+          }
+        },
+      },
+    ]);
   }, [bill, id, userId, clearSplit, t, alert]);
 
   const handleSplitByItem = useCallback(() => {
     if (!bill || !userId) return;
-    if (bill.contacts.length > 0) {
-      alert(t.bill_equalSwitchTitle, t.bill_equalSwitchWarning, [
-        { text: t.cancel, style: 'cancel' },
-        {
-          text: t.confirm,
-          onPress: async () => {
-            try {
-              await clearSplit({ id: id as Id<'bills'>, userId });
-              setEqualSplitMode(false);
-            } catch {
-              alert(t.error, t.error_mutationFailed);
-            }
-          },
-        },
-      ]);
-    } else {
+    if (bill.contacts.length === 0) {
       setEqualSplitMode(false);
+      return;
     }
+    alert(t.bill_equalSwitchTitle, t.bill_equalSwitchWarning, [
+      { text: t.cancel, style: 'cancel' },
+      {
+        text: t.confirm,
+        onPress: async () => {
+          try {
+            await clearSplit({ id: id as Id<'bills'>, userId });
+            setEqualSplitMode(false);
+          } catch {
+            alert(t.error, t.error_mutationFailed);
+          }
+        },
+      },
+    ]);
   }, [bill, id, userId, clearSplit, t, alert]);
 
   const handleEqualAssignContacts = useCallback(async () => {

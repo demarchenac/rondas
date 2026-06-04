@@ -3,16 +3,16 @@ import { useRouter, useSegments } from 'expo-router';
 
 interface AuthRedirectParams {
   user: unknown;
-  loading: boolean;
+  isLoading: boolean;
   hasCompletedSetup: boolean;
 }
 
-export function useAuthRedirect({ user, loading, hasCompletedSetup }: AuthRedirectParams) {
+export function useAuthRedirect({ user, isLoading, hasCompletedSetup }: AuthRedirectParams) {
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
-    if (loading) return;
+    if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)' || segments[0] === 'auth';
     const inSetup = (segments[0] as string) === 'setup';
@@ -24,5 +24,5 @@ export function useAuthRedirect({ user, loading, hasCompletedSetup }: AuthRedire
     } else if (user && hasCompletedSetup && (inAuthGroup || inSetup)) {
       router.replace('/(tabs)');
     }
-  }, [user, loading, segments, hasCompletedSetup]);
+  }, [user, isLoading, segments, hasCompletedSetup]);
 }

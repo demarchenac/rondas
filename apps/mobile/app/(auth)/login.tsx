@@ -19,7 +19,7 @@ const GOOGLE_OAUTH_PROVIDER = 'GoogleOAuth';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { signIn, loading } = useAuth();
+  const { signIn, isLoading } = useAuth();
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const t = useT();
@@ -64,7 +64,7 @@ export default function LoginScreen() {
             variant="default"
             size="lg"
             className="w-full"
-            disabled={loading}
+            disabled={isLoading}
             onPress={() => handleSignIn()}
           >
             <IconSymbol name="envelope.fill" size={18} color={iconColors.primaryForeground} />
@@ -83,7 +83,7 @@ export default function LoginScreen() {
             variant="outline"
             size="lg"
             className="w-full"
-            disabled={loading}
+            disabled={isLoading}
             onPress={() => handleSignIn(APPLE_OAUTH_PROVIDER)}
           >
             <FontAwesome
@@ -99,7 +99,7 @@ export default function LoginScreen() {
             variant="outline"
             size="lg"
             className="w-full"
-            disabled={loading}
+            disabled={isLoading}
             onPress={() => handleSignIn(GOOGLE_OAUTH_PROVIDER)}
           >
             <FontAwesome
@@ -142,7 +142,7 @@ export default function LoginScreen() {
       </View>
 
       {/* Loading overlay */}
-      {loading && (
+      {isLoading && (
         <View className="absolute bottom-0 left-0 right-0 top-0 items-center justify-center bg-background/80">
           <ActivityIndicator size="large" color={iconColors.primary} />
         </View>

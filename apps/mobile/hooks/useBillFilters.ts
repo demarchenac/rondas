@@ -16,7 +16,7 @@ export function useBillFilters(userId: string | undefined) {
   const [activeFilters, setActiveFilters] = useState<FilterState>(
     () => defaultFilters(userCountry),
   );
-  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
+  const [isFilterSheetVisible, setFilterSheetVisible] = useState(false);
 
   // Sync country default when user changes it in settings
   const prevCountry = useRef(userCountry);
@@ -87,7 +87,7 @@ export function useBillFilters(userId: string | undefined) {
   return {
     activeFilters,
     setActiveFilters,
-    filterSheetVisible,
+    isFilterSheetVisible,
     setFilterSheetVisible,
     filterOptions,
     bills,

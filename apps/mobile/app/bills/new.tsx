@@ -192,9 +192,9 @@ export default function NewBillScreen() {
   }
 
   type ScanPhase = 'uploading' | 'analyzing' | 'thinking' | 'extracting' | 'complete';
-  const [scanning, setScanning] = useState(false);
+  const [isScanning, setScanning] = useState(false);
   const [localPhase, setLocalPhase] = useState<ScanPhase>('uploading');
-  const [saving, setSaving] = useState(false);
+  const [isSaving, setSaving] = useState(false);
   const [bill, setBill] = useState<ExtractedBill | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -489,7 +489,7 @@ export default function NewBillScreen() {
             )}
 
             {/* Scan button — glass with primary tint */}
-            {!scanning && (
+            {!isScanning && (
               <>
                 <Pressable
                   onPress={handleScan}
@@ -539,7 +539,7 @@ export default function NewBillScreen() {
         </View>
 
         {/* Scanning overlay */}
-        {scanning && (
+        {isScanning && (
           <ScanningOverlay scanProgress={scanProgress} localPhase={localPhase} billCountry={country} />
         )}
       </View>
@@ -775,10 +775,10 @@ export default function NewBillScreen() {
           variant="default"
           size="lg"
           className="w-full rounded-xl"
-          disabled={saving || bill.items.length === 0}
+          disabled={isSaving || bill.items.length === 0}
           onPress={handleConfirm}
         >
-          {saving ? (
+          {isSaving ? (
             <>
               <ActivityIndicator size="small" color={iconColors.primaryForeground} />
               <Text>{t.scan_saving}</Text>
