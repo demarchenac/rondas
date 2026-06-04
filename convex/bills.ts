@@ -613,9 +613,9 @@ export const assignEqualSplit = mutation({
 
     const contacts: ContactRef[] = [];
     for (let i = 0; i < args.contacts.length; i++) {
-      const c = args.contacts[i];
-      const contactId = await getOrCreate(ctx, args.userId, c);
-      const selfFlag = c.isSelf ? true : undefined;
+      const contact = args.contacts[i];
+      const contactId = await getOrCreate(ctx, args.userId, contact);
+      const selfFlag = contact.isSelf ? true : undefined;
       if (!selfFlag) await incrementReference(ctx, contactId);
       contacts.push({
         contactId,

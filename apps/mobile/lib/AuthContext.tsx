@@ -60,17 +60,17 @@ async function syncAfterLogin(user: User): Promise<void> {
       name: profileData.name,
       imageUri: profileData.avatarUrl,
     });
-    const c = existing.config;
+    const config = existing.config;
     const settings = useSettingsStore.getState();
-    settings.setCountry(c.country as 'CO' | 'US');
-    if (c.usState) settings.setUsState(c.usState);
-    settings.setDefaultTipPercent(c.defaultTipPercent);
-    settings.setLanguage(c.language as 'en' | 'es');
-    settings.setExtractPhotoTime(c.extractPhotoTime);
-    settings.setUseLocation(c.useLocation);
-    if (c.impoconsumoIncluded !== undefined) settings.setImpoconsumoIncluded(c.impoconsumoIncluded);
-    if (c.ivaIncluded !== undefined) settings.setIvaIncluded(c.ivaIncluded);
-    useThemeStore.getState().setMode(c.theme as 'light' | 'dark' | 'system');
+    settings.setCountry(config.country as 'CO' | 'US');
+    if (config.usState) settings.setUsState(config.usState);
+    settings.setDefaultTipPercent(config.defaultTipPercent);
+    settings.setLanguage(config.language as 'en' | 'es');
+    settings.setExtractPhotoTime(config.extractPhotoTime);
+    settings.setUseLocation(config.useLocation);
+    if (config.impoconsumoIncluded !== undefined) settings.setImpoconsumoIncluded(config.impoconsumoIncluded);
+    if (config.ivaIncluded !== undefined) settings.setIvaIncluded(config.ivaIncluded);
+    useThemeStore.getState().setMode(config.theme as 'light' | 'dark' | 'system');
     settings.setHasCompletedSetup(true);
   } else {
     await convex.mutation(api.users.createUser, profileData);

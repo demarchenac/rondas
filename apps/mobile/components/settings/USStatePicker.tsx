@@ -26,9 +26,14 @@ function USStatePicker({ visible, selected, onSelect, onClose }: USStatePickerPr
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);
   const [search, setSearch] = useState('');
+  const [prevVisible, setPrevVisible] = useState(false);
+  if (visible !== prevVisible) {
+    setPrevVisible(visible);
+    if (visible) setSearch('');
+  }
 
   useEffect(() => {
-    if (visible) { setSearch(''); sheetRef.current?.present(); }
+    if (visible) sheetRef.current?.present();
     else sheetRef.current?.dismiss();
   }, [visible]);
 
@@ -36,8 +41,8 @@ function USStatePicker({ visible, selected, onSelect, onClose }: USStatePickerPr
 
   const filtered = useMemo(() => {
     if (!search) return states;
-    const q = search.toLowerCase();
-    return states.filter((s) => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q));
+    const query = search.toLowerCase();
+    return states.filter((s) => s.name.toLowerCase().includes(query) || s.code.toLowerCase().includes(query));
   }, [search]);
 
   const handleSelect = (code: string) => {

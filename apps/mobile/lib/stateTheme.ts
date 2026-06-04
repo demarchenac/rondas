@@ -59,11 +59,11 @@ const INTENSITY_MULTIPLIERS: Record<Intensity, number> = {
 };
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const h = hex.replace('#', '');
+  const cleanedHex = hex.replace('#', '');
   return {
-    r: parseInt(h.substring(0, 2), 16),
-    g: parseInt(h.substring(2, 4), 16),
-    b: parseInt(h.substring(4, 6), 16),
+    r: parseInt(cleanedHex.substring(0, 2), 16),
+    g: parseInt(cleanedHex.substring(2, 4), 16),
+    b: parseInt(cleanedHex.substring(4, 6), 16),
   };
 }
 

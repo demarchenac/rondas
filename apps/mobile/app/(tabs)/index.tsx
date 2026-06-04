@@ -177,14 +177,14 @@ export default function HomeScreen() {
 
   const billsTotal = useMemo(() => {
     if (bills.length === 0) return 0;
-    return bills.reduce((sum, b) => {
-      const bc = (b.country as 'CO' | 'US') || 'CO';
-      const cat = (b.tags?.find((t) => t.isPlatform)?.slug as 'dining' | 'retail' | 'service') || 'dining';
-      const tc = withTaxIncludedOverride(getTaxConfig(bc, cat), b.taxIncludedOverride ?? undefined);
-      const items = b.items.reduce((s, i) => s + i.subtotal, 0);
+    return bills.reduce((sum, bill) => {
+      const billCountry = (bill.country as 'CO' | 'US') || 'CO';
+      const category = (bill.tags?.find((tag) => tag.isPlatform)?.slug as 'dining' | 'retail' | 'service') || 'dining';
+      const tc = withTaxIncludedOverride(getTaxConfig(billCountry, category), bill.taxIncludedOverride ?? undefined);
+      const items = bill.items.reduce((s, i) => s + i.subtotal, 0);
       const base = computeBase(items, tc);
       const tax = computeTax(items, tc);
-      const tip = b.useCustomTip ? (b.tip ?? 0) : base * ((b.tipPercent ?? 0) / 100);
+      const tip = bill.useCustomTip ? (bill.tip ?? 0) : base * ((bill.tipPercent ?? 0) / 100);
       return sum + base + tax + tip;
     }, 0);
   }, [bills]);
@@ -360,8 +360,8 @@ export default function HomeScreen() {
               <BillCard
                 bill={item}
                 onPress={() => {
-                  const locked = !isPro && item._creationTime < historyCutoff;
-                  if (locked) {
+                  const isLocked = !isPro && item._creationTime < historyCutoff;
+                  if (isLocked) {
                     showPaywall();
                     return;
                   }

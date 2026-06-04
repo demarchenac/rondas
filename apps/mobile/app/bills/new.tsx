@@ -133,13 +133,13 @@ export default function NewBillScreen() {
 
         if (resolveLocation === 'exif' && latitude && longitude) {
           // Library: resolve from EXIF GPS
-          const lat = parseFloat(latitude);
-          const lng = parseFloat(longitude);
-          const place = await resolvePlace(lat, lng);
+          const parsedLat = parseFloat(latitude);
+          const parsedLng = parseFloat(longitude);
+          const place = await resolvePlace(parsedLat, parsedLng);
           if (cancelled) return;
           setPlaceData({
-            latitude: lat,
-            longitude: lng,
+            latitude: parsedLat,
+            longitude: parsedLng,
             placeName: place?.name,
             address: place?.address,
           });
@@ -169,23 +169,23 @@ export default function NewBillScreen() {
   interface ScanError { type: ScanErrorType; message: string; hint: string; }
 
   function classifyScanError(err: unknown): ScanError {
-    const msg = String(err).toLowerCase();
-    if (msg.includes('not_a_receipt')) {
+    const errorMessage = String(err).toLowerCase();
+    if (errorMessage.includes('not_a_receipt')) {
       return { type: 'not_a_receipt', message: t.error_notReceipt, hint: t.error_hintNotReceipt };
     }
-    if (msg.includes('timeout') || msg.includes('timed out')) {
+    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
       return { type: 'timeout', message: t.error_timeout, hint: t.error_hintTimeout };
     }
-    if (msg.includes('429') || msg.includes('rate limit')) {
+    if (errorMessage.includes('429') || errorMessage.includes('rate limit')) {
       return { type: 'api', message: t.error_rateLimited, hint: t.error_hintRateLimited };
     }
-    if (msg.includes('403')) {
+    if (errorMessage.includes('403')) {
       return { type: 'api', message: t.error_serviceUnavailable, hint: t.error_hintServiceUnavailable };
     }
-    if (msg.includes('500') || msg.includes('503')) {
+    if (errorMessage.includes('500') || errorMessage.includes('503')) {
       return { type: 'api', message: t.error_api, hint: t.error_hintApi };
     }
-    if (msg.includes('failed to parse')) {
+    if (errorMessage.includes('failed to parse')) {
       return { type: 'generic', message: t.error_parseError, hint: t.error_hintParseError };
     }
     return { type: 'generic', message: t.error_scanGeneric, hint: t.error_hintScan };

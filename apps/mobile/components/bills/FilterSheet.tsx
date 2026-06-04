@@ -76,8 +76,8 @@ function FilterSheet({
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch) return availableContacts;
-    const q = contactSearch.toLowerCase();
-    return availableContacts.filter((c) => c.name.toLowerCase().includes(q));
+    const query = contactSearch.toLowerCase();
+    return availableContacts.filter((c) => c.name.toLowerCase().includes(query));
   }, [availableContacts, contactSearch]);
 
   const selectedContactSet = useMemo(

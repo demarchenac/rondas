@@ -30,13 +30,13 @@ import { presentCodeRedemptionSheet, presentCustomerCenter } from '@/lib/revenue
 import { useCustomAlert } from '@/components/ui/custom-alert';
 
 function formatOtaDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  const h = d.getHours() % 12 || 12;
+  const hours = d.getHours() % 12 || 12;
   const min = String(d.getMinutes()).padStart(2, '0');
   const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
-  return `${y}-${m}-${day} ${h}:${min} ${ampm}`;
+  return `${year}-${month}-${day} ${hours}:${min} ${ampm}`;
 }
 
 export default function SettingsScreen() {
