@@ -96,20 +96,20 @@ export default function SettingsScreen() {
 
   const syncConfig = useCallback(() => {
     if (!user) return;
-    const s = useSettingsStore.getState();
-    const ts = useThemeStore.getState();
+    const settings = useSettingsStore.getState();
+    const themeState = useThemeStore.getState();
     updateConfigMutation({
       workosId: user.id,
       config: {
-        country: s.country,
-        usState: s.usState,
-        defaultTipPercent: s.defaultTipPercent,
-        language: s.language,
-        theme: ts.mode,
-        extractPhotoTime: s.extractPhotoTime,
-        useLocation: s.useLocation,
-        impoconsumoIncluded: s.impoconsumoIncluded,
-        ivaIncluded: s.ivaIncluded,
+        country: settings.country,
+        usState: settings.usState,
+        defaultTipPercent: settings.defaultTipPercent,
+        language: settings.language,
+        theme: themeState.mode,
+        extractPhotoTime: settings.extractPhotoTime,
+        useLocation: settings.useLocation,
+        impoconsumoIncluded: settings.impoconsumoIncluded,
+        ivaIncluded: settings.ivaIncluded,
       },
     }).catch(() => {}); // fire-and-forget
   }, [user, updateConfigMutation]);

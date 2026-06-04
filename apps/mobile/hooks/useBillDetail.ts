@@ -322,10 +322,10 @@ export function useBillDetail(id: string, userId: string | undefined) {
         },
       ]);
       return 'single' as const;
-    } else {
-      setSelectedContactIds(new Set());
-      return 'multiple' as const;
     }
+
+    setSelectedContactIds(new Set());
+    return 'multiple' as const;
   }, [bill, id, removeContactsBatch, t, userId, alert]);
 
   const handleConfirmUnassign = useCallback(async (selectedItemIds: Set<string>) => {
