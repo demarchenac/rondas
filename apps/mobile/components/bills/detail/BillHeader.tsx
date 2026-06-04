@@ -44,7 +44,7 @@ interface BillHeaderProps {
   stateTextClass: string;
   hasContacts: boolean;
   splitStrategy?: string;
-  multiSelectMode: boolean;
+  isMultiSelectMode: boolean;
   iconColors: IconPalette;
   t: Translations;
   onBack: () => void;
@@ -66,7 +66,7 @@ function BillHeader({
   stateTextClass,
   hasContacts,
   splitStrategy,
-  multiSelectMode,
+  isMultiSelectMode,
   iconColors,
   t,
   onBack,
@@ -79,7 +79,7 @@ function BillHeader({
 }: BillHeaderProps) {
   const nameInput = useBufferedInput(billName, onUpdateName);
   const { alert, actionSheet } = useCustomAlert();
-  const { glassAvailable, glassReady, useGlass } = useGlassEffect();
+  const { glassAvailable, isGlassReady, useGlass } = useGlassEffect();
 
   const stateStyle = STATE_STYLES[state];
 
@@ -140,7 +140,7 @@ function BillHeader({
     </Pressable>
   );
 
-  const percentChip = hasContacts && !multiSelectMode ? (
+  const percentChip = hasContacts && !isMultiSelectMode ? (
     useGlass ? (
       <GlassView style={{ borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 }}>
           <Text className={`text-sm font-semibold ${stateTextClass}`}>
@@ -154,7 +154,7 @@ function BillHeader({
     )
   ) : null;
 
-  const statusBadge = !multiSelectMode ? (
+  const statusBadge = !isMultiSelectMode ? (
     useGlass ? (
       <GlassView style={{ borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateStyle.color }} />
@@ -167,7 +167,7 @@ function BillHeader({
     )
   ) : null;
 
-  const overflowButton = multiSelectMode ? (
+  const overflowButton = isMultiSelectMode ? (
     <Pressable onPress={onDoneEdit} className="active:opacity-80">
       {useGlass ? (
         <GlassView isInteractive tintColor={iconColors.primary + '1A'} style={{ borderRadius: 18, paddingHorizontal: 14, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}>
@@ -194,8 +194,8 @@ function BillHeader({
     </Pressable>
   );
 
-  if (glassAvailable && !glassReady) {
-    return <HeaderSkeleton hasProgressBar={hasContacts && !multiSelectMode} />;
+  if (glassAvailable && !isGlassReady) {
+    return <HeaderSkeleton hasProgressBar={hasContacts && !isMultiSelectMode} />;
   }
 
   return (
@@ -217,7 +217,7 @@ function BillHeader({
         </View>
       </View>
       {/* Progress bar */}
-      {hasContacts && !multiSelectMode && (
+      {hasContacts && !isMultiSelectMode && (
         useGlass ? (
           <GlassView style={{ borderRadius: 4, height: 6, overflow: 'hidden', marginTop: 10 }}>
             <ProgressBar paidPercent={paidPercent} unpaidPercent={unpaidPercent} height={6} radius={4} style={{ backgroundColor: 'transparent' }} />

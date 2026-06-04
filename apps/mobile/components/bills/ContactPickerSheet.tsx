@@ -117,12 +117,12 @@ function ContactPickerSheet({
   const renderSuggestedContact = useCallback((c: Doc<'contacts'>) => {
     const key = `${SUGGESTED_PREFIX}${c._id}`;
     const isSelected = selectedContactIds.has(key);
-    const disabled = !isSelected && atCapacity;
+    const isDisabled = !isSelected && atCapacity;
     return (
       <Pressable
         key={key}
-        onPress={() => { if (disabled) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onToggleContact(key); }}
-        className={`flex-row items-center py-2.5 gap-3 ${disabled ? 'opacity-40' : ''}`}
+        onPress={() => { if (isDisabled) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onToggleContact(key); }}
+        className={`flex-row items-center py-2.5 gap-3 ${isDisabled ? 'opacity-40' : ''}`}
       >
         <IconSymbol
           name={isSelected ? 'checkmark.circle.fill' : 'circle'}
@@ -150,11 +150,11 @@ function ContactPickerSheet({
 
   const renderContactRow = useCallback(({ item: c }: { item: PhoneContact }) => {
     const isSelected = selectedContactIds.has(c.id);
-    const disabled = !isSelected && atCapacity;
+    const isDisabled = !isSelected && atCapacity;
     return (
       <Pressable
-        onPress={() => { if (disabled) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onToggleContact(c.id); }}
-        className={`flex-row items-center py-2.5 gap-3 px-7 ${disabled ? 'opacity-40' : ''}`}
+        onPress={() => { if (isDisabled) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onToggleContact(c.id); }}
+        className={`flex-row items-center py-2.5 gap-3 px-7 ${isDisabled ? 'opacity-40' : ''}`}
       >
         <IconSymbol
           name={isSelected ? 'checkmark.circle.fill' : 'circle'}
@@ -188,12 +188,12 @@ function ContactPickerSheet({
     if (!selfContact) return null;
     const key = `${SELF_PREFIX}${selfContact._id}`;
     const isSelected = selectedContactIds.has(key);
-    const disabled = !isSelected && atCapacity;
+    const isDisabled = !isSelected && atCapacity;
     return (
       <Pressable
         key={key}
-        onPress={() => { if (disabled) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onToggleContact(key); }}
-        className={`flex-row items-center py-2.5 gap-3 ${disabled ? 'opacity-40' : ''}`}
+        onPress={() => { if (isDisabled) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onToggleContact(key); }}
+        className={`flex-row items-center py-2.5 gap-3 ${isDisabled ? 'opacity-40' : ''}`}
       >
         <IconSymbol
           name={isSelected ? 'checkmark.circle.fill' : 'circle'}

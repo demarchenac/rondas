@@ -805,16 +805,16 @@ function recalculateAmounts(
     contact.amount = Math.round(contactItemsTotal + discountTotal * share + tax * share + tip * share);
   }
 
-  const active = contacts.filter((c) => c.items.length > 0);
+  const activeContacts = contacts.filter((c) => c.items.length > 0);
 
-  if (active.length > 0) {
+  if (activeContacts.length > 0) {
     const expectedTotal = itemsTotal + tax + tip;
-    const roundedSum = active.reduce((sum, c) => sum + c.amount, 0);
+    const roundedSum = activeContacts.reduce((sum, c) => sum + c.amount, 0);
     const remainder = Math.round(expectedTotal) - roundedSum;
     if (remainder !== 0) {
-      active[0].amount += remainder;
+      activeContacts[0].amount += remainder;
     }
   }
 
-  return active;
+  return activeContacts;
 }

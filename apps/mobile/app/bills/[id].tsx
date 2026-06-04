@@ -103,7 +103,7 @@ export default function BillDetailScreen() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [activeDialog, setActiveDialog] = useState<DialogType>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [sortStrategy, setSortStrategy] = useState<SortStrategy>('original');
   const [unitSheetTarget, setUnitSheetTarget] = useState<{ itemId: string; contactId: Id<'contacts'> } | null>(null);
@@ -113,14 +113,14 @@ export default function BillDetailScreen() {
 
   // ── Glass effect ──
   const glassAvailable = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
-  const [glassReady, setGlassReady] = useState(false);
+  const [isGlassReady, setIsGlassReady] = useState(false);
   useEffect(() => {
-    if (glassAvailable && !glassReady) {
-      const timerId = setTimeout(() => setGlassReady(true), 500);
+    if (glassAvailable && !isGlassReady) {
+      const timerId = setTimeout(() => setIsGlassReady(true), 500);
       return () => clearTimeout(timerId);
     }
-  }, [glassAvailable, glassReady]);
-  const useGlass = glassAvailable && glassReady;
+  }, [glassAvailable, isGlassReady]);
+  const useGlass = glassAvailable && isGlassReady;
 
   // ── Derived (depends on UI state) ──
   const excludePhones = useMemo(() => computeExcludePhones(selectedItemIds), [computeExcludePhones, selectedItemIds]);
@@ -180,7 +180,7 @@ export default function BillDetailScreen() {
   }, [selectedItemIds, handleBulkDelete]);
 
   const onAddItem = useCallback(async () => {
-    if (multiSelectMode) {
+    if (isMultiSelectMode) {
       setSelectedItemIds(new Set());
     }
     const newItemId = await handleAddItem();
@@ -188,7 +188,7 @@ export default function BillDetailScreen() {
       setEditingItemId(newItemId);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300);
     }
-  }, [multiSelectMode, handleAddItem]);
+  }, [isMultiSelectMode, handleAddItem]);
 
   const onBulkRemoveContact = useCallback(() => {
     const result = handleBulkRemoveContact(selectedItemIds);
@@ -300,7 +300,7 @@ export default function BillDetailScreen() {
           stateTextClass={stateStyle.textClass}
           hasContacts={totalContacts > 0}
           splitStrategy={equalSplitMode ? 'equal' : bill.splitStrategy}
-          multiSelectMode={multiSelectMode}
+          isMultiSelectMode={isMultiSelectMode}
           iconColors={iconColors}
           t={t}
           onBack={() => router.back()}
@@ -308,12 +308,12 @@ export default function BillDetailScreen() {
           onSplitEqually={handleSplitEqually}
           onSplitByItem={handleSplitByItem}
           onEdit={() => {
-            setMultiSelectMode(true);
+            setIsMultiSelectMode(true);
             setSelectedItemIds(new Set());
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
           onDoneEdit={() => {
-            setMultiSelectMode(false);
+            setIsMultiSelectMode(false);
             setSelectedItemIds(new Set());
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
@@ -414,7 +414,7 @@ export default function BillDetailScreen() {
                     assignedContacts={assignedContacts}
                     isEditing={editingItemId === itemId}
                     isDeleting={deletingId === item.id}
-                    multiSelectMode={multiSelectMode}
+                    isMultiSelectMode={isMultiSelectMode}
                     isSelected={selectedItemIds.has(itemId)}
                     iconColors={iconColors}
                     t={t}
@@ -496,8 +496,8 @@ export default function BillDetailScreen() {
 
       {/* Bottom fixed buttons — absolute positioned */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom, zIndex: 10, backgroundColor: 'transparent', paddingHorizontal: 28 }}>
-        {!multiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
-          glassAvailable && !glassReady ? (
+        {!isMultiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
+          glassAvailable && !isGlassReady ? (
             <Skeleton width="100%" height={52} borderRadius={12} style={{ marginBottom: 8 }} />
           ) : (
             <Pressable onPress={() => router.push(`/bills/share?id=${id}`)} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
@@ -519,7 +519,7 @@ export default function BillDetailScreen() {
             </Pressable>
           )
         )}
-        {multiSelectMode && selectedItemIds.size > 0 && (
+        {isMultiSelectMode && selectedItemIds.size > 0 && (
           <BulkToolbar
             selectedItemIds={selectedItemIds}
             hasContactsOnSelection={bill.contacts.some((contact) => contact.items.some((ref) => selectedItemIds.has(ref.itemId)))}
@@ -528,7 +528,7 @@ export default function BillDetailScreen() {
             onDelete={onBulkDelete}
           />
         )}
-        {glassAvailable && !glassReady ? (
+        {glassAvailable && !isGlassReady ? (
           <Skeleton width="100%" height={44} borderRadius={12} style={{ marginBottom: 8 }} />
         ) : (
           <Pressable onPress={onAddItem} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">

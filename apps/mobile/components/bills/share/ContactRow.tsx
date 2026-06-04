@@ -22,7 +22,7 @@ export interface ContactRowProps {
   translatedTaxLabel: string;
   iconColors: IconPalette;
   t: Translations;
-  groupSelectMode?: boolean;
+  isGroupSelectMode?: boolean;
   isLocked?: boolean;
   isSelected?: boolean;
   capturingIndex: number | null;
@@ -35,7 +35,7 @@ export interface ContactRowProps {
 function ContactRow({
   contact, contactIndex, shareData, isEqualSplit,
   billCountry, decimalPlaces, contactCount, translatedTaxLabel, iconColors, t,
-  groupSelectMode, isLocked, isSelected, capturingIndex,
+  isGroupSelectMode, isLocked, isSelected, capturingIndex,
   onToggleSelection, onTogglePaid, onSendWhatsApp, onShareInfographic,
 }: ContactRowProps) {
   const { total, tax, tip, items: itemShares } = shareData;
@@ -44,7 +44,7 @@ function ContactRow({
 
   const content = (
       <View className="flex-row items-start gap-3">
-        {groupSelectMode && !isLocked && (
+        {isGroupSelectMode && !isLocked && (
           <IconSymbol
             name={isSelected ? 'checkmark.circle.fill' : 'circle'}
             size={22}
@@ -70,14 +70,14 @@ function ContactRow({
             {!isEqualSplit && (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 8 }}>
                 {contact.items.map((itemRef) => {
-                  const info = itemShares.get(itemRef.itemId);
-                  if (!info) return null;
+                  const itemShareInfo = itemShares.get(itemRef.itemId);
+                  if (!itemShareInfo) return null;
                   return (
                     <View key={itemRef.itemId} style={{ flexBasis: '48%', flexGrow: 1 }} className="mb-1">
                       <Text className="text-sm text-foreground" numberOfLines={1}>
-                        {info.name} ({itemRef.units}/{info.totalUnits})
+                        {itemShareInfo.name} ({itemRef.units}/{itemShareInfo.totalUnits})
                       </Text>
-                      <Text className="text-sm text-muted-foreground">{formatCurrency(info.share, billCountry, decimalPlaces)}</Text>
+                      <Text className="text-sm text-muted-foreground">{formatCurrency(itemShareInfo.share, billCountry, decimalPlaces)}</Text>
                     </View>
                   );
                 })}
@@ -103,7 +103,7 @@ function ContactRow({
               </View>
             )}
 
-            {!groupSelectMode && (
+            {!isGroupSelectMode && (
               <View className="mt-2 flex-row items-center gap-2">
                 <Pressable
                   onPress={() => onTogglePaid(contact.contactId)}
@@ -155,7 +155,7 @@ function ContactRow({
       </View>
   );
 
-  if (groupSelectMode && !isLocked) {
+  if (isGroupSelectMode && !isLocked) {
     return (
       <Pressable
         className="mb-4"

@@ -60,7 +60,7 @@ export default function ShareScreen() {
   const [previewAspect, setPreviewAspect] = useState(1);
   const [previewContactName, setPreviewContactName] = useState('');
 
-  const [groupSelectMode, setGroupSelectMode] = useState(false);
+  const [isGroupSelectMode, setIsGroupSelectMode] = useState(false);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
 
@@ -75,7 +75,7 @@ export default function ShareScreen() {
     prevBillRef.current = bill;
   }, [bill]);
 
-  const { glassAvailable, glassReady, useGlass } = useGlassEffect();
+  const { glassAvailable, isGlassReady, useGlass } = useGlassEffect();
 
   const billCountry = (bill?.country as 'CO' | 'US') || 'CO';
   const billCategory = (bill?.tags?.find((tag) => tag.isPlatform)?.slug || 'dining') as ReceiptCategory;
@@ -206,13 +206,13 @@ export default function ShareScreen() {
   }, [bill, t, alert]);
 
   const resetGroupMode = useCallback(() => {
-    setGroupSelectMode(false);
+    setIsGroupSelectMode(false);
     setSelectedForGroup(new Set());
     setEditingGroupId(null);
   }, []);
 
   const enterGroupMode = useCallback(() => {
-    setGroupSelectMode(true);
+    setIsGroupSelectMode(true);
     setSelectedForGroup(new Set());
     setEditingGroupId(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -306,7 +306,7 @@ export default function ShareScreen() {
   }, [editingGroup]);
 
   const handleEditGroup = useCallback((groupId: string, memberIds: Set<string>) => {
-    setGroupSelectMode(true);
+    setIsGroupSelectMode(true);
     setEditingGroupId(groupId);
     setSelectedForGroup(memberIds);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -382,7 +382,7 @@ export default function ShareScreen() {
           onTogglePaid={handleTogglePaid}
           onSendWhatsApp={handleSendWhatsApp}
           onShareInfographic={handleShareInfographic}
-          groupSelectMode={groupSelectMode}
+          isGroupSelectMode={isGroupSelectMode}
           isLocked={isLocked}
           isSelected={selectedForGroup.has(contactKey(contact))}
           onToggleSelection={() => toggleGroupSelection(contactKey(contact))}
@@ -416,7 +416,7 @@ export default function ShareScreen() {
     </Pressable>
   );
 
-  const trailingButton = groupSelectMode ? (
+  const trailingButton = isGroupSelectMode ? (
     <Pressable onPress={resetGroupMode} role="button" accessibilityLabel={t.cancel} className="active:opacity-80">
       {useGlass ? (
         <GlassView isInteractive style={{ borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 }}>
@@ -449,7 +449,7 @@ export default function ShareScreen() {
 
       {/* Header — floating above MaskedView */}
       <View style={{ position: 'absolute', left: 0, right: 0, top: insets.top, zIndex: 10 }}>
-        {glassAvailable && !glassReady ? (
+        {glassAvailable && !isGlassReady ? (
           <View className="flex-row items-center gap-3 px-7 pb-3 pt-3">
             <Skeleton width={36} height={36} borderRadius={18} />
             <Skeleton width="50%" height={24} borderRadius={6} />
@@ -481,15 +481,15 @@ export default function ShareScreen() {
       </MaskedView>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 80, paddingBottom: insets.bottom + 16, paddingHorizontal: 28 }}>
-        {!groupSelectMode && unassignedUnits > 0 && (
+        {!isGroupSelectMode && unassignedUnits > 0 && (
           <View className="mb-4 flex-row items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3">
             <IconSymbol name="exclamationmark.triangle.fill" size={16} color={iconColors.pro} />
             <Text className="flex-1 text-sm text-amber-600 dark:text-amber-400">{t.share_unassignedWarning(unassignedUnits)}</Text>
           </View>
         )}
-        {groupSelectMode && bill.contacts.map((contact) => renderContactRow(contact))}
-        {!groupSelectMode && ungroupedContacts.map((contact) => renderContactRow(contact))}
-        {!groupSelectMode && contactGroups.map((group, groupIndex) => {
+        {isGroupSelectMode && bill.contacts.map((contact) => renderContactRow(contact))}
+        {!isGroupSelectMode && ungroupedContacts.map((contact) => renderContactRow(contact))}
+        {!isGroupSelectMode && contactGroups.map((group, groupIndex) => {
           const members = resolvedGroupMembers.get(group.id) ?? [];
           if (members.length < 2) return null;
 
@@ -520,7 +520,7 @@ export default function ShareScreen() {
         })}
 
         {/* Bill-level share actions */}
-        {!groupSelectMode && bill.contacts.length > 0 && (
+        {!isGroupSelectMode && bill.contacts.length > 0 && (
           <View className="mt-6 border-t border-foreground/10 pt-4">
             <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.share_shareBill}</Text>
             <View className="flex-row items-center gap-2">
@@ -551,7 +551,7 @@ export default function ShareScreen() {
         )}
       </ScrollView>
 
-      {groupSelectMode && (
+      {isGroupSelectMode && (
         <GroupConfirmToolbar
           selectedCount={selectedForGroup.size}
           isEditing={!!editingGroupId}

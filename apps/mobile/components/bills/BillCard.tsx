@@ -338,10 +338,10 @@ function BillCardIOS({
     setCardHeight(e.nativeEvent.layout.height);
   }, []);
 
-  const { glassAvailable, glassReady, useGlass: glassEnabled } = useGlassEffect();
+  const { glassAvailable, isGlassReady, useGlass: glassEnabled } = useGlassEffect();
   const useGlass = glassEnabled && !isDraft;
 
-  if (glassAvailable && !glassReady && !isDraft) {
+  if (glassAvailable && !isGlassReady && !isDraft) {
     return (
       <View style={{ marginBottom: 10 }}>
         <BillCardSkeleton />

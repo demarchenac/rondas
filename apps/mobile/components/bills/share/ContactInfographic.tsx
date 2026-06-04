@@ -29,8 +29,8 @@ function ContactInfographic({ viewShotRef, contact, shareData, billName, taxConf
           contactName={contact.isSelf ? t.self_label(contact.name) : contact.name}
           contactImageUri={contact.imageUri}
           items={contact.items.map((itemRef) => {
-            const info = shareData.items.get(itemRef.itemId);
-            return { name: info?.name ?? '', amount: info?.share ?? 0, units: itemRef.units, totalUnits: info?.totalUnits ?? 0 };
+            const itemShareInfo = shareData.items.get(itemRef.itemId);
+            return { name: itemShareInfo?.name ?? '', amount: itemShareInfo?.share ?? 0, units: itemRef.units, totalUnits: itemShareInfo?.totalUnits ?? 0 };
           })}
           taxConfig={taxConfig}
           tipPercent={tipPercent}

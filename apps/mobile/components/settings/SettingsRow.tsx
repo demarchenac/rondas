@@ -23,7 +23,7 @@ const SettingsRow = React.memo(function SettingsRow({
   onPress?: () => void;
   last?: boolean;
 }) {
-  const [showInfo, setShowInfo] = useState(false);
+  const [isShowingInfo, setIsShowingInfo] = useState(false);
   const { colorScheme } = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const Wrapper = onPress ? Pressable : View;
@@ -40,20 +40,20 @@ const SettingsRow = React.memo(function SettingsRow({
         <Text className="flex-1 text-lg text-foreground">{label}</Text>
         {info && (
           <Pressable
-            onPress={() => setShowInfo((v) => !v)}
+            onPress={() => setIsShowingInfo((v) => !v)}
             hitSlop={8}
             className="mr-1"
           >
             <IconSymbol
               name="info.circle"
               size={18}
-              color={showInfo ? iconColors.primary : iconColors.mutedLight}
+              color={isShowingInfo ? iconColors.primary : iconColors.mutedLight}
             />
           </Pressable>
         )}
         {children}
       </Wrapper>
-      {info && showInfo && (
+      {info && isShowingInfo && (
         <View className="px-4 pb-3 pt-0">
           <Text className="text-sm leading-5 text-muted-foreground">
             {info}

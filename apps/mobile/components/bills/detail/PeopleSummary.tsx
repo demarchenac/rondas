@@ -72,7 +72,7 @@ function PeopleSummary({
 
   const isEqualSplit = splitStrategy === 'equal';
 
-  const [groupSelectMode, setGroupSelectMode] = useState(false);
+  const [isGroupSelectMode, setIsGroupSelectMode] = useState(false);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(new Set());
   const [editingNameGroupId, setEditingNameGroupId] = useState<string | null>(null);
@@ -181,13 +181,13 @@ function PeopleSummary({
 
   const enterSelectMode = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setGroupSelectMode(true);
+    setIsGroupSelectMode(true);
     setSelectedForGroup(new Set());
     setExpandedGroupIds(new Set());
   }, []);
 
   const cancelSelectMode = useCallback(() => {
-    setGroupSelectMode(false);
+    setIsGroupSelectMode(false);
     setSelectedForGroup(new Set());
     setExpandedGroupIds(new Set());
   }, []);
@@ -242,7 +242,7 @@ function PeopleSummary({
   }, [editingNameGroupId, editingNameValue, contactGroups, onUpdateGroups]);
 
   const pillsInSelectMode = useMemo(() => {
-    if (!groupSelectMode) return [];
+    if (!isGroupSelectMode) return [];
     const expandedIds = new Set<string>();
     for (const gid of expandedGroupIds) {
       const group = contactGroups.find((grp) => grp.id === gid);
@@ -259,12 +259,12 @@ function PeopleSummary({
         if (b.isSelf) return 1;
         return a.name.localeCompare(b.name);
       });
-  }, [groupSelectMode, contactTotals, contactGroups, expandedGroupIds]);
+  }, [isGroupSelectMode, contactTotals, contactGroups, expandedGroupIds]);
 
   const nonExpandedGroups = useMemo(() => {
-    if (!groupSelectMode) return [];
+    if (!isGroupSelectMode) return [];
     return groupData.filter((group) => !expandedGroupIds.has(group.id));
-  }, [groupSelectMode, groupData, expandedGroupIds]);
+  }, [isGroupSelectMode, groupData, expandedGroupIds]);
 
   return (
     <View className="mt-3">
@@ -274,13 +274,13 @@ function PeopleSummary({
           <Text className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             {t.people_title}
           </Text>
-          {contacts.length >= 2 && !groupSelectMode && (
+          {contacts.length >= 2 && !isGroupSelectMode && (
             <Pressable onPress={enterSelectMode} className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 active:opacity-70">
               <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
               <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
             </Pressable>
           )}
-          {groupSelectMode && (
+          {isGroupSelectMode && (
             <Pressable
               onPress={cancelSelectMode}
               className="rounded-full bg-muted px-2 py-0.5 active:opacity-70"
@@ -307,7 +307,7 @@ function PeopleSummary({
       </View>
 
       {/* Normal mode: ungrouped pills + group pills */}
-      {!groupSelectMode && (
+      {!isGroupSelectMode && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -413,7 +413,7 @@ function PeopleSummary({
       )}
 
       {/* Select mode: selectable pills */}
-      {groupSelectMode && (
+      {isGroupSelectMode && (
         <>
           <ScrollView
             horizontal

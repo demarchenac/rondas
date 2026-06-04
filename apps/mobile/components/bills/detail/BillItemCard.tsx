@@ -26,7 +26,7 @@ interface BillItemCardProps {
   assignedContacts: AssignedContact[];
   isEditing: boolean;
   isDeleting: boolean;
-  multiSelectMode: boolean;
+  isMultiSelectMode: boolean;
   isSelected: boolean;
   iconColors: IconPalette;
   t: Translations;
@@ -210,7 +210,7 @@ function BillItemCard({
   assignedContacts,
   isEditing,
   isDeleting,
-  multiSelectMode,
+  isMultiSelectMode,
   isSelected,
   iconColors,
   t,
@@ -271,7 +271,7 @@ function BillItemCard({
         ) : (
           /* Display mode */
           <Pressable
-            onPress={() => multiSelectMode ? onToggleSelection(itemId) : onPress(itemId)}
+            onPress={() => isMultiSelectMode ? onToggleSelection(itemId) : onPress(itemId)}
             className="mx-7 mb-2.5 overflow-hidden rounded-xl bg-card pr-4 py-3 active:opacity-80"
             style={{ paddingLeft: 19 }}
           >
@@ -288,7 +288,7 @@ function BillItemCard({
             {/* Top row: name/qty + price/button */}
             <View className="flex-row items-start">
               {/* Checkbox in multi-select mode */}
-              {multiSelectMode && (
+              {isMultiSelectMode && (
                 <View className="mr-3 justify-center pt-1">
                   <IconSymbol
                     name={isSelected ? 'checkmark.circle.fill' : 'circle'}
@@ -302,7 +302,7 @@ function BillItemCard({
                   <Text className="shrink text-lg font-semibold leading-5 text-foreground" numberOfLines={1}>
                     {item.name}
                   </Text>
-                  {!multiSelectMode && (
+                  {!isMultiSelectMode && (
                     <IconSymbol name="pencil.line" size={11} color={iconColors.mutedLight} />
                   )}
                 </View>
@@ -310,7 +310,7 @@ function BillItemCard({
                   {item.quantity} × {formatCurrency(item.unitPrice, billCountry, decimalPlaces)}
                 </Text>
                 {/* Assign hint */}
-                {!hasContacts && !multiSelectMode && item.subtotal >= 0 && (
+                {!hasContacts && !isMultiSelectMode && item.subtotal >= 0 && (
                   <Text className="mt-1.5 text-sm text-muted-foreground/40">{t.bill_tapToAssign}</Text>
                 )}
               </View>
@@ -321,7 +321,7 @@ function BillItemCard({
                 )}>
                   {formatCurrency(item.subtotal, billCountry, decimalPlaces)}
                 </Text>
-                {!multiSelectMode && item.subtotal >= 0 && (
+                {!isMultiSelectMode && item.subtotal >= 0 && (
                   <Pressable
                     onPress={() => onAssignContact(itemId)}
                     className="h-7 w-7 items-center justify-center rounded-full border border-dashed border-primary/30 bg-primary/5"

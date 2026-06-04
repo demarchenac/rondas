@@ -4,12 +4,12 @@ import { isGlassEffectAPIAvailable } from 'expo-glass-effect';
 
 export function useGlassEffect(delay = 500) {
   const glassAvailable = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
-  const [glassReady, setGlassReady] = useState(false);
+  const [isGlassReady, setIsGlassReady] = useState(false);
   useEffect(() => {
-    if (glassAvailable && !glassReady) {
-      const id = setTimeout(() => setGlassReady(true), delay);
+    if (glassAvailable && !isGlassReady) {
+      const id = setTimeout(() => setIsGlassReady(true), delay);
       return () => clearTimeout(id);
     }
-  }, [glassAvailable, glassReady, delay]);
-  return { glassAvailable, glassReady, useGlass: glassAvailable && glassReady };
+  }, [glassAvailable, isGlassReady, delay]);
+  return { glassAvailable, isGlassReady, useGlass: glassAvailable && isGlassReady };
 }
