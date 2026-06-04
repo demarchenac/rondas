@@ -351,7 +351,7 @@ export default function NewBillScreen() {
 
   const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
 
-  const removeItem = (index: number) => {
+  const handleRemoveItem = (index: number) => {
     if (!bill) return;
     const snapshot = { ...bill, items: [...bill.items] };
     setDeletingIndex(index);
@@ -362,7 +362,7 @@ export default function NewBillScreen() {
     }, 300);
   };
 
-  const addItem = () => {
+  const handleAddItem = () => {
     if (!bill) return;
     setBill({
       ...bill,
@@ -616,7 +616,7 @@ export default function NewBillScreen() {
             renderRightActions={renderDeleteAction}
             rightThreshold={80}
             overshootRight
-            onSwipeableOpen={() => removeItem(index)}
+            onSwipeableOpen={() => handleRemoveItem(index)}
             onSwipeableOpenStartDrag={() => { swipeOpenRef.current = true; }}
           >
             {editingIndex === index ? (
@@ -708,7 +708,7 @@ export default function NewBillScreen() {
 
         {/* Add Item */}
         <Pressable
-          onPress={addItem}
+          onPress={handleAddItem}
           className="flex-row items-center justify-center gap-2 py-4 active:bg-muted/30"
         >
           <View className="h-5 w-5 items-center justify-center rounded-full bg-primary/15">

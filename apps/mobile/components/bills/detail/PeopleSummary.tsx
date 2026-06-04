@@ -179,31 +179,31 @@ function PeopleSummary({
     });
   }, [contactGroups]);
 
-  const enterSelectMode = useCallback(() => {
+  const handleEnterSelectMode = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsGroupSelectMode(true);
     setSelectedForGroup(new Set());
     setExpandedGroupIds(new Set());
   }, []);
 
-  const cancelSelectMode = useCallback(() => {
+  const handleCancelSelectMode = useCallback(() => {
     setIsGroupSelectMode(false);
     setSelectedForGroup(new Set());
     setExpandedGroupIds(new Set());
   }, []);
 
-  const confirmGroup = useCallback(() => {
+  const handleConfirmGroup = useCallback(() => {
     const selectedIds = Array.from(selectedForGroup) as Id<'contacts'>[];
-    const expandedGroupIdList = Array.from(expandedGroupIds);
-    const isEditing = expandedGroupIdList.length > 0;
+    const expandedGroups = Array.from(expandedGroupIds);
+    const isEditing = expandedGroups.length > 0;
 
     if (selectedIds.length < 2 && !isEditing) return;
 
     if (selectedIds.length < 2) {
-      const updatedGroups = contactGroups.filter((grp) => !expandedGroupIdList.includes(grp.id));
+      const updatedGroups = contactGroups.filter((grp) => !expandedGroups.includes(grp.id));
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onUpdateGroups(updatedGroups);
-      cancelSelectMode();
+      handleCancelSelectMode();
       return;
     }
 
@@ -211,7 +211,7 @@ function PeopleSummary({
       .map((id) => contactTotalMap.get(String(id)))
       .filter((member): member is NonNullable<typeof member> => member != null);
 
-    const remainingGroups = contactGroups.filter((grp) => !expandedGroupIdList.includes(grp.id));
+    const remainingGroups = contactGroups.filter((grp) => !expandedGroups.includes(grp.id));
 
     const newGroup: ContactGroup = {
       id: randomUUID(),
@@ -221,8 +221,8 @@ function PeopleSummary({
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onUpdateGroups([...remainingGroups, newGroup]);
-    cancelSelectMode();
-  }, [selectedForGroup, expandedGroupIds, contactGroups, contactTotalMap, t, onUpdateGroups, cancelSelectMode]);
+    handleCancelSelectMode();
+  }, [selectedForGroup, expandedGroupIds, contactGroups, contactTotalMap, t, onUpdateGroups, handleCancelSelectMode]);
 
   const handleNameEdit = useCallback((groupId: string, name: string) => {
     setEditingNameGroupId(groupId);
@@ -275,14 +275,14 @@ function PeopleSummary({
             {t.people_title}
           </Text>
           {contacts.length >= 2 && !isGroupSelectMode && (
-            <Pressable onPress={enterSelectMode} className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 active:opacity-70">
+            <Pressable onPress={handleEnterSelectMode} className="flex-row items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 active:opacity-70">
               <IconSymbol name="rectangle.stack.person.crop" size={12} color={iconColors.primary} />
               <Text className="text-xs font-semibold text-primary">{t.people_group}</Text>
             </Pressable>
           )}
           {isGroupSelectMode && (
             <Pressable
-              onPress={cancelSelectMode}
+              onPress={handleCancelSelectMode}
               className="rounded-full bg-muted px-2 py-0.5 active:opacity-70"
             >
               <Text className="text-xs font-semibold text-muted-foreground">{t.cancel}</Text>
@@ -498,7 +498,7 @@ function PeopleSummary({
             return (
               <View className="mt-2 flex-row items-center gap-2 px-7">
                 <Pressable
-                  onPress={confirmGroup}
+                  onPress={handleConfirmGroup}
                   disabled={!canGroup && !showUngroup}
                   style={{ flex: 1, backgroundColor: 'transparent' }}
                 >

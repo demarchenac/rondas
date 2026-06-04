@@ -55,7 +55,7 @@ export default function ShareScreen() {
   const infographicRefs = useRef<Record<number, ViewShotRef | null>>({});
   const billInfographicRef = useRef<ViewShotRef | null>(null);
   const [capturingIndex, setCapturingIndex] = useState<number | null>(null);
-  const [capturingBill, setCapturingBill] = useState(false);
+  const [isCapturingBill, setCapturingBill] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [previewAspect, setPreviewAspect] = useState(1);
   const [previewContactName, setPreviewContactName] = useState('');
@@ -539,7 +539,7 @@ export default function ShareScreen() {
                 accessibilityLabel={t.share_shareBill}
                 className="flex-row items-center gap-1.5 rounded-full bg-muted-foreground/10 px-3 py-1.5"
               >
-                {capturingBill ? (
+                {isCapturingBill ? (
                   <ActivityIndicator size="small" color={iconColors.muted} />
                 ) : (
                   <Share2 size={13} color={iconColors.muted} />

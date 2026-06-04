@@ -5,14 +5,14 @@ import { useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 
-let didSync = false;
+let hasSynced = false;
 
 export function useContactSync(userId: string | undefined) {
   const syncFromDevice = useMutation(api.contacts.syncFromDevice);
   const syncContacts = useSettingsStore((s) => s.syncContacts);
 
   useEffect(() => {
-    if (!userId || !syncContacts || didSync) return;
+    if (!userId || !syncContacts || hasSynced) return;
 
     (async () => {
       try {
@@ -46,7 +46,7 @@ export function useContactSync(userId: string | undefined) {
           Sentry.logger.info(`[ContactSync] updated: ${result.updated}`);
         }
 
-        didSync = true;
+        hasSynced = true;
       } catch (err) {
         Sentry.captureException(err, { tags: { feature: 'contact-sync' } });
       }
