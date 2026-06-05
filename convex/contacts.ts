@@ -1,5 +1,5 @@
 import { mutation, query } from './_generated/server';
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import { getOrCreateSelf } from './model/contacts';
 import { computeDerivedFields } from './model/bills';
 
@@ -115,8 +115,8 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const contact = await ctx.db.get(args.id);
-    if (!contact) throw new Error('Contact not found');
-    if (contact.userId !== args.userId) throw new Error('Not authorized');
+    if (!contact) throw new ConvexError({ code: 'NOT_FOUND', message: 'Contact not found' });
+    if (contact.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const patches: Record<string, unknown> = {};
     if (args.name !== undefined) patches.name = args.name;
@@ -136,8 +136,8 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     const contact = await ctx.db.get(args.id);
-    if (!contact) throw new Error('Contact not found');
-    if (contact.userId !== args.userId) throw new Error('Not authorized');
+    if (!contact) throw new ConvexError({ code: 'NOT_FOUND', message: 'Contact not found' });
+    if (contact.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     // .collect() required: Convex can't filter nested arrays, so we scan all bills.
     // Acceptable for contact deletion (rare operation).

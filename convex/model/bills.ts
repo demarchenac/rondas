@@ -1,3 +1,4 @@
+import { ConvexError } from 'convex/values';
 import type { Id, Doc } from '../_generated/dataModel';
 import { getTaxConfig, computeBase, computeTax, withTaxIncludedOverride } from '../taxes';
 import type { Country, ReceiptCategory } from '../taxes';
@@ -13,7 +14,7 @@ export type ContactRef = {
 };
 
 export function assertMaxLength(value: string, max: number, field: string) {
-  if (value.length > max) throw new Error(`${field} exceeds maximum length of ${max}`);
+  if (value.length > max) throw new ConvexError({ code: 'VALIDATION', message: `${field} exceeds maximum length of ${max}` });
 }
 
 export async function resolveContacts(

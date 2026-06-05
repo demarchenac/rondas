@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useMutation } from 'convex/react';
 
+import { getErrorCode, getErrorMessage } from '@/lib/convexError';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { useColorScheme } from 'nativewind';
@@ -48,11 +49,12 @@ function FAB({ bottom }: FABProps) {
       });
       router.push(`/bills/${billId}` as Href);
     } catch (err) {
-      const msg = (err as Error).message ?? '';
-      if (msg.includes('monthly_limit_reached')) {
+      const code = getErrorCode(err);
+      if (code === 'LIMIT_REACHED') {
         showPaywall();
         return;
       }
+      const msg = getErrorMessage(err);
       if (__DEV__) console.warn('[FAB] createBlankBill error:', msg);
       alert(t.error, msg || t.error_mutationFailed);
     }
@@ -134,9 +136,12 @@ function FAB({ bottom }: FABProps) {
   }, [pickFromCamera, pickFromLibrary, createBlankBill, gateScanOrRun, actionSheet, t]);
 
   const scale = useSharedValue(1);
+  const scaleRef = useRef(scale);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
+  const handlePressIn = useCallback(() => { scaleRef.current.value = withSpring(0.88, { damping: 15, stiffness: 400 }); }, []);
+  const handlePressOut = useCallback(() => { scaleRef.current.value = withSpring(1, { damping: 10, stiffness: 300 }); }, []);
 
   return (
     <Animated.View
@@ -145,8 +150,8 @@ function FAB({ bottom }: FABProps) {
     >
       <Pressable
         onPress={handlePress}
-        onPressIn={() => { scale.value = withSpring(0.88, { damping: 15, stiffness: 400 }); }}
-        onPressOut={() => { scale.value = withSpring(1, { damping: 10, stiffness: 300 }); }}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         className="h-14 w-14 items-center justify-center rounded-full bg-primary shadow-md shadow-primary/20"
       >
         <IconSymbol name="plus" size={28} color={iconColors.primaryForeground} />

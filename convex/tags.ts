@@ -1,5 +1,5 @@
 import { mutation, query, type MutationCtx } from './_generated/server';
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import type { Id, Doc } from './_generated/dataModel';
 
 const PLATFORM_TAGS = [
@@ -53,7 +53,7 @@ export const create = mutation({
     isPro: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    if (args.name.length > 50) throw new Error('Tag name too long');
+    if (args.name.length > 50) throw new ConvexError({ code: 'VALIDATION', message: 'Tag name too long' });
 
     const existing = await ctx.db
       .query('tags')
@@ -62,7 +62,7 @@ export const create = mutation({
 
     if (!args.isPro) {
       const customCount = existing.filter((t) => !t.isPlatform).length;
-      if (customCount >= FREE_CUSTOM_TAG_LIMIT) throw new Error('custom_tag_limit_reached');
+      if (customCount >= FREE_CUSTOM_TAG_LIMIT) throw new ConvexError({ code: 'LIMIT_REACHED', message: 'custom_tag_limit_reached' });
     }
 
     const maxOrder = existing.reduce((max, t) => Math.max(max, t.sortOrder), 0);
@@ -87,14 +87,14 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const tag = await ctx.db.get(args.id);
-    if (!tag) throw new Error('Tag not found');
-    if (tag.userId !== args.userId) throw new Error('Not authorized');
+    if (!tag) throw new ConvexError({ code: 'NOT_FOUND', message: 'Tag not found' });
+    if (tag.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     if (tag.isPlatform && args.name !== undefined) {
-      throw new Error('Cannot rename platform tags');
+      throw new ConvexError({ code: 'FORBIDDEN', message: 'Cannot rename platform tags' });
     }
     if (args.name !== undefined && args.name.length > 50) {
-      throw new Error('Tag name too long');
+      throw new ConvexError({ code: 'VALIDATION', message: 'Tag name too long' });
     }
 
     const patches: Partial<Doc<'tags'>> = {};
@@ -115,9 +115,9 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     const tag = await ctx.db.get(args.id);
-    if (!tag) throw new Error('Tag not found');
-    if (tag.userId !== args.userId) throw new Error('Not authorized');
-    if (tag.isPlatform) throw new Error('Cannot delete platform tags');
+    if (!tag) throw new ConvexError({ code: 'NOT_FOUND', message: 'Tag not found' });
+    if (tag.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (tag.isPlatform) throw new ConvexError({ code: 'FORBIDDEN', message: 'Cannot delete platform tags' });
 
     const bills = await ctx.db
       .query('bills')

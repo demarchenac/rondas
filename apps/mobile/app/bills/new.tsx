@@ -22,6 +22,7 @@ import { useAction, useMutation, useQuery } from 'convex/react';
 import { randomUUID } from 'expo-crypto';
 import type { Id } from '@convex/_generated/dataModel';
 
+import { getErrorCode, getErrorMessage } from '@/lib/convexError';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -169,8 +170,9 @@ export default function NewBillScreen() {
   interface ScanError { type: ScanErrorType; message: string; hint: string; }
 
   function classifyScanError(err: unknown): ScanError {
-    const errorMessage = String(err).toLowerCase();
-    if (errorMessage.includes('not_a_receipt')) {
+    const code = getErrorCode(err);
+    const errorMessage = getErrorMessage(err).toLowerCase();
+    if (code === 'NOT_A_RECEIPT' || errorMessage.includes('not_a_receipt')) {
       return { type: 'not_a_receipt', message: t.error_notReceipt, hint: t.error_hintNotReceipt };
     }
     if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {

@@ -9,6 +9,7 @@ import { useMutation } from 'convex/react';
 import { useRouter, type Href } from 'expo-router';
 
 import * as Sentry from '@sentry/react-native';
+import { getErrorCode } from '@/lib/convexError';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Image } from '@/lib/expo-image';
@@ -73,11 +74,11 @@ export default function SettingsScreen() {
       setShowPromoInput(false);
     } catch (err: unknown) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      const msg = (err as Error).message ?? '';
+      const code = getErrorCode(err);
       let label = t.promo_invalid;
-      if (msg.includes('expired')) label = t.promo_expired;
-      else if (msg.includes('max_uses')) label = t.promo_maxUses;
-      else if (msg.includes('already_pro')) label = t.promo_alreadyPro;
+      if (code === 'EXPIRED_CODE') label = t.promo_expired;
+      else if (code === 'LIMIT_REACHED') label = t.promo_maxUses;
+      else if (code === 'ALREADY_PRO') label = t.promo_alreadyPro;
       alert(label);
     } finally {
       setRedeeming(false);

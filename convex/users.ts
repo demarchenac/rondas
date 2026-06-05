@@ -1,5 +1,5 @@
 import { mutation, query } from './_generated/server';
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import { createPlatformTagsForUser } from './tags';
 
 const configValidator = v.object({
@@ -119,7 +119,7 @@ export const updateConfig = mutation({
       .withIndex('by_workos_id', (q) => q.eq('workosId', args.workosId))
       .unique();
 
-    if (!existing) throw new Error('User not found');
+    if (!existing) throw new ConvexError({ code: 'NOT_FOUND', message: 'User not found' });
 
     await ctx.db.patch(existing._id, { config: args.config });
   },

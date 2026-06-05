@@ -8,6 +8,7 @@ import { api } from '@convex/_generated/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useProGate } from '@/hooks/useProGate';
+import { getErrorCode, getErrorMessage } from '@/lib/convexError';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import { useT } from '@/lib/i18n';
 
@@ -32,11 +33,12 @@ export function useNewBillAction() {
       });
       router.push(`/bills/${billId}` as Href);
     } catch (err) {
-      const msg = (err as Error).message ?? '';
-      if (msg.includes('monthly_limit_reached')) {
+      const code = getErrorCode(err);
+      if (code === 'LIMIT_REACHED') {
         showPaywall();
         return;
       }
+      const msg = getErrorMessage(err);
       if (__DEV__) console.warn('[NewBill] createBlankBill error:', msg);
       alert(t.error, msg || t.error_mutationFailed);
     }

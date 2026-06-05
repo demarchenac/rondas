@@ -1,6 +1,6 @@
 import { mutation, query } from './_generated/server';
 import { paginationOptsValidator } from 'convex/server';
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import {
   billStateValidator,
@@ -200,7 +200,7 @@ export const create = mutation({
       const count = billsThisMonth.filter((b) => (b.createdAt ?? 0) >= monthStart).length;
 
       if (count >= FREE_MONTHLY_BILL_LIMIT) {
-        throw new Error('monthly_limit_reached');
+        throw new ConvexError({ code: 'LIMIT_REACHED', message: 'monthly_limit_reached' });
       }
     }
 
@@ -251,8 +251,8 @@ export const remove = mutation({
   args: { id: v.id('bills'), userId: v.string() },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     for (const ref of bill.contacts) {
       if (!ref.isSelf) await decrementReference(ctx, ref.contactId);
@@ -293,8 +293,8 @@ export const update = mutation({
     if (Object.keys(defined).length === 0) return;
 
     const bill = await ctx.db.get(id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     // Backfill IDs for items created before the id field was added
     const billItems = bill.items.map((item) => ({
@@ -356,8 +356,8 @@ export const assignContactToItem = mutation({
   handler: async (ctx, args) => {
     assertMaxLength(args.contact.name, 100, 'Contact name');
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const contactId = await getOrCreate(ctx, args.userId, args.contact);
     const contacts = [...bill.contacts];
@@ -393,8 +393,8 @@ export const assignContactToItems = mutation({
   handler: async (ctx, args) => {
     assertMaxLength(args.contact.name, 100, 'Contact name');
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const contactId = await getOrCreate(ctx, args.userId, args.contact);
     const contacts = [...bill.contacts];
@@ -434,12 +434,12 @@ export const removeContactFromItem = mutation({
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     let contacts = [...bill.contacts];
     const idx = contacts.findIndex((c) => c.contactId === args.contactId);
-    if (idx < 0) throw new Error('Contact not found on this bill');
+    if (idx < 0) throw new ConvexError({ code: 'NOT_FOUND', message: 'Contact not found on this bill' });
 
     const newItems = contacts[idx].items.filter((i) => i.itemId !== args.itemId);
     if (newItems.length === 0) {
@@ -468,8 +468,8 @@ export const removeContactsFromItems = mutation({
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const contactIdSet = new Set(args.contactIds.map(String));
     const contacts = bill.contacts
@@ -506,16 +506,16 @@ export const updateContactUnits = mutation({
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
-    if (args.units < 1) throw new Error('Units must be at least 1');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (args.units < 1) throw new ConvexError({ code: 'VALIDATION', message: 'Units must be at least 1' });
 
     const item = bill.items.find((i) => i.id === args.itemId);
-    if (!item) throw new Error('Item not found');
+    if (!item) throw new ConvexError({ code: 'NOT_FOUND', message: 'Item not found' });
 
     const contacts = [...bill.contacts];
     const idx = contacts.findIndex((c) => c.contactId === args.contactId);
-    if (idx < 0) throw new Error('Contact not found on this bill');
+    if (idx < 0) throw new ConvexError({ code: 'NOT_FOUND', message: 'Contact not found on this bill' });
 
     contacts[idx] = {
       ...contacts[idx],
@@ -540,8 +540,8 @@ export const togglePaymentStatus = mutation({
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const contacts = bill.contacts.map((c) =>
       c.contactId === args.contactId ? { ...c, paid: !c.paid } : c,
@@ -564,14 +564,14 @@ export const assignEqualSplit = mutation({
   },
   handler: async (ctx, args) => {
     if (args.numPeople < 2 || args.numPeople > 20) {
-      throw new Error('Number of people must be between 2 and 20');
+      throw new ConvexError({ code: 'VALIDATION', message: 'Number of people must be between 2 and 20' });
     }
     for (const c of args.contacts) {
       assertMaxLength(c.name, 100, 'Contact name');
     }
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const perPerson = Math.floor(bill.total / args.numPeople);
     const remainder = bill.total - perPerson * args.numPeople;
@@ -625,13 +625,13 @@ export const updateContactGroups = mutation({
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const contactIdSet = new Set(bill.contacts.map((c) => String(c.contactId)));
     for (const group of args.groups) {
       for (const cid of group.contactIds) {
-        if (!contactIdSet.has(String(cid))) throw new Error('Contact not found on this bill');
+        if (!contactIdSet.has(String(cid))) throw new ConvexError({ code: 'NOT_FOUND', message: 'Contact not found on this bill' });
       }
       assertMaxLength(group.name, 200, 'Group name');
     }
@@ -649,11 +649,11 @@ export const toggleGroupPaymentStatus = mutation({
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const group = bill.contactGroups?.find((g) => g.id === args.groupId);
-    if (!group) throw new Error('Group not found');
+    if (!group) throw new ConvexError({ code: 'NOT_FOUND', message: 'Group not found' });
 
     const memberIds = new Set(group.contactIds.map(String));
     const members = bill.contacts.filter((c) => memberIds.has(String(c.contactId)));
@@ -677,8 +677,8 @@ export const clearSplitAssignments = mutation({
   },
   handler: async (ctx, args) => {
     const bill = await ctx.db.get(args.id);
-    if (!bill) throw new Error('Bill not found');
-    if (bill.userId !== args.userId) throw new Error('Not authorized');
+    if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
+    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     for (const ref of bill.contacts) {
       if (!ref.isSelf) await decrementReference(ctx, ref.contactId);

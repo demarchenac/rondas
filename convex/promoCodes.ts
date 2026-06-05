@@ -1,5 +1,5 @@
 import { mutation, query } from './_generated/server';
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 
 function normalizeCode(code: string): string {
   return code.trim().toLowerCase();
@@ -18,22 +18,22 @@ export const redeemCode = mutation({
       .withIndex('by_workos_id', (q) => q.eq('workosId', args.workosId))
       .unique();
 
-    if (!user) throw new Error('user_not_found');
-    if (user.proOverride) throw new Error('already_pro');
+    if (!user) throw new ConvexError({ code: 'NOT_FOUND', message: 'user_not_found' });
+    if (user.proOverride) throw new ConvexError({ code: 'ALREADY_PRO', message: 'already_pro' });
 
     const promoCode = await ctx.db
       .query('promoCodes')
       .withIndex('by_code', (q) => q.eq('code', normalized))
       .unique();
 
-    if (!promoCode) throw new Error('invalid_code');
+    if (!promoCode) throw new ConvexError({ code: 'INVALID_CODE', message: 'invalid_code' });
 
     if (promoCode.expiresAt && Date.now() > promoCode.expiresAt) {
-      throw new Error('expired_code');
+      throw new ConvexError({ code: 'EXPIRED_CODE', message: 'expired_code' });
     }
 
     if (promoCode.maxUses !== 0 && promoCode.uses >= promoCode.maxUses) {
-      throw new Error('max_uses_reached');
+      throw new ConvexError({ code: 'LIMIT_REACHED', message: 'max_uses_reached' });
     }
 
     await ctx.db.patch(promoCode._id, { uses: promoCode.uses + 1 });
@@ -62,7 +62,7 @@ export const createCode = mutation({
       .withIndex('by_code', (q) => q.eq('code', normalized))
       .unique();
 
-    if (existing) throw new Error('code_already_exists');
+    if (existing) throw new ConvexError({ code: 'DUPLICATE', message: 'code_already_exists' });
 
     return await ctx.db.insert('promoCodes', {
       code: normalized,

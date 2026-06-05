@@ -1,5 +1,6 @@
-import { mutation, query } from './_generated/server';
+import { internalMutation, mutation, query } from './_generated/server';
 import { v } from 'convex/values';
+import { ConvexError } from 'convex/values';
 import { scanStatusValidator, scanResultValidator } from './validators';
 
 export const createScan = mutation({
@@ -12,7 +13,7 @@ export const createScan = mutation({
   },
 });
 
-export const updateScan = mutation({
+export const updateScan = internalMutation({
   args: {
     id: v.id('scans'),
     userId: v.string(),
@@ -23,7 +24,7 @@ export const updateScan = mutation({
   handler: async (ctx, args) => {
     const scan = await ctx.db.get(args.id);
     if (!scan || scan.userId !== args.userId) {
-      throw new Error('Scan not found or access denied');
+      throw new ConvexError({ code: 'NOT_FOUND', message: 'Scan not found or access denied' });
     }
     const { id, userId, ...fields } = args;
     await ctx.db.patch(id, fields);
@@ -44,7 +45,7 @@ export const deleteScan = mutation({
   handler: async (ctx, args) => {
     const scan = await ctx.db.get(args.id);
     if (!scan || scan.userId !== args.userId) {
-      throw new Error('Scan not found or access denied');
+      throw new ConvexError({ code: 'NOT_FOUND', message: 'Scan not found or access denied' });
     }
     await ctx.db.delete(args.id);
   },
