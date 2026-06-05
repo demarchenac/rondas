@@ -14,14 +14,6 @@ const configValidator = v.object({
   ivaIncluded: v.optional(v.boolean()),
 });
 
-export const count = query({
-  args: {},
-  handler: async (ctx) => {
-    const users = await ctx.db.query('users').collect();
-    return users.length;
-  },
-});
-
 export const getByWorkosId = query({
   args: { workosId: v.string() },
   handler: async (ctx, args) => {

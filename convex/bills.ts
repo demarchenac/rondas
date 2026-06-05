@@ -37,23 +37,26 @@ export const list = query({
     toDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    let billsQuery = ctx.db
-      .query('bills')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
-      .order('desc');
+    let billsQuery = args.state
+      ? ctx.db
+          .query('bills')
+          .withIndex('by_user_state', (q) => q.eq('userId', args.userId).eq('state', args.state!))
+          .order('desc')
+      : ctx.db
+          .query('bills')
+          .withIndex('by_user', (q) => q.eq('userId', args.userId))
+          .order('desc');
 
-    const hasFilters =
-      args.state ||
+    const hasNonStateFilters =
       args.minAmount != null ||
       args.maxAmount != null ||
       args.country ||
       args.fromDate != null ||
       args.toDate != null;
 
-    if (hasFilters) {
+    if (hasNonStateFilters) {
       billsQuery = billsQuery.filter((qb) => {
         const conditions = [];
-        if (args.state) conditions.push(qb.eq(qb.field('state'), args.state));
         if (args.minAmount != null) conditions.push(qb.gte(qb.field('total'), args.minAmount));
         if (args.maxAmount != null) conditions.push(qb.lte(qb.field('total'), args.maxAmount));
         if (args.country) conditions.push(qb.eq(qb.field('country'), args.country));
@@ -193,13 +196,18 @@ export const create = mutation({
       startOfMonth.setHours(0, 0, 0, 0);
       const monthStart = startOfMonth.getTime();
 
-      const billsThisMonth = await ctx.db
+      let monthlyCount = 0;
+      const recentBills = await ctx.db
         .query('bills')
         .withIndex('by_user', (q) => q.eq('userId', args.userId))
+        .order('desc')
         .collect();
-      const count = billsThisMonth.filter((b) => (b.createdAt ?? 0) >= monthStart).length;
+      for (const bill of recentBills) {
+        if ((bill.createdAt ?? 0) >= monthStart) monthlyCount++;
+        if (monthlyCount >= FREE_MONTHLY_BILL_LIMIT) break;
+      }
 
-      if (count >= FREE_MONTHLY_BILL_LIMIT) {
+      if (monthlyCount >= FREE_MONTHLY_BILL_LIMIT) {
         throw new ConvexError({ code: 'LIMIT_REACHED', message: 'monthly_limit_reached' });
       }
     }
