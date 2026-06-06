@@ -13,6 +13,7 @@ import {
   getSignInUrl,
   handleCallback,
   getUser,
+  getAccessToken,
   clearSession,
   getSessionId,
   getLogoutUrl,
@@ -42,7 +43,16 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  * - Exists + no config → needs setup
  * - Doesn't exist → create user, needs setup
  */
+async function setConvexAuth(): Promise<void> {
+  const token = await getAccessToken();
+  if (!token) return;
+  return new Promise((resolve) => {
+    convex.setAuth(async () => token, () => resolve());
+  });
+}
+
 async function syncAfterLogin(user: User): Promise<void> {
+  await setConvexAuth();
   const existing = await convex.query(api.users.getMe, {});
 
   const profileData = {
