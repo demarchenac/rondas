@@ -24,6 +24,7 @@ import {
   restorePurchases,
   presentCodeRedemptionSheet,
 } from '@/lib/revenueCat';
+import { posthog } from '@/lib/posthog';
 
 type SelectedPlan = 'monthly' | 'yearly';
 
@@ -46,6 +47,7 @@ export default function PaywallScreen() {
   const [isRedeeming, setRedeeming] = useState(false);
 
   useEffect(() => {
+    posthog.capture('paywall_viewed');
     let cancelled = false;
     getOffering().then(async (o) => {
       if (cancelled) return;
@@ -71,6 +73,7 @@ export default function PaywallScreen() {
     try {
       const success = await purchasePackage(pkg);
       if (success) {
+        posthog.capture('subscription_purchased', { plan: selectedPlan });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.back();
       }
@@ -88,6 +91,7 @@ export default function PaywallScreen() {
     try {
       const success = await restorePurchases();
       if (success) {
+        posthog.capture('subscription_restored');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         alert(t.paywall_restoreSuccess);
         router.back();
@@ -106,6 +110,7 @@ export default function PaywallScreen() {
     setRedeeming(true);
     try {
       await redeemCode({ code: promoCode.trim() });
+      posthog.capture('promo_code_redeemed');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       alert(t.promo_success);
       router.back();

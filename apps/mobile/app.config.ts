@@ -127,6 +127,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     eas: {
       projectId: '108dace2-7c2f-4aad-8a3f-d8695905f5d8',
     },
+    posthogProjectToken: process.env.POSTHOG_PROJECT_TOKEN,
+    posthogHost: process.env.POSTHOG_HOST,
   },
   owner: 'demarchenac',
   runtimeVersion: {

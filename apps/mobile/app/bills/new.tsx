@@ -40,6 +40,7 @@ import KeyboardDoneButton from '@/components/bills/KeyboardDoneButton';
 import ScanningOverlay from '@/components/bills/ScanningOverlay';
 import { useProGate } from '@/hooks/useProGate';
 import { useCustomAlert } from '@/components/ui/custom-alert';
+import { posthog } from '@/lib/posthog';
 
 interface BillItem {
   id: string;
@@ -239,6 +240,7 @@ export default function NewBillScreen() {
     setError(null);
     setScanning(true);
     setLocalPhase('uploading');
+    posthog.capture('bill_scan_started', { attempt_number: scanAttempts + 1, has_location: !!placeData.latitude });
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const minPhaseDelay = () => new Promise<void>((resolve) => setTimeout(resolve, 700));
@@ -314,6 +316,13 @@ export default function NewBillScreen() {
       ]);
 
       if (newScanId) deleteScan({ id: newScanId }).catch((err) => { console.warn('[NewBill] mutation failed:', err); Sentry.captureException(err, { tags: { feature: 'new_bill' } }); });
+      posthog.capture('bill_scan_succeeded', {
+        item_count: result.items.length,
+        category: result.category ?? 'dining',
+        country,
+        has_location: !!placeData.latitude,
+      });
+      posthog.capture('bill_created', { creation_method: 'scan', item_count: result.items.length, country, is_pro: isPro });
       setScanAttempts(0);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace(`/bills/${billId}` as Href);
@@ -324,6 +333,7 @@ export default function NewBillScreen() {
         tags: { feature: 'bill_scan', errorType: classified.type },
         extra: { scanId, attempts: scanAttempts + 1 },
       });
+      posthog.capture('bill_scan_failed', { error_type: classified.type, attempts: scanAttempts + 1 });
       setScanAttempts((prev) => prev + 1);
       setError(classified);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -381,14 +391,16 @@ export default function NewBillScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
+      const savedItems = bill.items.filter((item) => item.name.trim() !== '');
       await createBill({
         name: bill.name || 'Bill',
         total: calculatedTotal,
         tax: bill.tax,
         tip: bill.tip,
-        items: bill.items.filter((item) => item.name.trim() !== ''),
+        items: savedItems,
         isPro,
       });
+      posthog.capture('bill_created', { creation_method: 'manual', item_count: savedItems.length, country, is_pro: isPro });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setBill(null); // Clear bill so usePreventRemove allows navigation
       router.replace('/(tabs)' as Href);
@@ -517,6 +529,7 @@ export default function NewBillScreen() {
                 <Pressable
                   onPress={async () => {
                     if (!user) return;
+                    posthog.capture('bill_manual_entry_started');
                     const billId = await createBill({
                       name: placeData.placeName || 'Bill',
                       total: 0,

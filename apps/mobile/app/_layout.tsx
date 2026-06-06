@@ -1,14 +1,16 @@
 import '@/lib/polyfills';
 import '../global.css';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
-import { Stack } from 'expo-router';
+import { Stack, usePathname, useGlobalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
+import { PostHogProvider } from 'posthog-react-native';
+import { posthog } from '@/lib/posthog';
 
 import { ConvexProviderWithAuth } from 'convex/react';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -37,6 +39,9 @@ function RootLayoutNav() {
   const mode = useThemeStore((s) => s.mode);
   const hasCompletedSetup = useSettingsStore((s) => s.hasCompletedSetup);
   const isDark = colorScheme === 'dark';
+  const pathname = usePathname();
+  const params = useGlobalSearchParams();
+  const previousPathname = useRef<string | undefined>(undefined);
 
   // Sync persisted theme preference on mount
   useEffect(() => {
@@ -44,6 +49,14 @@ function RootLayoutNav() {
       setColorScheme(mode);
     }
   }, [mode, setColorScheme]);
+
+  // Manual screen tracking for Expo Router
+  useEffect(() => {
+    if (previousPathname.current !== pathname) {
+      posthog.screen(pathname, { previous_screen: previousPathname.current ?? null, ...params });
+      previousPathname.current = pathname;
+    }
+  }, [pathname, params]);
 
   useAuthRedirect({ user, isLoading, hasCompletedSetup });
 
@@ -77,16 +90,25 @@ function SubscriptionSyncBridge({ userId }: { userId?: string }) {
 export default Sentry.wrap(function RootLayout() {
   return (
     <GestureHandlerRootView className="flex-1">
-      <ErrorBoundary>
-        <OfflineBanner />
-        <KeyboardProvider>
-          <AuthProvider>
-            <CustomAlertProvider>
-              <RootLayoutNav />
-            </CustomAlertProvider>
-          </AuthProvider>
-        </KeyboardProvider>
-      </ErrorBoundary>
+      <PostHogProvider
+        client={posthog}
+        autocapture={{
+          captureScreens: false,
+          captureTouches: true,
+          propsToCapture: ['testID'],
+        }}
+      >
+        <ErrorBoundary>
+          <OfflineBanner />
+          <KeyboardProvider>
+            <AuthProvider>
+              <CustomAlertProvider>
+                <RootLayoutNav />
+              </CustomAlertProvider>
+            </AuthProvider>
+          </KeyboardProvider>
+        </ErrorBoundary>
+      </PostHogProvider>
     </GestureHandlerRootView>
   );
 });

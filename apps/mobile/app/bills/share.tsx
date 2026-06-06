@@ -36,6 +36,7 @@ import GroupConfirmToolbar from '@/components/bills/share/GroupConfirmToolbar';
 import { buildGroupName, contactKey, computeContactItemShare } from '@/components/bills/share/utils';
 import type { ResolvedContact, ContactShareData, ItemShareInfo } from '@/components/bills/share/types';
 import { useGlassEffect } from '@/hooks/useGlassEffect';
+import { posthog } from '@/lib/posthog';
 
 export default function ShareScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -131,6 +132,7 @@ export default function ShareScreen() {
     const currentPaid = optimisticPaid.has(contactId) ? optimisticPaid.get(contactId)! : (contact?.paid ?? false);
     const newPaid = !currentPaid;
     setOptimisticPaid((prev) => new Map(prev).set(contactId, newPaid));
+    if (newPaid) posthog.capture('payment_marked_paid');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await togglePaid({ id: id as Id<'bills'>, contactId: contactId as Id<'contacts'> });
@@ -155,6 +157,7 @@ export default function ShareScreen() {
       alert(t.error, t.error_whatsappNotAvailable);
       return;
     }
+    posthog.capture('bill_shared', { share_type: 'whatsapp_individual' });
     Linking.openURL(url);
   }, [bill, taxConfig, decimalPlaces, t, alert]);
 
@@ -167,6 +170,7 @@ export default function ShareScreen() {
       alert(t.error, t.error_whatsappNotAvailable);
       return;
     }
+    posthog.capture('bill_shared', { share_type: 'whatsapp_group', member_count: members.length });
     Linking.openURL(url);
   }, [bill, decimalPlaces, t, alert]);
 
@@ -185,6 +189,7 @@ export default function ShareScreen() {
       alert(t.error, t.error_whatsappNotAvailable);
       return;
     }
+    posthog.capture('bill_shared', { share_type: 'whatsapp_bill_summary', contact_count: contacts.length });
     Linking.openURL(url);
   }, [bill, shareDataMap, decimalPlaces, t, alert]);
 

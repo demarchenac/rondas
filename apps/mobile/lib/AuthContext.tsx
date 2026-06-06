@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import * as Sentry from '@sentry/react-native';
+import { posthog } from '@/lib/posthog';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import {
@@ -100,6 +101,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(async (storedUser) => {
         if (storedUser) {
           await syncAfterLogin(storedUser);
+          posthog.identify(storedUser.id, {
+            $set: {
+              email: storedUser.email,
+              name: [storedUser.firstName, storedUser.lastName].filter(Boolean).join(' ') || null,
+            },
+          });
         }
         setUser(storedUser);
       })
@@ -195,6 +202,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (__DEV__) console.log('[Auth] Got code, exchanging token...');
       const newUser = await handleCallback(code);
       await syncAfterLogin(newUser);
+      posthog.identify(newUser.id, {
+        $set: {
+          email: newUser.email,
+          name: [newUser.firstName, newUser.lastName].filter(Boolean).join(' ') || null,
+          auth_provider: newUser.authProvider,
+        },
+        $set_once: { first_login_date: new Date().toISOString() },
+      });
+      posthog.capture('user_signed_in', { auth_provider: provider ?? 'email' });
       setUser(newUser);
       setLoading(false);
       return { success: true };
@@ -209,6 +225,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     try {
       const sessionId = await getSessionId();
+      posthog.capture('user_signed_out');
+      posthog.reset();
       await clearSession();
       setUser(null);
 

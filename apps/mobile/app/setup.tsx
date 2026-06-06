@@ -17,6 +17,7 @@ import { useT } from '@/lib/i18n';
 import { api } from '@convex/_generated/api';
 import { ICON_COLORS } from '@/constants/colors';
 import type { Country } from '@/constants/taxes';
+import { posthog } from '@/lib/posthog';
 
 export default function SetupScreen() {
   const router = useRouter();
@@ -69,6 +70,7 @@ export default function SetupScreen() {
       });
     }
 
+    posthog.capture('onboarding_completed', { country, language, tip_percent: tip, theme });
     settingsStore.setHasCompletedSetup(true);
     router.replace('/(tabs)');
   };
