@@ -36,14 +36,13 @@ export function useBillFilters(userId: string | undefined) {
   // Filter options (state counts + contacts list)
   const filterOptions = useQuery(
     api.bills.billFilterOptions,
-    userId ? { userId } : 'skip',
+    userId ? {} : 'skip',
   );
 
   // Build query args for the paginated list
   const queryArgs = useMemo(() => {
     if (!userId) return 'skip' as const;
     return {
-      userId,
       ...(activeFilters.state !== 'all' ? { state: activeFilters.state } : {}),
       ...(activeFilters.minAmount != null ? { minAmount: activeFilters.minAmount } : {}),
       ...(activeFilters.maxAmount != null ? { maxAmount: activeFilters.maxAmount } : {}),

@@ -58,7 +58,6 @@ export default function SetupScreen() {
     // Save config to Convex
     if (user) {
       await updateConfig({
-        workosId: user.id,
         config: {
           country,
           defaultTipPercent: tip,

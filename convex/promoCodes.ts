@@ -1,5 +1,6 @@
 import { mutation, query } from './_generated/server';
 import { v, ConvexError } from 'convex/values';
+import { getAuthUserId } from './model/auth';
 
 function normalizeCode(code: string): string {
   return code.trim().toLowerCase();
@@ -7,15 +8,15 @@ function normalizeCode(code: string): string {
 
 export const redeemCode = mutation({
   args: {
-    workosId: v.string(),
     code: v.string(),
   },
   handler: async (ctx, args) => {
+    const workosId = await getAuthUserId(ctx);
     const normalized = normalizeCode(args.code);
 
     const user = await ctx.db
       .query('users')
-      .withIndex('by_workos_id', (q) => q.eq('workosId', args.workosId))
+      .withIndex('by_workos_id', (q) => q.eq('workosId', workosId))
       .unique();
 
     if (!user) throw new ConvexError({ code: 'NOT_FOUND', message: 'user_not_found' });

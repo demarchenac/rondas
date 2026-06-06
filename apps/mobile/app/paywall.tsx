@@ -105,7 +105,7 @@ export default function PaywallScreen() {
     if (!user || !promoCode.trim()) return;
     setRedeeming(true);
     try {
-      await redeemCode({ workosId: user.id, code: promoCode.trim() });
+      await redeemCode({ code: promoCode.trim() });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       alert(t.promo_success);
       router.back();

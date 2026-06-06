@@ -1,7 +1,7 @@
 import { action } from './_generated/server';
 import { v, ConvexError } from 'convex/values';
-import { api } from './_generated/api';
 import { internal } from './_generated/api';
+import { getAuthUserId } from './model/auth';
 import {
   GEMINI_STREAM_URL,
   EXTRACTION_PROMPT,
@@ -15,11 +15,11 @@ export const extractBillItems = action({
     imageBase64: v.string(),
     mimeType: v.string(),
     scanId: v.id('scans'),
-    userId: v.string(),
     isPro: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<ExtractedBill> => {
-    const proStatus = await ctx.runQuery(api.users.getProStatus, { workosId: args.userId });
+    const userId = await getAuthUserId(ctx);
+    const proStatus = await ctx.runQuery(internal.users.internalGetProStatus, { workosId: userId });
     const TRIAL_BILL_LIMIT = 2;
     const isPro = args.isPro === true || proStatus.proOverride;
     const inTrial = proStatus.totalBillsCreated < TRIAL_BILL_LIMIT;
@@ -27,7 +27,7 @@ export const extractBillItems = action({
     if (!isPro && !inTrial) {
       await ctx.runMutation(internal.scans.updateScan, {
         id: args.scanId,
-        userId: args.userId,
+        userId: userId,
         status: 'error',
         error: 'pro_required',
       });
@@ -38,7 +38,7 @@ export const extractBillItems = action({
     if (!apiKey) {
       await ctx.runMutation(internal.scans.updateScan, {
         id: args.scanId,
-        userId: args.userId,
+        userId: userId,
         status: 'error',
         error: 'GEMINI_API_KEY not configured',
       });
@@ -79,7 +79,7 @@ export const extractBillItems = action({
       const errorMsg = isTimeout ? 'Gemini API request timed out after 60s' : `Gemini API request failed: ${err}`;
       await ctx.runMutation(internal.scans.updateScan, {
         id: args.scanId,
-        userId: args.userId,
+        userId: userId,
         status: 'error',
         error: errorMsg,
       });
@@ -91,7 +91,7 @@ export const extractBillItems = action({
       const error = await response.text();
       await ctx.runMutation(internal.scans.updateScan, {
         id: args.scanId,
-        userId: args.userId,
+        userId: userId,
         status: 'error',
         error: `Gemini API error (${response.status})`,
       });
@@ -134,7 +134,7 @@ export const extractBillItems = action({
               hasReportedThinking = true;
               await ctx.runMutation(internal.scans.updateScan, {
                 id: args.scanId,
-                userId: args.userId,
+                userId: userId,
                 status: 'thinking',
               });
             }
@@ -144,7 +144,7 @@ export const extractBillItems = action({
                 hasReportedExtracting = true;
                 await ctx.runMutation(internal.scans.updateScan, {
                   id: args.scanId,
-                  userId: args.userId,
+                  userId: userId,
                   status: 'extracting',
                 });
               }
@@ -157,7 +157,7 @@ export const extractBillItems = action({
                 lastItemCount = items.length;
                 await ctx.runMutation(internal.scans.updateScan, {
                   id: args.scanId,
-                  userId: args.userId,
+                  userId: userId,
                   status: 'extracting',
                   result: {
                     category: 'dining',
@@ -179,7 +179,7 @@ export const extractBillItems = action({
     if (!jsonText) {
       await ctx.runMutation(internal.scans.updateScan, {
         id: args.scanId,
-        userId: args.userId,
+        userId: userId,
         status: 'error',
         error: 'No response from Gemini API',
       });
@@ -194,7 +194,7 @@ export const extractBillItems = action({
       if (parsed.error === 'not_a_receipt') {
         await ctx.runMutation(internal.scans.updateScan, {
           id: args.scanId,
-          userId: args.userId,
+          userId: userId,
           status: 'error',
           error: 'not_a_receipt',
         });
@@ -223,7 +223,7 @@ export const extractBillItems = action({
 
       await ctx.runMutation(internal.scans.updateScan, {
         id: args.scanId,
-        userId: args.userId,
+        userId: userId,
         status: 'complete',
         result: {
           ...result,
@@ -235,7 +235,7 @@ export const extractBillItems = action({
     } catch {
       await ctx.runMutation(internal.scans.updateScan, {
         id: args.scanId,
-        userId: args.userId,
+        userId: userId,
         status: 'error',
         error: `Failed to parse response: ${cleaned.slice(0, 100)}`,
       });

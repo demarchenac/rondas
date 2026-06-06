@@ -42,7 +42,7 @@ export function useContactSync(userId: string | undefined) {
         Sentry.logger.info(`[ContactSync] contacts with phone: ${deviceContacts.length}`);
 
         if (deviceContacts.length > 0) {
-          const result = await syncFromDevice({ userId, deviceContacts });
+          const result = await syncFromDevice({ deviceContacts });
           Sentry.logger.info(`[ContactSync] updated: ${result.updated}`);
         }
 

@@ -13,6 +13,7 @@ import type * as bills from "../bills.js";
 import type * as contacts from "../contacts.js";
 import type * as migrations from "../migrations.js";
 import type * as model_ai from "../model/ai.js";
+import type * as model_auth from "../model/auth.js";
 import type * as model_bills from "../model/bills.js";
 import type * as model_contacts from "../model/contacts.js";
 import type * as notifications from "../notifications.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   contacts: typeof contacts;
   migrations: typeof migrations;
   "model/ai": typeof model_ai;
+  "model/auth": typeof model_auth;
   "model/bills": typeof model_bills;
   "model/contacts": typeof model_contacts;
   notifications: typeof notifications;

@@ -240,3 +240,18 @@ export async function clearSession(): Promise<void> {
   await SecureStore.deleteItemAsync(KEYS.SESSION);
   await SecureStore.deleteItemAsync(KEYS.PKCE);
 }
+
+export async function getAccessToken(): Promise<string | null> {
+  const sessionData = await SecureStore.getItemAsync(KEYS.SESSION);
+  if (!sessionData) return null;
+
+  const session: StoredSession = JSON.parse(sessionData);
+  const payload = parseJwtPayload(session.accessToken);
+  const exp = payload.exp as number;
+  const isExpired = Date.now() > exp * 1000 - 10_000;
+
+  if (!isExpired) return session.accessToken;
+
+  const refreshed = await refreshSession(session);
+  return refreshed?.accessToken ?? null;
+}

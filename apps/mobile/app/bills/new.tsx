@@ -97,7 +97,7 @@ export default function NewBillScreen() {
   const [scanId, setScanId] = useState<Id<'scans'> | null>(null);
   const scanProgress = useQuery(
     api.scans.getScan,
-    scanId && user ? { id: scanId, userId: user.id } : 'skip'
+    scanId && user ? { id: scanId } : 'skip'
   );
 
   // Resolve place name in background
@@ -261,10 +261,10 @@ export default function NewBillScreen() {
       // Transition to backend-driven phases
       setLocalPhase('analyzing');
 
-      const newScanId = await createScan({ userId: user.id });
+      const newScanId = await createScan({});
       setScanId(newScanId);
 
-      const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg', scanId: newScanId, userId: user!.id, isPro });
+      const result = await extractItems({ imageBase64: base64, mimeType: 'image/jpeg', scanId: newScanId, isPro });
 
       // Celebration: show completion state while creating bill in parallel
       setLocalPhase('complete');
@@ -292,7 +292,6 @@ export default function NewBillScreen() {
         const itemsForDB = preparedItems.map(({ id: _id, ...rest }) => rest);
 
         return createBill({
-          userId: user.id,
           name: placeData.placeName || 'Bill',
           total: calculatedTotal,
           tax,
@@ -314,7 +313,7 @@ export default function NewBillScreen() {
         new Promise<void>((resolve) => setTimeout(resolve, 800)),
       ]);
 
-      if (newScanId) deleteScan({ id: newScanId, userId: user!.id }).catch((err) => { console.warn('[NewBill] mutation failed:', err); Sentry.captureException(err, { tags: { feature: 'new_bill' } }); });
+      if (newScanId) deleteScan({ id: newScanId }).catch((err) => { console.warn('[NewBill] mutation failed:', err); Sentry.captureException(err, { tags: { feature: 'new_bill' } }); });
       setScanAttempts(0);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace(`/bills/${billId}` as Href);
@@ -383,7 +382,6 @@ export default function NewBillScreen() {
 
     try {
       await createBill({
-        userId: user.id,
         name: bill.name || 'Bill',
         total: calculatedTotal,
         tax: bill.tax,
@@ -470,7 +468,6 @@ export default function NewBillScreen() {
                       onPress={async () => {
                         if (!user) return;
                         const billId = await createBill({
-                          userId: user.id,
                           name: placeData.placeName || 'Bill',
                           total: 0,
                           items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],
@@ -521,7 +518,6 @@ export default function NewBillScreen() {
                   onPress={async () => {
                     if (!user) return;
                     const billId = await createBill({
-                      userId: user.id,
                       name: placeData.placeName || 'Bill',
                       total: 0,
                       items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],

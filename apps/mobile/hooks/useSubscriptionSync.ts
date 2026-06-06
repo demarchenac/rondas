@@ -7,7 +7,7 @@ import { initRevenueCat, logoutRevenueCat } from '@/lib/revenueCat';
 export function useSubscriptionSync(userId: string | undefined) {
   const proStatus = useQuery(
     api.users.getProStatus,
-    userId ? { workosId: userId } : 'skip',
+    userId ? {} : 'skip',
   );
 
   useEffect(() => {

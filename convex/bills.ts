@@ -11,6 +11,7 @@ import {
   contactArgValidator,
 } from './validators';
 import { getOrCreate, incrementReference, decrementReference } from './model/contacts';
+import { getAuthUserId } from './model/auth';
 import { resolvePlatformSlug } from './tags';
 import {
   assertMaxLength,
@@ -27,7 +28,6 @@ import {
 
 export const list = query({
   args: {
-    userId: v.string(),
     paginationOpts: paginationOptsValidator,
     state: v.optional(billStateValidator),
     minAmount: v.optional(v.number()),
@@ -37,14 +37,15 @@ export const list = query({
     toDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     let billsQuery = args.state
       ? ctx.db
           .query('bills')
-          .withIndex('by_user_state', (q) => q.eq('userId', args.userId).eq('state', args.state!))
+          .withIndex('by_user_state', (q) => q.eq('userId', userId).eq('state', args.state!))
           .order('desc')
       : ctx.db
           .query('bills')
-          .withIndex('by_user', (q) => q.eq('userId', args.userId))
+          .withIndex('by_user', (q) => q.eq('userId', userId))
           .order('desc');
 
     const hasNonStateFilters =
@@ -69,7 +70,7 @@ export const list = query({
     const paginatedBills = await billsQuery.paginate(args.paginationOpts);
 
     // Fetch all user tags once for in-memory resolution
-    const user = await ctx.db.query('users').withIndex('by_workos_id', (q) => q.eq('workosId', args.userId)).unique();
+    const user = await ctx.db.query('users').withIndex('by_workos_id', (q) => q.eq('workosId', userId)).unique();
     const userTags = user
       ? await ctx.db.query('tags').withIndex('by_user', (q) => q.eq('userId', user._id)).collect()
       : [];
@@ -88,12 +89,13 @@ export const list = query({
 });
 
 export const get = query({
-  args: { id: v.id('bills'), userId: v.string() },
+  args: { id: v.id('bills') },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const bill = await ctx.db.get(args.id);
-    if (!bill || bill.userId !== args.userId) return null;
+    if (!bill || bill.userId !== userId) return null;
 
-    const user = await ctx.db.query('users').withIndex('by_workos_id', (q) => q.eq('workosId', args.userId)).unique();
+    const user = await ctx.db.query('users').withIndex('by_workos_id', (q) => q.eq('workosId', userId)).unique();
     const userTags = user
       ? await ctx.db.query('tags').withIndex('by_user', (q) => q.eq('userId', user._id)).collect()
       : [];
@@ -108,12 +110,13 @@ export const get = query({
 });
 
 export const billFilterOptions = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
     // .collect() required for aggregation (counting states) — not a list query
     const bills = await ctx.db
       .query('bills')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', userId))
       .collect();
 
     const billsByState = { draft: 0, unsplit: 0, split: 0, unresolved: 0 };
@@ -133,7 +136,7 @@ export const billFilterOptions = query({
 
     const allContacts = await ctx.db
       .query('contacts')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', userId))
       .collect();
     const contacts = allContacts.filter((c) => !c.isSelf);
 
@@ -148,7 +151,6 @@ const FREE_MONTHLY_BILL_LIMIT = 3;
 
 export const create = mutation({
   args: {
-    userId: v.string(),
     name: v.string(),
     imageUrl: v.optional(v.string()),
     total: v.number(),
@@ -174,6 +176,7 @@ export const create = mutation({
     isPro: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     assertMaxLength(args.name, 200, 'Bill name');
     for (const item of args.items) {
       assertMaxLength(item.name, 200, 'Item name');
@@ -181,7 +184,7 @@ export const create = mutation({
 
     const user = await ctx.db
       .query('users')
-      .withIndex('by_workos_id', (q) => q.eq('workosId', args.userId))
+      .withIndex('by_workos_id', (q) => q.eq('workosId', userId))
       .unique();
 
     const totalBillsCreated = user?.totalBillsCreated ?? 0;
@@ -199,7 +202,7 @@ export const create = mutation({
       let monthlyCount = 0;
       const recentBills = await ctx.db
         .query('bills')
-        .withIndex('by_user', (q) => q.eq('userId', args.userId))
+        .withIndex('by_user', (q) => q.eq('userId', userId))
         .order('desc')
         .collect();
       for (const bill of recentBills) {
@@ -235,6 +238,7 @@ export const create = mutation({
     const derived = computeDerivedFields(items, []);
     const billId = await ctx.db.insert('bills', {
       ...insertArgs,
+      userId,
       items,
       tagIds: tagIds ?? [],
       state: 'unsplit',
@@ -256,11 +260,12 @@ export const create = mutation({
 });
 
 export const remove = mutation({
-  args: { id: v.id('bills'), userId: v.string() },
+  args: { id: v.id('bills') },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     for (const ref of bill.contacts) {
       if (!ref.isSelf) await decrementReference(ctx, ref.contactId);
@@ -273,7 +278,7 @@ export const remove = mutation({
 export const update = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
     name: v.optional(v.string()),
     state: v.optional(billStateValidator),
     splitStrategy: v.optional(splitStrategyValidator),
@@ -288,13 +293,14 @@ export const update = mutation({
     tagIds: v.optional(v.array(v.id('tags'))),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     if (args.name !== undefined) assertMaxLength(args.name, 200, 'Bill name');
     if (args.items) {
       for (const item of args.items) {
         assertMaxLength(item.name, 200, 'Item name');
       }
     }
-    const { id, userId, ...patches } = args;
+    const { id, ...patches } = args;
     const defined = Object.fromEntries(
       Object.entries(patches).filter(([, val]) => val !== undefined),
     );
@@ -357,17 +363,18 @@ export const update = mutation({
 export const assignContactToItem = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
     itemId: v.string(),
     contact: contactArgValidator,
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     assertMaxLength(args.contact.name, 100, 'Contact name');
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
-    const contactId = await getOrCreate(ctx, args.userId, args.contact);
+    const contactId = await getOrCreate(ctx, userId, args.contact);
     const contacts = [...bill.contacts];
     const isSelfOverride = args.contact.isSelf ? true : undefined;
 
@@ -394,17 +401,18 @@ export const assignContactToItem = mutation({
 export const assignContactToItems = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
     itemIds: v.array(v.string()),
     contact: contactArgValidator,
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     assertMaxLength(args.contact.name, 100, 'Contact name');
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
-    const contactId = await getOrCreate(ctx, args.userId, args.contact);
+    const contactId = await getOrCreate(ctx, userId, args.contact);
     const contacts = [...bill.contacts];
     const isSelfOverride = args.contact.isSelf ? true : undefined;
 
@@ -436,14 +444,15 @@ export const assignContactToItems = mutation({
 export const removeContactFromItem = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
     itemId: v.string(),
     contactId: v.id('contacts'),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     let contacts = [...bill.contacts];
     const idx = contacts.findIndex((c) => c.contactId === args.contactId);
@@ -470,14 +479,15 @@ export const removeContactFromItem = mutation({
 export const removeContactsFromItems = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
     itemIds: v.array(v.string()),
     contactIds: v.array(v.id('contacts')),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const contactIdSet = new Set(args.contactIds.map(String));
     const contacts = bill.contacts
@@ -507,15 +517,16 @@ export const removeContactsFromItems = mutation({
 export const updateContactUnits = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
     itemId: v.string(),
     contactId: v.id('contacts'),
     units: v.number(),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
     if (args.units < 1) throw new ConvexError({ code: 'VALIDATION', message: 'Units must be at least 1' });
 
     const item = bill.items.find((i) => i.id === args.itemId);
@@ -543,13 +554,14 @@ export const updateContactUnits = mutation({
 export const togglePaymentStatus = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
     contactId: v.id('contacts'),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const contacts = bill.contacts.map((c) =>
       c.contactId === args.contactId ? { ...c, paid: !c.paid } : c,
@@ -566,11 +578,12 @@ export const togglePaymentStatus = mutation({
 export const assignEqualSplit = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
     numPeople: v.number(),
     contacts: v.array(contactArgValidator),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     if (args.numPeople < 2 || args.numPeople > 20) {
       throw new ConvexError({ code: 'VALIDATION', message: 'Number of people must be between 2 and 20' });
     }
@@ -579,7 +592,7 @@ export const assignEqualSplit = mutation({
     }
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const perPerson = Math.floor(bill.total / args.numPeople);
     const remainder = bill.total - perPerson * args.numPeople;
@@ -591,7 +604,7 @@ export const assignEqualSplit = mutation({
     const contacts: ContactRef[] = [];
     for (let i = 0; i < args.contacts.length; i++) {
       const contact = args.contacts[i];
-      const contactId = await getOrCreate(ctx, args.userId, contact);
+      const contactId = await getOrCreate(ctx, userId, contact);
       const isSelfOverride = contact.isSelf ? true : undefined;
       if (!isSelfOverride) await incrementReference(ctx, contactId);
       contacts.push({
@@ -628,13 +641,14 @@ export const assignEqualSplit = mutation({
 export const updateContactGroups = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
     groups: v.array(contactGroupValidator),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const contactIdSet = new Set(bill.contacts.map((c) => String(c.contactId)));
     for (const group of args.groups) {
@@ -652,13 +666,14 @@ export const updateContactGroups = mutation({
 export const toggleGroupPaymentStatus = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
     groupId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const group = bill.contactGroups?.find((g) => g.id === args.groupId);
     if (!group) throw new ConvexError({ code: 'NOT_FOUND', message: 'Group not found' });
@@ -681,12 +696,13 @@ export const toggleGroupPaymentStatus = mutation({
 export const clearSplitAssignments = mutation({
   args: {
     id: v.id('bills'),
-    userId: v.string(),
+
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const bill = await ctx.db.get(args.id);
     if (!bill) throw new ConvexError({ code: 'NOT_FOUND', message: 'Bill not found' });
-    if (bill.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (bill.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     for (const ref of bill.contacts) {
       if (!ref.isSelf) await decrementReference(ctx, ref.contactId);

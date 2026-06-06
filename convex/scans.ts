@@ -1,13 +1,14 @@
 import { internalMutation, mutation, query } from './_generated/server';
-import { v } from 'convex/values';
-import { ConvexError } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import { scanStatusValidator, scanResultValidator } from './validators';
+import { getAuthUserId } from './model/auth';
 
 export const createScan = mutation({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
     return await ctx.db.insert('scans', {
-      userId: args.userId,
+      userId,
       status: 'analyzing',
     });
   },
@@ -32,19 +33,21 @@ export const updateScan = internalMutation({
 });
 
 export const getScan = query({
-  args: { id: v.id('scans'), userId: v.string() },
+  args: { id: v.id('scans') },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const scan = await ctx.db.get(args.id);
-    if (!scan || scan.userId !== args.userId) return null;
+    if (!scan || scan.userId !== userId) return null;
     return scan;
   },
 });
 
 export const deleteScan = mutation({
-  args: { id: v.id('scans'), userId: v.string() },
+  args: { id: v.id('scans') },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const scan = await ctx.db.get(args.id);
-    if (!scan || scan.userId !== args.userId) {
+    if (!scan || scan.userId !== userId) {
       throw new ConvexError({ code: 'NOT_FOUND', message: 'Scan not found or access denied' });
     }
     await ctx.db.delete(args.id);

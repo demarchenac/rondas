@@ -67,7 +67,7 @@ export default function SettingsScreen() {
     if (!user || !promoCode.trim()) return;
     setRedeeming(true);
     try {
-      await redeemCode({ workosId: user.id, code: promoCode.trim() });
+      await redeemCode({ code: promoCode.trim() });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       alert(t.promo_success);
       setPromoCode('');
@@ -100,7 +100,6 @@ export default function SettingsScreen() {
     const settings = useSettingsStore.getState();
     const themeState = useThemeStore.getState();
     updateConfigMutation({
-      workosId: user.id,
       config: {
         country: settings.country,
         usState: settings.usState,

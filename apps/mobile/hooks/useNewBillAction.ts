@@ -25,7 +25,6 @@ export function useNewBillAction() {
     if (!user) return;
     try {
       const billId = await createBill({
-        userId: user.id,
         name: 'Bill',
         total: 0,
         items: [{ name: '', quantity: 1, unitPrice: 0, subtotal: 0 }],

@@ -22,9 +22,9 @@ export function useBillDetail(id: string, userId: string | undefined) {
   const { alert } = useCustomAlert();
 
   // ── Queries ──
-  const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
-  const suggestedContacts = useQuery(api.contacts.suggested, userId ? { userId } : 'skip');
-  const selfContact = useQuery(api.contacts.getSelf, userId ? { userId } : 'skip');
+  const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'> } : 'skip');
+  const suggestedContacts = useQuery(api.contacts.suggested, userId ? {} : 'skip');
+  const selfContact = useQuery(api.contacts.getSelf, userId ? {} : 'skip');
 
   // ── Mutations ──
   const updateBill = useMutation(api.bills.update);
@@ -160,7 +160,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
     const currentBill = billRef.current;
     if (!currentBill || !userId) return;
     const remaining = currentBill.items.filter((billItem) => billItem.id !== itemId);
-    return { remaining, update: () => updateBill({ id: id as Id<'bills'>, userId, items: remaining }) };
+    return { remaining, update: () => updateBill({ id: id as Id<'bills'>, items: remaining }) };
   }, [id, updateBill, userId]);
 
   const handleSubmitEdit = useCallback((itemId: string, values: { name: string; quantity: number; unitPrice: number }) => {
@@ -169,17 +169,17 @@ export function useBillDetail(id: string, userId: string | undefined) {
       if (item.id !== itemId) return item;
       return { ...item, name: values.name, quantity: values.quantity, unitPrice: values.unitPrice, subtotal: values.quantity * values.unitPrice };
     });
-    updateBill({ id: id as Id<'bills'>, userId, items });
+    updateBill({ id: id as Id<'bills'>, items });
   }, [bill, id, updateBill, userId]);
 
   const handleUpdateName = useCallback((name: string) => {
     if (!userId) return;
-    updateBill({ id: id as Id<'bills'>, userId, name });
+    updateBill({ id: id as Id<'bills'>, name });
   }, [id, updateBill, userId]);
 
   const handleRemoveBill = useCallback(async () => {
     if (!userId) return;
-    await removeBillMut({ id: id as Id<'bills'>, userId });
+    await removeBillMut({ id: id as Id<'bills'> });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, [id, removeBillMut, userId]);
 
@@ -239,7 +239,6 @@ export function useBillDetail(id: string, userId: string | undefined) {
 
         await assignContactToItems({
           id: id as Id<'bills'>,
-          userId,
           itemIds,
           contact: contactInfo,
         });
@@ -269,7 +268,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
           style: 'destructive',
           onPress: () => {
             const remaining = bill.items.filter((billItem) => !selectedItemIds.has(billItem.id!));
-            updateBill({ id: id as Id<'bills'>, userId, items: remaining });
+            updateBill({ id: id as Id<'bills'>, items: remaining });
           },
         },
       ]
@@ -281,7 +280,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const newItem = { id: randomUUID(), name: '', quantity: 1, unitPrice: 0, subtotal: 0 };
     try {
-      await updateBill({ id: id as Id<'bills'>, userId, items: [...bill.items, newItem] });
+      await updateBill({ id: id as Id<'bills'>, items: [...bill.items, newItem] });
       return newItem.id;
     } catch {
       alert(t.error, t.error_mutationFailed);
@@ -307,7 +306,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
           onPress: async () => {
             try {
               await removeContactsBatch({
-                id: id as Id<'bills'>, userId,
+                id: id as Id<'bills'>,
                 itemIds: selectedIds.filter((itemId): itemId is string => !!itemId),
                 contactIds: [contactToRemove.contactId],
               });
@@ -332,7 +331,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
     if (selectedContactIds.size === 0 || !bill || !userId) return false;
     try {
       await removeContactsBatch({
-        id: id as Id<'bills'>, userId,
+        id: id as Id<'bills'>,
         itemIds: Array.from(selectedItemIds),
         contactIds: Array.from(selectedContactIds) as Id<'contacts'>[],
       });
@@ -379,7 +378,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
         onPress: async () => {
           onConfirm?.();
           try {
-            await removeContactMut({ id: id as Id<'bills'>, userId: userId!, itemId, contactId });
+            await removeContactMut({ id: id as Id<'bills'>, itemId, contactId });
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } catch (err) {
             console.error('[Bill] removeContact failed:', err);
@@ -397,7 +396,6 @@ export function useBillDetail(id: string, userId: string | undefined) {
     try {
       await updateContactUnitsMut({
         id: id as Id<'bills'>,
-        userId,
         itemId: target.itemId,
         contactId: target.contactId,
         units,
@@ -414,7 +412,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
   const handleTogglePaid = useCallback(async (contactId: Id<'contacts'>) => {
     if (!userId) return;
     try {
-      await togglePaid({ id: id as Id<'bills'>, userId: userId!, contactId });
+      await togglePaid({ id: id as Id<'bills'>, contactId });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (err) {
       console.error('[Bill] togglePaid failed:', err);
@@ -427,7 +425,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
   const handleUpdateGroups = useCallback(async (groups: { id: string; contactIds: string[]; name: string }[]) => {
     if (!userId) return;
     try {
-      await updateContactGroupsMut({ id: id as Id<'bills'>, userId, groups: groups as any });
+      await updateContactGroupsMut({ id: id as Id<'bills'>, groups: groups as any });
     } catch (err) {
       console.error('[Bill] updateContactGroups failed:', err);
       Sentry.captureException(err, { tags: { feature: 'bill_detail' } });
@@ -439,7 +437,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
   const handleToggleGroupPaid = useCallback(async (groupId: string) => {
     if (!userId) return;
     try {
-      await toggleGroupPaidMut({ id: id as Id<'bills'>, userId, groupId });
+      await toggleGroupPaidMut({ id: id as Id<'bills'>, groupId });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (err) {
       console.error('[Bill] toggleGroupPaid failed:', err);
@@ -462,7 +460,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
         text: t.confirm,
         onPress: async () => {
           try {
-            await clearSplit({ id: id as Id<'bills'>, userId });
+            await clearSplit({ id: id as Id<'bills'> });
             setEqualSplitMode(true);
             setNumPeople(2);
           } catch {
@@ -485,7 +483,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
         text: t.confirm,
         onPress: async () => {
           try {
-            await clearSplit({ id: id as Id<'bills'>, userId });
+            await clearSplit({ id: id as Id<'bills'> });
             setEqualSplitMode(false);
           } catch {
             alert(t.error, t.error_mutationFailed);
@@ -510,7 +508,6 @@ export function useBillDetail(id: string, userId: string | undefined) {
       const remaining = bill.contacts.filter((c) => c.contactId !== contactId);
       await assignEqualSplit({
         id: id as Id<'bills'>,
-        userId,
         numPeople: Math.max(2, overrideNumPeople ?? numPeople),
         contacts: remaining.map((c) => ({ name: c.name, phone: c.phone, isSelf: c.isSelf || undefined, imageUri: c.imageUri })),
       });
@@ -551,9 +548,9 @@ export function useBillDetail(id: string, userId: string | undefined) {
           isSelf: c.isSelf || undefined,
           imageUri: c.imageUri,
         }));
-        assignEqualSplit({ id: id as Id<'bills'>, userId, numPeople: newCount, contacts: contactArgs });
+        assignEqualSplit({ id: id as Id<'bills'>, numPeople: newCount, contacts: contactArgs });
       } else {
-        updateBill({ id: id as Id<'bills'>, userId, numPeople: newCount });
+        updateBill({ id: id as Id<'bills'>, numPeople: newCount });
       }
     }, 500);
   }, [bill, numPeople, t, alert, handleRemoveEqualContact, id, userId, updateBill, assignEqualSplit]);
@@ -569,7 +566,6 @@ export function useBillDetail(id: string, userId: string | undefined) {
     try {
       await assignEqualSplit({
         id: id as Id<'bills'>,
-        userId,
         numPeople,
         contacts: contactArgs,
       });
@@ -618,7 +614,6 @@ export function useBillDetail(id: string, userId: string | undefined) {
     try {
       await assignEqualSplit({
         id: id as Id<'bills'>,
-        userId,
         numPeople,
         contacts: contactArgs,
       });
@@ -637,32 +632,32 @@ export function useBillDetail(id: string, userId: string | undefined) {
     if (!bill || !userId || !billDerived) return;
     const current = bill.taxIncludedOverride ?? billDerived.taxConfig.taxIncluded;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    updateBill({ id: id as Id<'bills'>, userId, taxIncludedOverride: !current });
+    updateBill({ id: id as Id<'bills'>, taxIncludedOverride: !current });
   }, [bill, userId, billDerived, id, updateBill]);
 
   const handleSelectTip = useCallback(async (pct: number, newTip: number) => {
     if (!userId) return;
-    await updateBill({ id: id as Id<'bills'>, userId, tipPercent: pct, tip: newTip, useCustomTip: false });
+    await updateBill({ id: id as Id<'bills'>, tipPercent: pct, tip: newTip, useCustomTip: false });
   }, [id, updateBill, userId]);
 
   const handleSelectCustomTip = useCallback((tip: number) => {
     if (!userId) return;
-    updateBill({ id: id as Id<'bills'>, userId, tip, useCustomTip: true });
+    updateBill({ id: id as Id<'bills'>, tip, useCustomTip: true });
   }, [id, updateBill, userId]);
 
   const handleToggleCustomTip = useCallback((enabled: boolean) => {
     if (!userId || !billDerived) return;
     if (enabled) {
-      updateBill({ id: id as Id<'bills'>, userId, useCustomTip: true });
+      updateBill({ id: id as Id<'bills'>, useCustomTip: true });
     } else {
       const newTip = billDerived.base * (billDerived.tipPercent / 100);
-      updateBill({ id: id as Id<'bills'>, userId, tip: newTip, useCustomTip: false });
+      updateBill({ id: id as Id<'bills'>, tip: newTip, useCustomTip: false });
     }
   }, [id, updateBill, userId, billDerived]);
 
   const handleSelectCountry = useCallback(async (code: string) => {
     if (!userId) return;
-    await updateBill({ id: id as Id<'bills'>, userId, country: code });
+    await updateBill({ id: id as Id<'bills'>, country: code });
   }, [id, updateBill, userId]);
 
   // ── Progress bar ──

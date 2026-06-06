@@ -10,7 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
 
-import { ConvexProvider } from 'convex/react';
+import { ConvexProviderWithAuth } from 'convex/react';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { convex } from '@/lib/convex';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -20,6 +20,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { CustomAlertProvider } from '@/components/ui/custom-alert';
 import { KeyboardToolbar } from '@/components/ui/KeyboardToolbar';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
+import { useWorkOSAuth } from '@/hooks/useWorkOSAuth';
 import { useSubscriptionSync } from '@/hooks/useSubscriptionSync';
 import DevLogViewer from '@/components/DevLogViewer';
 import * as Sentry from '@sentry/react-native';
@@ -47,7 +48,7 @@ function RootLayoutNav() {
   useAuthRedirect({ user, isLoading, hasCompletedSetup });
 
   return (
-    <ConvexProvider client={convex}>
+    <ConvexProviderWithAuth client={convex} useAuth={useWorkOSAuth}>
       <SubscriptionSyncBridge userId={user?.id} />
       <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
@@ -64,7 +65,7 @@ function RootLayoutNav() {
         <DevLogViewer />
         <PortalHost />
       </ThemeProvider>
-    </ConvexProvider>
+    </ConvexProviderWithAuth>
   );
 }
 

@@ -1,38 +1,42 @@
 import { mutation, query } from './_generated/server';
 import { v, ConvexError } from 'convex/values';
 import { getOrCreateSelf } from './model/contacts';
+import { getAuthUserId } from './model/auth';
 import { computeDerivedFields } from './model/bills';
 
 // --- Queries ---
 
 export const list = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
     const all = await ctx.db
       .query('contacts')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', userId))
       .collect();
     return all.filter((c) => !c.isSelf);
   },
 });
 
 export const getSelf = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
     const all = await ctx.db
       .query('contacts')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', userId))
       .collect();
     return all.find((c) => c.isSelf === true) ?? null;
   },
 });
 
 export const suggested = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
     const all = await ctx.db
       .query('contacts')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', userId))
       .collect();
 
     const referenced = all.filter((c) => c.referenceCount > 0 && !c.isSelf);
@@ -53,7 +57,6 @@ export const suggested = query({
 
 export const syncFromDevice = mutation({
   args: {
-    userId: v.string(),
     deviceContacts: v.array(
       v.object({
         phone: v.string(),
@@ -63,9 +66,10 @@ export const syncFromDevice = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const allContacts = await ctx.db
       .query('contacts')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', userId))
       .collect();
 
     const deviceByPhone = new Map(
@@ -94,12 +98,12 @@ export const syncFromDevice = mutation({
 
 export const syncSelfContact = mutation({
   args: {
-    userId: v.string(),
     name: v.optional(v.string()),
     imageUri: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await getOrCreateSelf(ctx, args.userId, { name: args.name, imageUri: args.imageUri });
+    const userId = await getAuthUserId(ctx);
+    await getOrCreateSelf(ctx, userId, { name: args.name, imageUri: args.imageUri });
   },
 });
 
@@ -108,15 +112,15 @@ export const syncSelfContact = mutation({
 export const update = mutation({
   args: {
     id: v.id('contacts'),
-    userId: v.string(),
     name: v.optional(v.string()),
     phone: v.optional(v.string()),
     imageUri: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const contact = await ctx.db.get(args.id);
     if (!contact) throw new ConvexError({ code: 'NOT_FOUND', message: 'Contact not found' });
-    if (contact.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (contact.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     const patches: Record<string, unknown> = {};
     if (args.name !== undefined) patches.name = args.name;
@@ -132,18 +136,16 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     id: v.id('contacts'),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
     const contact = await ctx.db.get(args.id);
     if (!contact) throw new ConvexError({ code: 'NOT_FOUND', message: 'Contact not found' });
-    if (contact.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (contact.userId !== userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
-    // .collect() required: Convex can't filter nested arrays, so we scan all bills.
-    // Acceptable for contact deletion (rare operation).
     const bills = await ctx.db
       .query('bills')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', userId))
       .collect();
 
     for (const bill of bills) {

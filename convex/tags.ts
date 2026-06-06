@@ -1,6 +1,7 @@
 import { mutation, query, type MutationCtx } from './_generated/server';
 import { v, ConvexError } from 'convex/values';
 import type { Id, Doc } from './_generated/dataModel';
+import { getAuthUserId } from './model/auth';
 
 const PLATFORM_TAGS = [
   { name: 'Dining', slug: 'dining', color: '#06b6d4', sortOrder: 0 },
@@ -34,12 +35,26 @@ export async function resolvePlatformSlug(
   return 'dining';
 }
 
+async function resolveUserDocId(
+  ctx: { db: { query: (table: 'users') => any } },
+  workosId: string,
+): Promise<Id<'users'>> {
+  const user = await ctx.db
+    .query('users')
+    .withIndex('by_workos_id', (q: any) => q.eq('workosId', workosId))
+    .unique();
+  if (!user) throw new ConvexError({ code: 'NOT_FOUND', message: 'User not found' });
+  return user._id;
+}
+
 export const list = query({
-  args: { userId: v.id('users') },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const workosId = await getAuthUserId(ctx);
+    const userDocId = await resolveUserDocId(ctx, workosId);
     return ctx.db
       .query('tags')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', userDocId))
       .collect()
       .then((tags) => tags.sort((a, b) => a.sortOrder - b.sortOrder));
   },
@@ -47,17 +62,18 @@ export const list = query({
 
 export const create = mutation({
   args: {
-    userId: v.id('users'),
     name: v.string(),
     color: v.string(),
     isPro: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const workosId = await getAuthUserId(ctx);
+    const userDocId = await resolveUserDocId(ctx, workosId);
     if (args.name.length > 50) throw new ConvexError({ code: 'VALIDATION', message: 'Tag name too long' });
 
     const existing = await ctx.db
       .query('tags')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', userDocId))
       .collect();
 
     if (!args.isPro) {
@@ -68,7 +84,7 @@ export const create = mutation({
     const maxOrder = existing.reduce((max, t) => Math.max(max, t.sortOrder), 0);
 
     return ctx.db.insert('tags', {
-      userId: args.userId,
+      userId: userDocId,
       name: args.name,
       color: args.color,
       isPlatform: false,
@@ -80,15 +96,16 @@ export const create = mutation({
 export const update = mutation({
   args: {
     id: v.id('tags'),
-    userId: v.id('users'),
     name: v.optional(v.string()),
     color: v.optional(v.string()),
     sortOrder: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const workosId = await getAuthUserId(ctx);
+    const userDocId = await resolveUserDocId(ctx, workosId);
     const tag = await ctx.db.get(args.id);
     if (!tag) throw new ConvexError({ code: 'NOT_FOUND', message: 'Tag not found' });
-    if (tag.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (tag.userId !== userDocId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
 
     if (tag.isPlatform && args.name !== undefined) {
       throw new ConvexError({ code: 'FORBIDDEN', message: 'Cannot rename platform tags' });
@@ -111,17 +128,18 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     id: v.id('tags'),
-    userId: v.id('users'),
   },
   handler: async (ctx, args) => {
+    const workosId = await getAuthUserId(ctx);
+    const userDocId = await resolveUserDocId(ctx, workosId);
     const tag = await ctx.db.get(args.id);
     if (!tag) throw new ConvexError({ code: 'NOT_FOUND', message: 'Tag not found' });
-    if (tag.userId !== args.userId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
+    if (tag.userId !== userDocId) throw new ConvexError({ code: 'UNAUTHORIZED', message: 'Not authorized' });
     if (tag.isPlatform) throw new ConvexError({ code: 'FORBIDDEN', message: 'Cannot delete platform tags' });
 
     const bills = await ctx.db
       .query('bills')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId as unknown as string))
+      .withIndex('by_user', (q) => q.eq('userId', workosId))
       .collect();
 
     for (const bill of bills) {

@@ -48,7 +48,7 @@ export default function ShareScreen() {
   const { alert } = useCustomAlert();
   const userId = user?.id;
 
-  const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'>, userId } : 'skip');
+  const bill = useQuery(api.bills.get, userId ? { id: id as Id<'bills'> } : 'skip');
   const togglePaid = useMutation(api.bills.togglePaymentStatus);
   const updateContactGroupsMut = useMutation(api.bills.updateContactGroups);
 
@@ -133,7 +133,7 @@ export default function ShareScreen() {
     setOptimisticPaid((prev) => new Map(prev).set(contactId, newPaid));
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      await togglePaid({ id: id as Id<'bills'>, userId, contactId: contactId as Id<'contacts'> });
+      await togglePaid({ id: id as Id<'bills'>, contactId: contactId as Id<'contacts'> });
     } catch (err) {
       // Revert optimistic state on failure
       setOptimisticPaid((prev) => { const next = new Map(prev); next.delete(contactId); return next; });
@@ -255,7 +255,7 @@ export default function ShareScreen() {
     }
 
     try {
-      await updateContactGroupsMut({ id: id as Id<'bills'>, userId, groups: updated as { id: string; contactIds: Id<'contacts'>[]; name: string }[] });
+      await updateContactGroupsMut({ id: id as Id<'bills'>, groups: updated as { id: string; contactIds: Id<'contacts'>[]; name: string }[] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
       console.error('[Share] confirmGroup failed:', err);

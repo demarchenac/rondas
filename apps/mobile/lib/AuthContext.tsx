@@ -43,10 +43,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  * - Doesn't exist → create user, needs setup
  */
 async function syncAfterLogin(user: User): Promise<void> {
-  const existing = await convex.query(api.users.getByWorkosId, { workosId: user.id });
+  const existing = await convex.query(api.users.getMe, {});
 
   const profileData = {
-    workosId: user.id,
     email: user.email,
     name: [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined,
     avatarUrl: user.profilePictureUrl ?? undefined,
@@ -56,7 +55,6 @@ async function syncAfterLogin(user: User): Promise<void> {
   if (!existing?.config) {
     await convex.mutation(api.users.createUser, profileData);
     await convex.mutation(api.contacts.syncSelfContact, {
-      userId: user.id,
       name: profileData.name,
       imageUri: profileData.avatarUrl,
     });
@@ -66,7 +64,6 @@ async function syncAfterLogin(user: User): Promise<void> {
 
   await convex.mutation(api.users.updateProfile, profileData);
   await convex.mutation(api.contacts.syncSelfContact, {
-    userId: user.id,
     name: profileData.name,
     imageUri: profileData.avatarUrl,
   });
