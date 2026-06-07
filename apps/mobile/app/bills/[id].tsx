@@ -64,6 +64,7 @@ export default function BillDetailScreen() {
     totalContacts,
     paidPercent,
     unpaidPercent,
+    unassignedUnits,
     computeExcludePhones,
     computeExcludeSelf,
     computeSortedItems,
@@ -301,6 +302,7 @@ export default function BillDetailScreen() {
           hasContacts={totalContacts > 0}
           splitStrategy={equalSplitMode ? 'equal' : bill.splitStrategy}
           isMultiSelectMode={isMultiSelectMode}
+          unassignedUnits={unassignedUnits}
           iconColors={iconColors}
           t={t}
           onBack={() => router.back()}

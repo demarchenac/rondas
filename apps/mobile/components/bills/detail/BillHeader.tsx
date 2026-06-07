@@ -45,6 +45,7 @@ interface BillHeaderProps {
   hasContacts: boolean;
   splitStrategy?: string;
   isMultiSelectMode: boolean;
+  unassignedUnits: number;
   iconColors: IconPalette;
   t: Translations;
   onBack: () => void;
@@ -67,6 +68,7 @@ function BillHeader({
   hasContacts,
   splitStrategy,
   isMultiSelectMode,
+  unassignedUnits,
   iconColors,
   t,
   onBack,
@@ -225,6 +227,13 @@ function BillHeader({
         ) : (
           <ProgressBar paidPercent={paidPercent} unpaidPercent={unpaidPercent} height={4} radius={9999} style={{ marginTop: 8 }} />
         )
+      )}
+      {/* Unassigned units warning */}
+      {unassignedUnits > 0 && !isMultiSelectMode && (
+        <View className="mt-2 flex-row items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2">
+          <IconSymbol name="exclamationmark.triangle.fill" size={14} color={iconColors.pro} />
+          <Text className="flex-1 text-xs text-amber-600 dark:text-amber-400">{t.share_unassignedWarning(unassignedUnits)}</Text>
+        </View>
       )}
     </View>
   );

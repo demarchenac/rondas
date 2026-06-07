@@ -666,6 +666,18 @@ export function useBillDetail(id: string, userId: string | undefined) {
   const paidPercent = totalContacts > 0 ? (paidContactCount / totalContacts) * 100 : 0;
   const unpaidPercent = totalContacts > 0 ? ((totalContacts - paidContactCount) / totalContacts) * 100 : 0;
 
+  const unassignedUnits = useMemo(() => {
+    if (!bill || equalSplitMode) return 0;
+    return bill.items.reduce((total, item) => {
+      if (!item.id) return total;
+      const assignedUnits = bill.contacts.reduce((assigned, contact) => {
+        const ref = contact.items.find((itemRef) => itemRef.itemId === item.id);
+        return assigned + (ref ? ref.units : 0);
+      }, 0);
+      return total + Math.max(0, item.quantity - assignedUnits);
+    }, 0);
+  }, [bill, equalSplitMode]);
+
   return {
     // Data
     bill,
@@ -681,6 +693,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
     paidContactCount,
     paidPercent,
     unpaidPercent,
+    unassignedUnits,
 
     // Derived computations
     computeExcludePhones,
