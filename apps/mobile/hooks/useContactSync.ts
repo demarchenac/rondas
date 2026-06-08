@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import * as Contacts from 'expo-contacts';
+import * as Contacts from 'expo-contacts/legacy';
 import * as Sentry from '@sentry/react-native';
 import { useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';

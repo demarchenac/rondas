@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rondas &mdash; An&aacute;lisis de Rentabilidad y ROI</title>
+<style>
+  :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #e2e8f0; --muted: #94a3b8; --primary: #38bdf8; --amber: #f59e0b; --green: #22c55e; --red: #ef4444; --purple: #a78bfa; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 40px 24px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 2rem; margin-bottom: 8px; }
+  h2 { font-size: 1.5rem; margin: 40px 0 16px; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  h3 { font-size: 1.15rem; margin: 24px 0 12px; color: var(--amber); }
+  p, li { color: var(--muted); font-size: 0.95rem; }
+  .subtitle { color: var(--muted); font-size: 1rem; margin-bottom: 32px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .card-red { border-color: var(--red); }
+  .card-green { border-color: var(--green); }
+  .card-amber { border-color: var(--amber); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9rem; }
+  th { background: #0f172a; color: var(--primary); text-align: left; padding: 10px 12px; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:hover td { background: rgba(56, 189, 248, 0.04); }
+  .cost { font-family: 'SF Mono', 'Fira Code', monospace; color: var(--green); }
+  .cost-high { color: var(--amber); }
+  .cost-red { color: var(--red); }
+  .highlight { color: var(--green); font-weight: 600; }
+  .warn { color: var(--amber); font-weight: 600; }
+  .danger { color: var(--red); font-weight: 600; }
+  .metric { font-size: 1.8rem; font-weight: 700; }
+  .metric-green { color: var(--green); }
+  .metric-amber { color: var(--amber); }
+  .metric-red { color: var(--red); }
+  .metric-primary { color: var(--primary); }
+  .metric-label { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+  .metric-box { text-align: center; padding: 16px; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  .tag-good { background: rgba(34,197,94,0.15); color: var(--green); }
+  .tag-warn { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .tag-bad { background: rgba(239,68,68,0.15); color: var(--red); }
+  .tip { border-bottom: 1px dotted var(--primary); cursor: help; color: var(--text); }
+  .tip-down {} /* marker class for JS positioning */
+  ul { padding-left: 20px; margin: 8px 0; }
+  li { margin-bottom: 4px; }
+  .note { background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 0.85rem; }
+  .note-warn { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); }
+  .note-red { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); }
+  .footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .scenario-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="tooltip" style="position:fixed;background:#0f172a;border:1px solid var(--primary);color:var(--text);padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:400;width:260px;line-height:1.4;box-shadow:0 4px 12px rgba(0,0,0,0.5);pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:9999;"></div>
+
+<script>
+(function(){
+  const tip = document.getElementById('tooltip');
+  document.addEventListener('mouseover', function(e) {
+    const el = e.target.closest('.tip');
+    if (!el) return;
+    tip.textContent = el.getAttribute('data-tip');
+    tip.style.opacity = '1';
+    const r = el.getBoundingClientRect();
+    const isDown = el.classList.contains('tip-down');
+    let top, left;
+    if (isDown) {
+      top = r.bottom + 8;
+    } else {
+      top = r.top - tip.offsetHeight - 8;
+      if (top < 4) top = r.bottom + 8;
+    }
+    left = r.left + r.width / 2 - 130;
+    if (left < 8) left = 8;
+    if (left + 260 > window.innerWidth - 8) left = window.innerWidth - 268;
+    tip.style.top = top + 'px';
+    tip.style.left = left + 'px';
+  });
+  document.addEventListener('mouseout', function(e) {
+    if (e.target.closest('.tip')) tip.style.opacity = '0';
+  });
+  document.addEventListener('scroll', function() { tip.style.opacity = '0'; }, true);
+})();
+</script>
+
+<h1>Rondas &mdash; An&aacute;lisis de Rentabilidad y <span class="tip tip-down" data-tip="Retorno Sobre la Inversi&oacute;n. Cu&aacute;nto ganas por cada d&oacute;lar invertido, expresado en porcentaje.">ROI</span></h1>
+<p class="subtitle">$9.900 COP/mes &bull; Mercado colombiano &bull; Con an&aacute;lisis de <span class="tip tip-down" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> y <span class="tip tip-down" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span><br>Preparado para el equipo ejecutivo &bull; Junio 2026</p>
+
+<!-- ===== ESTADO ACTUAL vs A vs B ===== -->
+<h2>1. Comparaci&oacute;n: Estado Actual vs Enfoque A vs Enfoque B</h2>
+
+<div style="overflow-x: auto;">
+<table>
+<tr>
+  <th style="width:28%;">Capacidad</th>
+  <th style="width:24%;">Estado Actual</th>
+  <th style="width:24%;"><span class="tag tag-a" style="background:rgba(56,189,248,0.15);color:var(--primary);">A</span> UX Inteligente</th>
+  <th style="width:24%;"><span class="tag tag-b" style="background:rgba(167,139,250,0.15);color:var(--purple);">B</span> Bot WhatsApp</th>
+</tr>
+
+<tr><td colspan="4" style="color:var(--primary);font-weight:700;font-size:0.8rem;letter-spacing:0.5px;padding-top:16px;">ESCANEO Y CREACI&Oacute;N</td></tr>
+<tr>
+  <td>Escaneo de facturas (AI)</td>
+  <td class="highlight">Gemini 2.5 Flash con streaming</td>
+  <td>Igual + entrada por voz</td>
+  <td>Igual v&iacute;a foto en WhatsApp</td>
+</tr>
+<tr>
+  <td>Creaci&oacute;n manual</td>
+  <td class="highlight">Formulario completo</td>
+  <td>Igual</td>
+  <td>Conversacional: &ldquo;Cena, 4 personas, $180K&rdquo;</td>
+</tr>
+<tr>
+  <td>Categor&iacute;as (tags)</td>
+  <td class="highlight">Dining, Retail, Service + custom</td>
+  <td>Auto-detectadas por AI</td>
+  <td>Auto-detectadas por AI</td>
+</tr>
+<tr>
+  <td>Ubicaci&oacute;n del establecimiento</td>
+  <td class="highlight">GPS + geocoding autom&aacute;tico</td>
+  <td>Igual</td>
+  <td>No aplica</td>
+</tr>
+
+<tr><td colspan="4" style="color:var(--primary);font-weight:700;font-size:0.8rem;letter-spacing:0.5px;padding-top:16px;">DIVISI&Oacute;N Y CONTACTOS</td></tr>
+<tr>
+  <td>Asignaci&oacute;n de contactos</td>
+  <td class="warn">Manual &mdash; item por item</td>
+  <td class="highlight">Auto-asignada con puntaje de confianza</td>
+  <td class="highlight">Conversacional: &ldquo;&iquest;qui&eacute;n estuvo?&rdquo;</td>
+</tr>
+<tr>
+  <td>Estrategia de divisi&oacute;n</td>
+  <td class="highlight">Igual o por &iacute;tem</td>
+  <td>Auto-seleccionada seg&uacute;n historial</td>
+  <td>Igual o por &iacute;tem v&iacute;a chat</td>
+</tr>
+<tr>
+  <td>Contactos sugeridos</td>
+  <td class="warn">Frecuentes + recientes (lista pasiva)</td>
+  <td class="highlight">Pre-asignados autom&aacute;ticamente</td>
+  <td>Basado en historial de grupo</td>
+</tr>
+<tr>
+  <td>Grupos de contactos</td>
+  <td class="highlight">Crear/editar grupos en share view</td>
+  <td>Grupos recurrentes auto-detectados</td>
+  <td>Grupos por historial de conversaci&oacute;n</td>
+</tr>
+<tr>
+  <td>Unidades por &iacute;tem</td>
+  <td class="highlight">Ajuste manual por contacto</td>
+  <td>Igual</td>
+  <td>No disponible (simplificado)</td>
+</tr>
+<tr>
+  <td>Propina</td>
+  <td class="highlight">Porcentaje o monto custom</td>
+  <td>Auto-sugerida seg&uacute;n pa&iacute;s + historial</td>
+  <td>Pregunta: &ldquo;&iquest;cu&aacute;nto de propina?&rdquo;</td>
+</tr>
+<tr>
+  <td>Alerta de &iacute;tems sin asignar</td>
+  <td class="highlight">Banner persistente en header</td>
+  <td>Igual + sugerencia autom&aacute;tica</td>
+  <td>Bot notifica: &ldquo;Faltan X &iacute;tems&rdquo;</td>
+</tr>
+
+<tr><td colspan="4" style="color:var(--primary);font-weight:700;font-size:0.8rem;letter-spacing:0.5px;padding-top:16px;">COMPARTIR Y PAGOS</td></tr>
+<tr>
+  <td>WhatsApp individual</td>
+  <td class="highlight">Mensaje con desglose por contacto</td>
+  <td>Igual</td>
+  <td class="highlight">Env&iacute;o directo autom&aacute;tico</td>
+</tr>
+<tr>
+  <td>WhatsApp grupo</td>
+  <td class="highlight">Resumen para grupo de contactos</td>
+  <td>Igual</td>
+  <td class="highlight">Env&iacute;o al grupo autom&aacute;tico</td>
+</tr>
+<tr>
+  <td>WhatsApp factura completa</td>
+  <td class="highlight">Resumen general de la factura</td>
+  <td>Igual</td>
+  <td class="highlight">Env&iacute;o directo</td>
+</tr>
+<tr>
+  <td>Infograf&iacute;a compartible</td>
+  <td class="highlight">Captura visual tipo recibo</td>
+  <td>Igual</td>
+  <td>No disponible (texto only)</td>
+</tr>
+<tr>
+  <td>&ldquo;Enviar a todos&rdquo;</td>
+  <td class="danger">No existe</td>
+  <td class="highlight">Un bot&oacute;n env&iacute;a a todos</td>
+  <td class="highlight">Autom&aacute;tico tras confirmar</td>
+</tr>
+<tr>
+  <td>Marcar como pagado</td>
+  <td class="highlight">Toggle por contacto (optimistic)</td>
+  <td>Igual</td>
+  <td>Respuesta en chat: &ldquo;Ya pagu&eacute;&rdquo;</td>
+</tr>
+<tr>
+  <td>Recordatorios de pago</td>
+  <td class="danger">No existe</td>
+  <td class="highlight">&ldquo;Mar&iacute;a no ha pagado &mdash; &iquest;recordarle?&rdquo;</td>
+  <td class="highlight">Bot env&iacute;a recordatorio autom&aacute;tico</td>
+</tr>
+
+<tr><td colspan="4" style="color:var(--primary);font-weight:700;font-size:0.8rem;letter-spacing:0.5px;padding-top:16px;">MONETIZACI&Oacute;N</td></tr>
+<tr>
+  <td>Modelo de negocio</td>
+  <td class="highlight"><span class="tip" data-tip="Modelo donde la app es gratis con funciones limitadas, y se paga por la versi&oacute;n completa.">Freemium</span> con reverse trial</td>
+  <td>Igual</td>
+  <td>Por uso o suscripci&oacute;n grupal</td>
+</tr>
+<tr>
+  <td>Trial gratuito</td>
+  <td class="warn">2 facturas iniciales (reverse trial)</td>
+  <td>7 d&iacute;as de trial real (propuesto)</td>
+  <td>N splits gratis, luego Pro</td>
+</tr>
+<tr>
+  <td>L&iacute;mite free mensual</td>
+  <td class="highlight">3 facturas/mes</td>
+  <td>Igual</td>
+  <td>Igual</td>
+</tr>
+<tr>
+  <td>Historial gratuito</td>
+  <td class="highlight">&Uacute;ltimos 90 d&iacute;as</td>
+  <td>Igual</td>
+  <td>No aplica</td>
+</tr>
+<tr>
+  <td>Plan mensual</td>
+  <td class="highlight">$9.900 COP v&iacute;a RevenueCat</td>
+  <td>Igual</td>
+  <td>Pendiente de definir</td>
+</tr>
+<tr>
+  <td>Plan anual</td>
+  <td class="highlight">Disponible v&iacute;a RevenueCat</td>
+  <td>Igual con descuento visible</td>
+  <td>Pendiente de definir</td>
+</tr>
+<tr>
+  <td>C&oacute;digos promocionales</td>
+  <td class="highlight">Redenci&oacute;n en app + settings</td>
+  <td>Igual</td>
+  <td>V&iacute;a chat: &ldquo;Tengo un c&oacute;digo&rdquo;</td>
+</tr>
+
+<tr><td colspan="4" style="color:var(--primary);font-weight:700;font-size:0.8rem;letter-spacing:0.5px;padding-top:16px;">INFRAESTRUCTURA Y ANALYTICS</td></tr>
+<tr>
+  <td>Autenticaci&oacute;n</td>
+  <td class="highlight">WorkOS (Email OTP, Apple, Google) + JWT verificado</td>
+  <td>Igual</td>
+  <td>N&uacute;mero de tel&eacute;fono (WhatsApp identity)</td>
+</tr>
+<tr>
+  <td>Backend</td>
+  <td class="highlight">Convex (realtime, model/ pattern)</td>
+  <td>Igual</td>
+  <td>Igual + HTTP webhooks</td>
+</tr>
+<tr>
+  <td>Analytics</td>
+  <td class="highlight">PostHog (14 eventos, dashboard)</td>
+  <td>Igual + eventos AI</td>
+  <td>Igual + eventos bot</td>
+</tr>
+<tr>
+  <td>Error tracking</td>
+  <td class="highlight">Sentry con tags por feature</td>
+  <td>Igual</td>
+  <td>Igual</td>
+</tr>
+<tr>
+  <td>Feature flags</td>
+  <td class="danger">No implementado (PostHog SDK listo)</td>
+  <td class="highlight">Rollout gradual v&iacute;a PostHog</td>
+  <td class="highlight">Rollout gradual v&iacute;a PostHog</td>
+</tr>
+<tr>
+  <td>Errores estructurados</td>
+  <td class="highlight">ConvexError con c&oacute;digos tipados</td>
+  <td>Igual</td>
+  <td>Igual</td>
+</tr>
+
+<tr><td colspan="4" style="color:var(--primary);font-weight:700;font-size:0.8rem;letter-spacing:0.5px;padding-top:16px;">CRECIMIENTO</td></tr>
+<tr>
+  <td>Fricci&oacute;n de entrada</td>
+  <td class="warn">Descargar app + crear cuenta</td>
+  <td class="warn">Igual</td>
+  <td class="highlight">Cero &mdash; solo un n&uacute;mero de WhatsApp</td>
+</tr>
+<tr>
+  <td>Canal de adquisici&oacute;n</td>
+  <td class="warn">App Store + boca a boca</td>
+  <td class="warn">Igual</td>
+  <td class="highlight">Viral v&iacute;a WhatsApp</td>
+</tr>
+<tr>
+  <td>Onboarding</td>
+  <td class="highlight">Pa&iacute;s, idioma, propina, tema</td>
+  <td>Igual + gu&iacute;a paso a paso</td>
+  <td>No necesario (conversacional)</td>
+</tr>
+<tr>
+  <td>Entrada por voz</td>
+  <td class="danger">No existe</td>
+  <td class="highlight">Crear facturas por voz</td>
+  <td class="highlight">Notas de voz en WhatsApp</td>
+</tr>
+</table>
+</div>
+
+<div class="grid-3" style="margin-top: 20px;">
+  <div class="card">
+    <div class="metric-box">
+      <div class="metric metric-green">27</div>
+      <div class="metric-label">Capacidades ya implementadas</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="metric-box">
+      <div class="metric metric-amber">8</div>
+      <div class="metric-label">Requieren Enfoque A</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="metric-box">
+      <div class="metric metric-primary">10</div>
+      <div class="metric-label">Requieren Enfoque B</div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Brecha principal:</strong> El estado actual cubre el flujo completo de escaneo &rarr; divisi&oacute;n &rarr; compartir, pero requiere intervenci&oacute;n manual en cada paso. Las brechas m&aacute;s cr&iacute;ticas son: <strong>(1)</strong> no hay &ldquo;enviar a todos&rdquo;, <strong>(2)</strong> no hay recordatorios de pago, <strong>(3)</strong> la asignaci&oacute;n de contactos es completamente manual, y <strong>(4)</strong> no hay feature flags para rollout seguro. El Enfoque A cierra las brechas de UX; el Enfoque B abre un canal de crecimiento completamente nuevo.
+</div>
+
+<!-- ===== UNIDAD ECON&Oacute;MICA ===== -->
+<h2>2. Unidad Econ&oacute;mica por Suscriptor</h2>
+
+<div class="grid-4">
+  <div class="card">
+    <div class="metric-box">
+      <div class="metric metric-primary">$9.900</div>
+      <div class="metric-label">COP/mes &bull; Precio Pro</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="metric-box">
+      <div class="metric metric-primary">~$2.30</div>
+      <div class="metric-label">USD equivalente</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="metric-box">
+      <div class="metric metric-amber">-15%</div>
+      <div class="metric-label">Comisi&oacute;n Apple (Small Business)</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="metric-box">
+      <div class="metric metric-green">$1.96</div>
+      <div class="metric-label">USD neto por suscriptor/mes</div>
+    </div>
+  </div>
+</div>
+
+<h3>Contexto competitivo en Colombia</h3>
+<table>
+  <tr><th>Servicio</th><th>Precio COP/mes</th><th>USD</th><th>vs Rondas</th></tr>
+  <tr><td><strong>Rondas Pro</strong></td><td><strong>$9.900</strong></td><td><strong>$2.30</strong></td><td>—</td></tr>
+  <tr><td>Netflix (miembro extra)</td><td>$9.900</td><td>$2.30</td><td>Igual</td></tr>
+  <tr><td>Spotify Student</td><td>$10.100</td><td>$2.35</td><td class="highlight">Rondas es m&aacute;s barato</td></tr>
+  <tr><td>Netflix B&aacute;sico</td><td>$18.900</td><td>$4.40</td><td class="highlight">Rondas es 48% m&aacute;s barato</td></tr>
+  <tr><td>Rappi Pro</td><td>$19.900</td><td>$4.65</td><td class="highlight">Rondas es 50% m&aacute;s barato</td></tr>
+  <tr><td>Spotify Individual</td><td>$18.500</td><td>$4.30</td><td class="highlight">Rondas es 47% m&aacute;s barato</td></tr>
+</table>
+
+<div class="note">
+  <strong>Veredicto:</strong> $9.900 COP est&aacute; en el umbral de &ldquo;compra impulsiva&rdquo; para el consumidor colombiano. Quedarse por debajo de $10.000 COP es psicol&oacute;gicamente fuerte &mdash; es lo que Netflix cobra solo por un miembro extra.
+</div>
+
+<!-- ===== AN&Aacute;LISIS DE CHURN ===== -->
+<h2>3. An&aacute;lisis de <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">Churn</span> y Retenci&oacute;n</h2>
+
+<div class="note-warn note">
+  <strong>Benchmarks de la industria (RevenueCat 2026, 115.000+ apps):</strong><br>
+  &bull; <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">Churn</span> mensual mediana global: <strong>13&ndash;14%</strong><br>
+  &bull; Fintech: <strong>~9%</strong> &bull; Utilidad/AI: <strong>~16%</strong><br>
+  &bull; Latinoam&eacute;rica: <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> m&aacute;s alto que otras regiones<br>
+  &bull; 35% de las cancelaciones anuales ocurren en el <strong>Mes 1</strong>
+</div>
+
+<h3>Escenarios de <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> mensual</h3>
+
+<div style="overflow-x: auto;">
+<table>
+  <tr>
+    <th>M&eacute;trica</th>
+    <th><span class="tag tag-good">Optimista 7%</span></th>
+    <th><span class="tag tag-warn">Base 12%</span></th>
+    <th><span class="tag tag-bad">Pesimista 18%</span></th>
+  </tr>
+  <tr><td>Vida promedio suscriptor</td><td class="highlight">14.3 meses</td><td class="warn">8.3 meses</td><td class="danger">5.6 meses</td></tr>
+  <tr><td><span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span> bruto (USD)</td><td class="highlight">$32.89</td><td class="warn">$19.09</td><td class="danger">$12.88</td></tr>
+  <tr><td><span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span> neto (post-Apple)</td><td class="highlight">$27.96</td><td class="warn">$16.23</td><td class="danger">$10.95</td></tr>
+  <tr><td>Retenci&oacute;n a 3 meses</td><td>80%</td><td>68%</td><td>55%</td></tr>
+  <tr><td>Retenci&oacute;n a 6 meses</td><td>65%</td><td>46%</td><td>30%</td></tr>
+  <tr><td>Retenci&oacute;n a 12 meses</td><td>42%</td><td>21%</td><td>9%</td></tr>
+</table>
+</div>
+
+<!-- ===== LTV vs CAC ===== -->
+<h2>3. <span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span> vs <span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> &mdash; Viabilidad de Adquisici&oacute;n</h2>
+
+<div style="overflow-x: auto;">
+<table>
+  <tr>
+    <th>Canal</th>
+    <th><span class="tip" data-tip="Costo Por Instalaci&oacute;n. Lo que cuesta que alguien descargue la app.">CPI</span> (Colombia)</th>
+    <th>Conversi&oacute;n a Pro</th>
+    <th><span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> efectivo</th>
+    <th><span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span>:<span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> (base 12%)</th>
+    <th>Veredicto</th>
+  </tr>
+  <tr>
+    <td>Org&aacute;nico puro (boca a boca)</td>
+    <td class="cost">$0</td>
+    <td>3%</td>
+    <td class="cost">$0</td>
+    <td class="highlight">&infin;</td>
+    <td><span class="tag tag-good">Ideal</span></td>
+  </tr>
+  <tr>
+    <td>WhatsApp viral (bot B)</td>
+    <td class="cost">~$0.50</td>
+    <td>5%</td>
+    <td class="cost">$10</td>
+    <td class="highlight">1.62:1</td>
+    <td><span class="tag tag-warn">Viable con retenci&oacute;n</span></td>
+  </tr>
+  <tr>
+    <td>Meta/Instagram Ads</td>
+    <td class="cost cost-high">$1.25</td>
+    <td>3%</td>
+    <td class="cost cost-high">$41.67</td>
+    <td class="danger">0.39:1</td>
+    <td><span class="tag tag-bad">No viable</span></td>
+  </tr>
+  <tr>
+    <td>Google Ads</td>
+    <td class="cost cost-high">$1.50</td>
+    <td>3%</td>
+    <td class="cost cost-high">$50</td>
+    <td class="danger">0.32:1</td>
+    <td><span class="tag tag-bad">No viable</span></td>
+  </tr>
+  <tr>
+    <td>Meta Ads + Trial (mejorado)</td>
+    <td class="cost cost-high">$1.25</td>
+    <td>6%</td>
+    <td class="cost cost-high">$20.83</td>
+    <td class="warn">0.78:1</td>
+    <td><span class="tag tag-bad">A&uacute;n no viable</span></td>
+  </tr>
+</table>
+</div>
+
+<div class="note-red note">
+  <strong>Hallazgo cr&iacute;tico:</strong> A $9.900 COP/mes, la adquisici&oacute;n paga NO es rentable con las tasas de conversi&oacute;n y <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> actuales del mercado. El ratio <span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span>:<span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> m&iacute;nimo viable es 3:1 &mdash; ninguno de los canales pagos lo alcanza. <strong>El crecimiento debe ser primordialmente org&aacute;nico y viral.</strong>
+</div>
+
+<!-- ===== PROYECCI&Oacute;N CON CHURN ===== -->
+<h2>5. Proyecci&oacute;n de Ingresos con <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">Churn</span> (escenario base 12%)</h2>
+
+<div class="note">
+  <strong>Supuestos:</strong> 3% conversi&oacute;n free&rarr;Pro &bull; 12% <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> mensual &bull; $1.96 USD neto/suscriptor/mes<br>
+  Los suscriptores activos en cada tier reflejan el estado estable despu&eacute;s de que el <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> se equilibra con las nuevas conversiones.
+</div>
+
+<div style="overflow-x: auto;">
+<table>
+  <tr>
+    <th>M&eacute;trica</th>
+    <th>100</th>
+    <th>500</th>
+    <th>1K</th>
+    <th>5K</th>
+    <th>10K</th>
+    <th>50K</th>
+    <th>100K</th>
+    <th>500K</th>
+    <th>1M</th>
+  </tr>
+  <tr><td>Nuevos Pro/mes (3%)</td><td>3</td><td>15</td><td>30</td><td>150</td><td>300</td><td>1,500</td><td>3,000</td><td>15,000</td><td>30,000</td></tr>
+  <tr><td>Pro activos (estado estable)*</td><td>3</td><td>13</td><td>25</td><td>125</td><td>250</td><td>1,250</td><td>2,500</td><td>12,500</td><td>25,000</td></tr>
+  <tr><td><span class="tip" data-tip="Ingreso Mensual Recurrente. Total de suscripciones activas multiplicado por el precio.">MRR</span> bruto</td><td class="cost">$8</td><td class="cost">$36</td><td class="cost">$69</td><td class="cost">$344</td><td class="cost">$688</td><td class="cost">$3,438</td><td class="cost">$6,875</td><td class="cost">$34,375</td><td class="cost">$68,750</td></tr>
+  <tr><td>Apple (15%)</td><td>-$1</td><td>-$5</td><td>-$10</td><td>-$52</td><td>-$103</td><td>-$516</td><td>-$1,031</td><td>-$5,156</td><td>-$10,313</td></tr>
+  <tr><td>RevenueCat (1%&gt;$2.5K)</td><td>$0</td><td>$0</td><td>$0</td><td>$0</td><td>$0</td><td>-$9</td><td>-$44</td><td>-$319</td><td>-$663</td></tr>
+  <tr style="font-weight:700;"><td><span class="tip" data-tip="Ingreso Mensual Recurrente. Total de suscripciones activas multiplicado por el precio.">MRR</span> neto</td><td class="cost">$7</td><td class="cost">$31</td><td class="cost">$59</td><td class="cost">$292</td><td class="cost">$585</td><td class="cost">$2,913</td><td class="cost">$5,800</td><td class="cost">$28,900</td><td class="cost">$57,775</td></tr>
+  <tr><td>Costo infra (A+B)</td><td class="cost-red">-$9</td><td class="cost-red">-$11</td><td class="cost-red">-$13</td><td class="cost-red">-$73</td><td class="cost-red">-$105</td><td class="cost-red">-$639</td><td class="cost-red">-$1,123</td><td class="cost-red">-$5,000</td><td class="cost-red">-$9,817</td></tr>
+  <tr style="font-weight:700; background: rgba(56,189,248,0.05);">
+    <td>Margen operativo</td>
+    <td class="danger">-$2</td>
+    <td class="highlight">+$20</td>
+    <td class="highlight">+$46</td>
+    <td class="highlight">+$219</td>
+    <td class="highlight">+$480</td>
+    <td class="highlight">+$2,274</td>
+    <td class="highlight">+$4,677</td>
+    <td class="highlight">+$23,900</td>
+    <td class="highlight">+$47,958</td>
+  </tr>
+  <tr style="font-weight:700;">
+    <td>% Margen</td>
+    <td class="danger">-29%</td>
+    <td class="highlight">65%</td>
+    <td class="highlight">78%</td>
+    <td class="highlight">75%</td>
+    <td class="highlight">82%</td>
+    <td class="highlight">78%</td>
+    <td class="highlight">81%</td>
+    <td class="highlight">83%</td>
+    <td class="highlight">83%</td>
+  </tr>
+</table>
+</div>
+
+<p style="font-size: 0.8rem; color: var(--muted); margin-top: 8px;">* Estado estable = nuevas conversiones mensuales &divide; tasa de <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span>. A 12% <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span>, cada cohorte pierde 12% mensual, estabiliz&aacute;ndose en ~83% de las conversiones mensuales como base activa.</p>
+
+<!-- ===== BREAKEVEN ===== -->
+<h2>5. An&aacute;lisis de <span class="tip" data-tip="Punto de equilibrio. El momento donde los ingresos cubren exactamente los costos.">Breakeven</span></h2>
+
+<div class="grid-3">
+  <div class="card card-red">
+    <div class="metric-box">
+      <div class="scenario-label">Con <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> 18% (pesimista)</div>
+      <div class="metric metric-red">~300 <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span></div>
+      <div class="metric-label">9 suscriptores activos necesarios</div>
+    </div>
+  </div>
+  <div class="card card-amber">
+    <div class="metric-box">
+      <div class="scenario-label">Con <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> 12% (base)</div>
+      <div class="metric metric-amber">~200 <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span></div>
+      <div class="metric-label">6 suscriptores activos necesarios</div>
+    </div>
+  </div>
+  <div class="card card-green">
+    <div class="metric-box">
+      <div class="scenario-label">Con <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> 7% (optimista)</div>
+      <div class="metric metric-green">~100 <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span></div>
+      <div class="metric-label">3 suscriptores activos necesarios</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ROI ===== -->
+<h2>6. An&aacute;lisis de <span class="tip" data-tip="Retorno Sobre la Inversi&oacute;n. Cu&aacute;nto ganas por cada d&oacute;lar invertido, expresado en porcentaje.">ROI</span></h2>
+
+<h3>Inversi&oacute;n inicial estimada</h3>
+<table>
+  <tr><th>Concepto</th><th>Costo</th><th>Nota</th></tr>
+  <tr><td>Desarrollo (ya realizado)</td><td class="cost">$0</td><td>Fundador-desarrollador, sin costo externo</td></tr>
+  <tr><td>Apple Developer (anual)</td><td class="cost cost-high">$99</td><td><span class="tag tag-good">Pago 2026&ndash;2027</span></td></tr>
+  <tr><td>Dominio + branding</td><td class="cost cost-high">~$50</td><td><span class="tag tag-good">Pago 2026&ndash;2027</span></td></tr>
+  <tr style="font-weight:700;"><td>Inversi&oacute;n total</td><td class="cost cost-high">~$149</td><td><span class="tag tag-good">Ya cubierto para el per&iacute;odo actual</span></td></tr>
+</table>
+
+<h3><span class="tip" data-tip="Per&iacute;odo de recuperaci&oacute;n. Tiempo que tarda en recuperarse la inversi&oacute;n inicial.">Payback</span> de la inversi&oacute;n inicial</h3>
+<div class="grid-3">
+  <div class="card">
+    <div class="metric-box">
+      <div class="scenario-label">A 500 <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span></div>
+      <div class="metric metric-green">~6 meses</div>
+      <div class="metric-label">$20/mes de margen &rarr; $149 en ~8 meses<br>Alcanzable con crecimiento org&aacute;nico</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="metric-box">
+      <div class="scenario-label">A 1.000 <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span></div>
+      <div class="metric metric-green">~4 meses</div>
+      <div class="metric-label">$46/mes de margen &rarr; $149 en ~3 meses</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="metric-box">
+      <div class="scenario-label">A 5.000 <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span></div>
+      <div class="metric metric-green">~1 mes</div>
+      <div class="metric-label">$219/mes cubre la inversi&oacute;n al instante</div>
+    </div>
+  </div>
+</div>
+
+<h3><span class="tip" data-tip="Retorno Sobre la Inversi&oacute;n. Cu&aacute;nto ganas por cada d&oacute;lar invertido, expresado en porcentaje.">ROI</span> anualizado por escala</h3>
+<div style="overflow-x: auto;">
+<table>
+  <tr>
+    <th><span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span></th>
+    <th>Margen mensual</th>
+    <th>Margen anual</th>
+    <th><span class="tip" data-tip="Retorno Sobre la Inversi&oacute;n. Cu&aacute;nto ganas por cada d&oacute;lar invertido, expresado en porcentaje.">ROI</span> anual (vs $149 inversi&oacute;n)</th>
+  </tr>
+  <tr><td>500</td><td class="cost">$20</td><td class="cost">$240</td><td class="highlight">161%</td></tr>
+  <tr><td>1.000</td><td class="cost">$46</td><td class="cost">$552</td><td class="highlight">370%</td></tr>
+  <tr><td>5.000</td><td class="cost">$219</td><td class="cost">$2,628</td><td class="highlight">1,764%</td></tr>
+  <tr><td>10.000</td><td class="cost">$480</td><td class="cost">$5,760</td><td class="highlight">3,866%</td></tr>
+  <tr><td>50.000</td><td class="cost">$2,274</td><td class="cost">$27,288</td><td class="highlight">18,314%</td></tr>
+  <tr><td>100.000</td><td class="cost">$4,677</td><td class="cost">$56,124</td><td class="highlight">37,668%</td></tr>
+  <tr><td>1.000.000</td><td class="cost">$47,958</td><td class="cost">$575,496</td><td class="highlight">386,240%</td></tr>
+</table>
+</div>
+
+<!-- ===== SENSIBILIDAD DE PRECIO ===== -->
+<h2>8. An&aacute;lisis de Sensibilidad: &iquest;Y si subimos el precio?</h2>
+
+<div class="note-warn note">
+  <strong>Contexto:</strong> A $9.900 COP, la adquisici&oacute;n paga no es viable. Un precio m&aacute;s alto mejorar&iacute;a la econom&iacute;a unitaria. Aqu&iacute; comparamos tres puntos de precio manteniendo el mismo <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> (12%) y conversi&oacute;n (3%).
+</div>
+
+<div style="overflow-x: auto;">
+<table>
+  <tr>
+    <th>M&eacute;trica</th>
+    <th>$9.900 COP<br><span style="font-weight:400;font-size:0.75rem;">~$2.30 USD</span></th>
+    <th>$14.900 COP<br><span style="font-weight:400;font-size:0.75rem;">~$3.49 USD</span></th>
+    <th>$19.900 COP<br><span style="font-weight:400;font-size:0.75rem;">~$4.65 USD</span></th>
+  </tr>
+  <tr><td>Neto post-Apple</td><td>$1.96</td><td class="cost">$2.97</td><td class="cost">$3.95</td></tr>
+  <tr><td><span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span> (12% <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span>)</td><td>$16.23</td><td class="cost">$24.60</td><td class="cost">$32.79</td></tr>
+  <tr><td><span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> m&aacute;x viable (3:1)</td><td class="danger">$5.41</td><td class="warn">$8.20</td><td class="highlight">$10.93</td></tr>
+  <tr><td>Meta Ads viable?</td><td class="danger">No (<span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> $42)</td><td class="danger">No (<span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> $42)</td><td class="danger">No (<span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> $42)</td></tr>
+  <tr><td>WhatsApp viral viable?</td><td class="warn">L&iacute;mite (<span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> $10)</td><td class="highlight">S&iacute; (<span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span>:<span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> 2.5:1)</td><td class="highlight">S&iacute; (<span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span>:<span class="tip" data-tip="Costo de Adquisici&oacute;n de Cliente. Lo que cuesta conseguir un nuevo usuario que pague.">CAC</span> 3.3:1)</td></tr>
+  <tr><td><span class="tip" data-tip="Ingreso Mensual Recurrente. Total de suscripciones activas multiplicado por el precio.">MRR</span> neto a 10K <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span></td><td class="cost">$489</td><td class="cost">$743</td><td class="cost">$988</td></tr>
+  <tr><td>Margen a 10K <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span></td><td class="highlight">$384</td><td class="highlight">$638</td><td class="highlight">$883</td></tr>
+  <tr><td>Competitivo vs Spotify Student?</td><td class="highlight">S&iacute;</td><td class="highlight">S&iacute;</td><td class="warn">Igual a Rappi Pro</td></tr>
+</table>
+</div>
+
+<!-- ===== VEREDICTO ===== -->
+<h2>9. Veredicto Final</h2>
+
+<div class="card card-green">
+  <h3 style="color: var(--green); margin-top: 0;">&iquest;Es viable a $9.900 COP? S&iacute;, con condiciones</h3>
+  <div class="grid-2">
+    <div>
+      <h4 style="color: var(--green);">Lo que funciona</h4>
+      <ul>
+        <li><span class="tip" data-tip="Punto de equilibrio. El momento donde los ingresos cubren exactamente los costos.">Breakeven</span> alcanzable con <strong>6 suscriptores</strong> (~200 <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span>)</li>
+        <li>Costos de infraestructura extremadamente bajos (&lt;$105/mes hasta 10K <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span>)</li>
+        <li>Precio competitivo en el mercado colombiano (debajo de Spotify Student)</li>
+        <li>M&aacute;rgenes operativos del <strong>70&ndash;80%</strong> a escala</li>
+        <li>Inversi&oacute;n inicial m&iacute;nima ($149) con <span class="tip" data-tip="Per&iacute;odo de recuperaci&oacute;n. Tiempo que tarda en recuperarse la inversi&oacute;n inicial.">payback</span> de 3&ndash;8 meses</li>
+      </ul>
+    </div>
+    <div>
+      <h4 style="color: var(--red);">Los riesgos</h4>
+      <ul>
+        <li>Adquisici&oacute;n paga <strong>no es viable</strong> a este precio &mdash; 100% org&aacute;nico</li>
+        <li><span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span> de $19 USD es bajo &mdash; cualquier aumento en <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> lo destruye</li>
+        <li>El crecimiento depende del <strong>efecto viral v&iacute;a WhatsApp</strong></li>
+        <li>Sin budget de marketing pagado, el crecimiento ser&aacute; lento</li>
+        <li>A $9.900 COP, no hay margen para pagar referidos ni incentivos</li>
+      </ul>
+    </div>
+  </div>
+  <hr class="divider">
+  <h4 style="color: var(--primary);">Recomendaciones</h4>
+  <ul>
+    <li><strong>Mantener $9.900 COP</strong> como precio de lanzamiento &mdash; maximiza adopci&oacute;n</li>
+    <li><strong>Priorizar el bot de WhatsApp (Enfoque B)</strong> &mdash; es el &uacute;nico canal de adquisici&oacute;n viable que escala</li>
+    <li><strong>Implementar free trial de 7 d&iacute;as</strong> &mdash; puede subir conversi&oacute;n de 3% a 6&ndash;8%</li>
+    <li><strong>Reducir <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> activamente</strong> &mdash; historial de facturas, grupos recurrentes, recordatorios. Cada punto de <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> reducido = 8% m&aacute;s <span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span></li>
+    <li><strong>Evaluar $14.900 COP en 6 meses</strong> &mdash; si la retenci&oacute;n es buena, un aumento de precio duplica la viabilidad de adquisici&oacute;n</li>
+    <li><strong>Considerar plan anual con descuento</strong> &mdash; $99.900 COP/a&ntilde;o (~$8.325/mes) reduce <span class="tip" data-tip="Tasa de cancelaci&oacute;n. Porcentaje de suscriptores que dejan de pagar cada mes.">churn</span> y mejora <span class="tip" data-tip="Lifetime Value. Ingreso total que genera un suscriptor durante toda su vida como cliente.">LTV</span></li>
+  </ul>
+</div>
+
+<!-- ===== SIMULADOR INTERACTIVO ===== -->
+<h2>10. Simulador de Costos Variables</h2>
+
+<div class="card" style="border-color: var(--primary);">
+  <p style="color: var(--text); margin-bottom: 16px;">Ajusta los par&aacute;metros para ver c&oacute;mo cambian los costos de Gemini API y el margen operativo en cada tier de <span class="tip" data-tip="Usuarios Activos Mensuales. Personas que usan la app al menos una vez al mes.">MAU</span>.</p>
+
+  <div class="grid-3" style="margin-bottom: 20px;">
+    <div>
+      <label style="font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 4px;">
+        Escaneos / usuario / mes: <strong id="scansLabel">12</strong>
+      </label>
+      <input type="range" id="scansInput" min="1" max="30" value="12" style="width: 100%; accent-color: var(--primary);">
+      <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted);">
+        <span>1</span><span>Casual (4)</span><span>Semanal (12)</span><span>Intenso (30)</span>
+      </div>
+    </div>
+    <div>
+      <label style="font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 4px;">
+        Facturas / usuario / mes: <strong id="billsLabel">3</strong>
+      </label>
+      <input type="range" id="billsInput" min="1" max="20" value="3" style="width: 100%; accent-color: var(--amber);">
+      <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted);">
+        <span>1</span><span>Casual (3)</span><span>Activo (8)</span><span>Power (20)</span>
+      </div>
+    </div>
+    <div>
+      <label style="font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 4px;">
+        Mensajes WhatsApp / usuario / mes: <strong id="waLabel">5</strong>
+      </label>
+      <input type="range" id="waInput" min="0" max="30" value="5" style="width: 100%; accent-color: var(--purple);">
+      <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted);">
+        <span>0</span><span>B&aacute;sico (5)</span><span>Activo (15)</span><span>Intenso (30)</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table id="simTable">
+      <thead>
+        <tr>
+          <th>M&eacute;trica</th>
+          <th>100</th><th>500</th><th>1K</th><th>5K</th><th>10K</th><th>50K</th><th>100K</th><th>500K</th><th>1M</th>
+        </tr>
+      </thead>
+      <tbody id="simBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const TIERS = [100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000];
+const GEMINI_COST_PER_SCAN = 0.00155;
+const WA_UTILITY_COST = 0.0008;
+const CHURN = 0.12;
+const CONVERSION = 0.03;
+const PRICE_NET = 1.96;
+
+const FIXED_COSTS = {
+  100: 8.25, 500: 8.25, 1000: 8.25, 5000: 27.25, 10000: 27.25,
+  50000: 232, 100000: 232, 500000: 232, 1000000: 232
+};
+
+const CONVEX_COSTS = {
+  100: 0, 500: 0, 1000: 0, 5000: 0, 10000: 5,
+  50000: 50, 100000: 115, 500000: 620, 1000000: 1270
+};
+
+const POSTHOG_COSTS = {
+  100: 0, 500: 0, 1000: 0, 5000: 0, 10000: 0,
+  50000: 25, 100000: 100, 500000: 700, 1000000: 1450
+};
+
+const SENTRY_COSTS = {
+  100: 0, 500: 0, 1000: 0, 5000: 0, 10000: 0,
+  50000: 26, 100000: 26, 500000: 80, 1000000: 80
+};
+
+const RESEND_COSTS = {
+  100: 0, 500: 0, 1000: 0, 5000: 20, 10000: 20,
+  50000: 35, 100000: 55, 500000: 200, 1000000: 380
+};
+
+const EAS_COSTS = {
+  100: 0, 500: 0, 1000: 0, 5000: 19, 10000: 19,
+  50000: 199, 100000: 199, 500000: 199, 1000000: 199
+};
+
+function fmt(n) {
+  if (Math.abs(n) >= 1000) return (n < 0 ? '-' : '') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US');
+  return (n < 0 ? '-' : '') + '$' + Math.abs(n).toFixed(n < 10 && n > -10 ? 2 : 0);
+}
+
+function update() {
+  const scans = +document.getElementById('scansInput').value;
+  const bills = +document.getElementById('billsInput').value;
+  const wa = +document.getElementById('waInput').value;
+
+  document.getElementById('scansLabel').textContent = scans;
+  document.getElementById('billsLabel').textContent = bills;
+  document.getElementById('waLabel').textContent = wa;
+
+  const rows = [];
+
+  // Gemini cost
+  const geminiRow = ['Gemini API (escaneos)'];
+  TIERS.forEach(t => {
+    geminiRow.push(fmt(t * scans * GEMINI_COST_PER_SCAN));
+  });
+  rows.push({ cells: geminiRow, cls: '' });
+
+  // WhatsApp utility
+  const waRow = ['WhatsApp API (utility)'];
+  TIERS.forEach(t => {
+    waRow.push(fmt(t * wa * WA_UTILITY_COST));
+  });
+  rows.push({ cells: waRow, cls: '' });
+
+  // Gemini bot (extra conversations ~1 per bill)
+  const gemBotRow = ['Gemini bot (conversaciones)'];
+  TIERS.forEach(t => {
+    gemBotRow.push(fmt(t * bills * GEMINI_COST_PER_SCAN * 0.5));
+  });
+  rows.push({ cells: gemBotRow, cls: '' });
+
+  // Total variable
+  const varRow = ['Costo variable total'];
+  const varCosts = {};
+  TIERS.forEach((t, i) => {
+    const v = t * scans * GEMINI_COST_PER_SCAN + t * wa * WA_UTILITY_COST + t * bills * GEMINI_COST_PER_SCAN * 0.5;
+    varCosts[t] = v;
+    varRow.push(fmt(v));
+  });
+  rows.push({ cells: varRow, cls: 'bold' });
+
+  // Total infra (fixed + variable + convex + posthog + sentry + resend + eas)
+  const infraRow = ['Costo total infraestructura'];
+  const infraCosts = {};
+  TIERS.forEach(t => {
+    const total = FIXED_COSTS[t] + CONVEX_COSTS[t] + POSTHOG_COSTS[t] + SENTRY_COSTS[t] + RESEND_COSTS[t] + EAS_COSTS[t] + varCosts[t];
+    infraCosts[t] = total;
+    infraRow.push(fmt(total));
+  });
+  rows.push({ cells: infraRow, cls: 'bold amber' });
+
+  // MRR neto (with churn steady-state)
+  const mrrRow = ['MRR neto (con churn 12%)'];
+  const mrrs = {};
+  TIERS.forEach(t => {
+    const activeSubs = Math.round((t * CONVERSION) / CHURN * (CHURN));
+    const steadySubs = Math.round(t * CONVERSION * (1 - CHURN)); // approximate
+    const actualSubs = Math.max(1, Math.round(t * CONVERSION / (1 + CHURN * 0.5))); // conservative
+    const subs = Math.round(t * CONVERSION * 0.83);
+    const gross = subs * 2.30;
+    const apple = gross * 0.15;
+    const rc = gross > 2500 ? (gross - 2500) * 0.01 : 0;
+    const net = gross - apple - rc;
+    mrrs[t] = net;
+    mrrRow.push(fmt(net));
+  });
+  rows.push({ cells: mrrRow, cls: 'bold' });
+
+  // Margin
+  const marginRow = ['Margen operativo'];
+  TIERS.forEach(t => {
+    const m = mrrs[t] - infraCosts[t];
+    marginRow.push(fmt(m));
+  });
+  rows.push({ cells: marginRow, cls: 'bold green' });
+
+  // Margin %
+  const pctRow = ['% Margen'];
+  TIERS.forEach(t => {
+    const m = mrrs[t] - infraCosts[t];
+    const pct = mrrs[t] > 0 ? Math.round((m / mrrs[t]) * 100) : 0;
+    pctRow.push(pct + '%');
+  });
+  rows.push({ cells: pctRow, cls: 'bold' });
+
+  // Render
+  const tbody = document.getElementById('simBody');
+  tbody.innerHTML = '';
+  rows.forEach(row => {
+    const tr = document.createElement('tr');
+    if (row.cls.includes('bold')) tr.style.fontWeight = '700';
+    if (row.cls.includes('green')) tr.style.background = 'rgba(34,197,94,0.05)';
+    if (row.cls.includes('amber')) tr.style.background = 'rgba(245,158,11,0.05)';
+    if (row.cls.includes('bold') && !row.cls.includes('green') && !row.cls.includes('amber')) {
+      tr.style.borderTop = '1px solid var(--border)';
+    }
+    row.cells.forEach((cell, i) => {
+      const td = document.createElement('td');
+      td.textContent = cell;
+      if (i > 0) td.style.fontFamily = "'SF Mono','Fira Code',monospace";
+      if (i > 0 && cell.startsWith('-')) td.style.color = 'var(--red)';
+      else if (i > 0 && row.cls.includes('green')) td.style.color = cell.startsWith('-') ? 'var(--red)' : 'var(--green)';
+      else if (i > 0) td.style.color = 'var(--green)';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('scansInput').addEventListener('input', update);
+document.getElementById('billsInput').addEventListener('input', update);
+document.getElementById('waInput').addEventListener('input', update);
+update();
+</script>
+
+<div class="footer">
+  Rondas &bull; An&aacute;lisis de Rentabilidad &bull; Junio 2026<br>
+  Basado en benchmarks de RevenueCat 2026 (115K+ apps), precios p&uacute;blicos de servicios, y tasas de mercado colombiano.<br>
+  Cifras en USD salvo donde se indique COP. Tasa de cambio: $1 USD &asymp; $4.300 COP.
+</div>
+
+</body>
+</html>

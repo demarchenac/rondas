@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rondas - Hoja de Ruta AI-First</title>
+<style>
+  :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #e2e8f0; --muted: #94a3b8; --primary: #38bdf8; --amber: #f59e0b; --green: #22c55e; --red: #ef4444; --purple: #a78bfa; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 40px 24px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 2rem; margin-bottom: 8px; }
+  h2 { font-size: 1.5rem; margin: 40px 0 16px; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  h3 { font-size: 1.15rem; margin: 24px 0 12px; color: var(--amber); }
+  h4 { font-size: 1rem; margin: 16px 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.85rem; }
+  p, li { color: var(--muted); font-size: 0.95rem; }
+  .subtitle { color: var(--muted); font-size: 1rem; margin-bottom: 32px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9rem; }
+  th { background: #0f172a; color: var(--primary); text-align: left; padding: 10px 12px; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:hover td { background: rgba(56, 189, 248, 0.04); }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  .tag-a { background: rgba(56, 189, 248, 0.15); color: var(--primary); }
+  .tag-b { background: rgba(167, 139, 250, 0.15); color: var(--purple); }
+  .tag-free { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+  .tag-paid { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
+  .highlight { color: var(--green); font-weight: 600; }
+  .warn { color: var(--amber); font-weight: 600; }
+  .cost { font-family: 'SF Mono', 'Fira Code', monospace; color: var(--green); }
+  .cost-high { color: var(--amber); }
+  .section-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
+  ul { padding-left: 20px; margin: 8px 0; }
+  li { margin-bottom: 4px; }
+  .phase { border-left: 3px solid var(--primary); padding-left: 16px; margin: 12px 0; }
+  .phase-b { border-left-color: var(--purple); }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  .footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+  .conversion-note { background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 0.85rem; }
+  .metric { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+  .metric-label { font-size: 0.8rem; color: var(--muted); }
+  .metric-box { text-align: center; padding: 16px; }
+</style>
+</head>
+<body>
+
+<h1>Rondas &mdash; Hoja de Ruta AI-First</h1>
+<p class="subtitle">Comparativo de enfoques, proyecciones de costos y roadmap de implementaci&oacute;n<br>Preparado para el equipo ejecutivo &bull; Junio 2026</p>
+
+<!-- ===== RESUMEN EJECUTIVO ===== -->
+<h2>1. Resumen Ejecutivo</h2>
+
+<div class="card">
+<p>Rondas enfrenta una decisi&oacute;n estrat&eacute;gica: evolucionar la experiencia actual (donde el usuario opera cada paso) hacia un modelo donde la inteligencia artificial lidera la interacci&oacute;n. Se eval&uacute;an dos enfoques complementarios:</p>
+<br>
+<div class="grid-2">
+  <div>
+    <h4><span class="tag tag-a">Enfoque A</span> UX Inteligente</h4>
+    <p>La app m&oacute;vil se vuelve predictiva. La IA asigna contactos, sugiere propinas y env&iacute;a mensajes autom&aacute;ticamente. El usuario solo confirma.</p>
+  </div>
+  <div>
+    <h4><span class="tag tag-b">Enfoque B</span> Bot de WhatsApp</h4>
+    <p>Un n&uacute;mero de WhatsApp que recibe fotos de facturas, divide cuentas conversacionalmente y notifica a cada persona. Sin descargar app.</p>
+  </div>
+</div>
+</div>
+
+<div class="conversion-note">
+  <strong>Supuestos de conversi&oacute;n (conservadores, mercado colombiano):</strong><br>
+  &bull; Tasa de registro &rarr; usuario activo: <strong>40%</strong><br>
+  &bull; Free &rarr; Pro (suscripci&oacute;n mensual): <strong>3%</strong> del MAU<br>
+  &bull; Precio Pro: <strong>$14.900 COP/mes</strong> (~$3.50 USD)<br>
+  &bull; Escaneos por usuario/mes: <strong>2</strong><br>
+  &bull; Facturas por usuario/mes: <strong>3</strong><br>
+  &bull; Mensajes WhatsApp salientes/usuario/mes: <strong>5</strong>
+</div>
+
+<!-- ===== COMPARATIVO ===== -->
+<h2>2. Comparativo de Enfoques</h2>
+
+<table>
+<tr>
+  <th>Dimensi&oacute;n</th>
+  <th><span class="tag tag-a">A</span> UX Inteligente</th>
+  <th><span class="tag tag-b">B</span> Bot WhatsApp</th>
+</tr>
+<tr>
+  <td>Fricci&oacute;n de entrada</td>
+  <td>Requiere descargar app</td>
+  <td class="highlight">Cero &mdash; solo un n&uacute;mero de WhatsApp</td>
+</tr>
+<tr>
+  <td>Esfuerzo de desarrollo</td>
+  <td>Medio (4&ndash;6 semanas)</td>
+  <td>Alto (8&ndash;12 semanas)</td>
+</tr>
+<tr>
+  <td>Potencial viral</td>
+  <td>Bajo &mdash; requiere que cada usuario descargue</td>
+  <td class="highlight">Alto &mdash; compartir un n&uacute;mero es instant&aacute;neo</td>
+</tr>
+<tr>
+  <td>Fit cultural (Costa Caribe)</td>
+  <td>Bueno</td>
+  <td class="highlight">Excelente &mdash; WhatsApp es el canal #1</td>
+</tr>
+<tr>
+  <td>Monetizaci&oacute;n</td>
+  <td>Suscripci&oacute;n Pro existente</td>
+  <td>Por uso, suscripci&oacute;n grupal, o freemium</td>
+</tr>
+<tr>
+  <td>Costos variables</td>
+  <td>Solo Gemini (~$0.002/scan)</td>
+  <td>Gemini + WhatsApp API (~$0.003/interacci&oacute;n)</td>
+</tr>
+<tr>
+  <td>Complejidad t&eacute;cnica</td>
+  <td>Baja &mdash; mejora flujos existentes</td>
+  <td>Media &mdash; m&aacute;quina de estados conversacional</td>
+</tr>
+<tr>
+  <td>Dependencia de plataforma</td>
+  <td>Apple App Store</td>
+  <td>Meta WhatsApp Business API</td>
+</tr>
+<tr>
+  <td>Riesgo</td>
+  <td>Bajo &mdash; mejora incremental</td>
+  <td>Medio &mdash; nuevo paradigma por validar</td>
+</tr>
+</table>
+
+<!-- ===== COSTOS DE MANTENIMIENTO ===== -->
+<h2>3. Costos de Mantenimiento Mensuales</h2>
+
+<h3><span class="tag tag-a">Enfoque A</span> App M&oacute;vil con UX Inteligente</h3>
+
+<div style="overflow-x: auto;">
+<table>
+<tr>
+  <th>Servicio</th>
+  <th>100</th>
+  <th>500</th>
+  <th>1K</th>
+  <th>5K</th>
+  <th>10K</th>
+  <th>50K</th>
+  <th>100K</th>
+  <th>500K</th>
+  <th>1M</th>
+</tr>
+<tr><td>Convex</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost cost-high">$5</td><td class="cost cost-high">$50</td><td class="cost cost-high">$115</td><td class="cost cost-high">$620</td><td class="cost cost-high">$1,270</td></tr>
+<tr><td>Expo / EAS</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost cost-high">$19</td><td class="cost cost-high">$19</td><td class="cost cost-high">$199</td><td class="cost cost-high">$199</td><td class="cost cost-high">$199</td><td class="cost cost-high">$199</td></tr>
+<tr><td>PostHog</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost cost-high">$25</td><td class="cost cost-high">$100</td><td class="cost cost-high">$700</td><td class="cost cost-high">$1,450</td></tr>
+<tr><td>RevenueCat</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost cost-high">$28</td><td class="cost cost-high">$80</td><td class="cost cost-high">$478</td><td class="cost cost-high">$980</td></tr>
+<tr><td>Sentry</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost cost-high">$26</td><td class="cost cost-high">$26</td><td class="cost cost-high">$80</td><td class="cost cost-high">$80</td></tr>
+<tr><td>WorkOS</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td></tr>
+<tr><td>Gemini API</td><td class="cost">$0.31</td><td class="cost">$1.55</td><td class="cost">$3</td><td class="cost cost-high">$16</td><td class="cost cost-high">$31</td><td class="cost cost-high">$155</td><td class="cost cost-high">$310</td><td class="cost cost-high">$1,550</td><td class="cost cost-high">$3,100</td></tr>
+<tr><td>Resend</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost cost-high">$20</td><td class="cost cost-high">$20</td><td class="cost cost-high">$35</td><td class="cost cost-high">$55</td><td class="cost cost-high">$200</td><td class="cost cost-high">$380</td></tr>
+<tr><td>Apple Developer</td><td class="cost">$8</td><td class="cost">$8</td><td class="cost">$8</td><td class="cost">$8</td><td class="cost">$8</td><td class="cost">$8</td><td class="cost">$8</td><td class="cost">$8</td><td class="cost">$8</td></tr>
+<tr style="font-weight:700; border-top: 2px solid var(--primary);">
+  <td>Total A</td>
+  <td class="cost">$9</td>
+  <td class="cost">$10</td>
+  <td class="cost">$11</td>
+  <td class="cost cost-high">$63</td>
+  <td class="cost cost-high">$83</td>
+  <td class="cost cost-high">$526</td>
+  <td class="cost cost-high">$893</td>
+  <td class="cost cost-high">$3,835</td>
+  <td class="cost cost-high">$7,467</td>
+</tr>
+</table>
+</div>
+
+<h3><span class="tag tag-b">Enfoque B</span> Bot de WhatsApp (costos adicionales al Enfoque A)</h3>
+
+<div style="overflow-x: auto;">
+<table>
+<tr>
+  <th>Servicio</th>
+  <th>100</th>
+  <th>500</th>
+  <th>1K</th>
+  <th>5K</th>
+  <th>10K</th>
+  <th>50K</th>
+  <th>100K</th>
+  <th>500K</th>
+  <th>1M</th>
+</tr>
+<tr><td>WhatsApp API (utility)</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$2</td><td class="cost">$4</td><td class="cost cost-high">$20</td><td class="cost cost-high">$40</td><td class="cost cost-high">$200</td><td class="cost cost-high">$400</td></tr>
+<tr><td>WhatsApp API (servicio)</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td></tr>
+<tr><td>Convex HTTP (webhooks)</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$0</td><td class="cost">$2</td><td class="cost cost-high">$15</td><td class="cost cost-high">$35</td><td class="cost cost-high">$190</td><td class="cost cost-high">$400</td></tr>
+<tr><td>Gemini adicional</td><td class="cost">$0</td><td class="cost">$1</td><td class="cost">$2</td><td class="cost">$8</td><td class="cost cost-high">$16</td><td class="cost cost-high">$78</td><td class="cost cost-high">$155</td><td class="cost cost-high">$775</td><td class="cost cost-high">$1,550</td></tr>
+<tr style="font-weight:700; border-top: 2px solid var(--purple);">
+  <td>Adicional B</td>
+  <td class="cost">$0</td>
+  <td class="cost">$1</td>
+  <td class="cost">$2</td>
+  <td class="cost">$10</td>
+  <td class="cost cost-high">$22</td>
+  <td class="cost cost-high">$113</td>
+  <td class="cost cost-high">$230</td>
+  <td class="cost cost-high">$1,165</td>
+  <td class="cost cost-high">$2,350</td>
+</tr>
+<tr style="font-weight:700; background: rgba(167,139,250,0.08);">
+  <td>Total A+B</td>
+  <td class="cost">$9</td>
+  <td class="cost">$11</td>
+  <td class="cost">$13</td>
+  <td class="cost cost-high">$73</td>
+  <td class="cost cost-high">$105</td>
+  <td class="cost cost-high">$639</td>
+  <td class="cost cost-high">$1,123</td>
+  <td class="cost cost-high">$5,000</td>
+  <td class="cost cost-high">$9,817</td>
+</tr>
+</table>
+</div>
+
+<!-- ===== PROYECCI&Oacute;N DE INGRESOS ===== -->
+<h2>4. Proyecci&oacute;n de Ingresos vs Costos</h2>
+
+<div class="conversion-note">
+  <strong>Modelo:</strong> 3% del MAU convierte a Pro a $3.50 USD/mes. Apple retiene 15% (programa peque&ntilde;os negocios). RevenueCat es gratis hasta $2,500 MTR.
+</div>
+
+<div style="overflow-x: auto;">
+<table>
+<tr>
+  <th>M&eacute;trica</th>
+  <th>100</th>
+  <th>500</th>
+  <th>1K</th>
+  <th>5K</th>
+  <th>10K</th>
+  <th>50K</th>
+  <th>100K</th>
+  <th>500K</th>
+  <th>1M</th>
+</tr>
+<tr><td>Suscriptores Pro (3%)</td><td>3</td><td>15</td><td>30</td><td>150</td><td>300</td><td>1,500</td><td>3,000</td><td>15,000</td><td>30,000</td></tr>
+<tr><td>Ingreso bruto</td><td>$11</td><td>$53</td><td>$105</td><td>$525</td><td>$1,050</td><td>$5,250</td><td>$10,500</td><td>$52,500</td><td>$105,000</td></tr>
+<tr><td>Apple (15%)</td><td>-$2</td><td>-$8</td><td>-$16</td><td>-$79</td><td>-$158</td><td>-$788</td><td>-$1,575</td><td>-$7,875</td><td>-$15,750</td></tr>
+<tr><td>RevenueCat (1%&gt;$2.5K)</td><td>$0</td><td>$0</td><td>$0</td><td>$0</td><td>$0</td><td>-$28</td><td>-$80</td><td>-$478</td><td>-$980</td></tr>
+<tr style="font-weight:700;"><td>Ingreso neto</td><td class="cost">$9</td><td class="cost">$45</td><td class="cost">$89</td><td class="cost">$446</td><td class="cost">$893</td><td class="cost">$4,435</td><td class="cost">$8,845</td><td class="cost">$44,148</td><td class="cost">$88,270</td></tr>
+<tr style="font-weight:700; background: rgba(56,189,248,0.05);">
+  <td>Margen (A)</td>
+  <td class="warn">+$0</td>
+  <td class="highlight">+$35</td>
+  <td class="highlight">+$78</td>
+  <td class="highlight">+$383</td>
+  <td class="highlight">+$810</td>
+  <td class="highlight">+$3,909</td>
+  <td class="highlight">+$7,952</td>
+  <td class="highlight">+$40,313</td>
+  <td class="highlight">+$80,803</td>
+</tr>
+<tr style="font-weight:700; background: rgba(167,139,250,0.05);">
+  <td>Margen (A+B)</td>
+  <td class="warn">+$0</td>
+  <td class="highlight">+$34</td>
+  <td class="highlight">+$76</td>
+  <td class="highlight">+$373</td>
+  <td class="highlight">+$788</td>
+  <td class="highlight">+$3,796</td>
+  <td class="highlight">+$7,722</td>
+  <td class="highlight">+$39,148</td>
+  <td class="highlight">+$78,453</td>
+</tr>
+</table>
+</div>
+
+<div class="conversion-note">
+  <strong>Nota sobre escala:</strong> A 1M MAU, los costos representan apenas el <strong>11% del ingreso neto</strong> (A+B). El margen operativo mejora con la escala porque los costos fijos (Apple, Expo, Sentry) se diluyen y los costos variables (Gemini, WhatsApp) escalan linealmente mientras el ingreso crece al mismo ritmo. El mayor gasto a escala es Gemini API (~$4,650/mes a 1M MAU combinando A+B).
+</div>
+
+<div class="grid-2" style="margin-top: 20px;">
+  <div class="card">
+    <div class="metric-box">
+      <div class="section-label">Breakeven (Enfoque A)</div>
+      <div class="metric">~100 MAU</div>
+      <div class="metric-label">3 suscriptores Pro cubren los costos fijos</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="metric-box">
+      <div class="section-label">Breakeven (A + B)</div>
+      <div class="metric">~100 MAU</div>
+      <div class="metric-label">El bot agrega ~$0.19/mes de costo marginal</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ROADMAP ===== -->
+<h2>5. Hoja de Ruta de Implementaci&oacute;n</h2>
+
+<h3>Fase 1 &mdash; Fundamentos (Semanas 1&ndash;2)</h3>
+<div class="phase">
+  <p><strong>Ya completado:</strong></p>
+  <ul>
+    <li>Autenticaci&oacute;n segura via <code>ctx.auth</code> con JWT de WorkOS</li>
+    <li>PostHog analytics con 14 eventos del funnel completo</li>
+    <li>ConvexError estructurado + funciones internas</li>
+    <li>Extracci&oacute;n de l&oacute;gica de negocio a <code>convex/model/</code></li>
+  </ul>
+</div>
+
+<h3>Fase 2 &mdash; <span class="tag tag-a">A</span> Asignaci&oacute;n Inteligente (Semanas 3&ndash;5)</h3>
+<div class="phase">
+  <ul>
+    <li>Motor de sugerencias basado en historial de facturas</li>
+    <li>Pre-asignaci&oacute;n autom&aacute;tica de contactos con puntajes de confianza</li>
+    <li>Selecci&oacute;n predictiva de estrategia de divisi&oacute;n (igual vs por &iacute;tem)</li>
+    <li>Propina auto-calculada seg&uacute;n pa&iacute;s, categor&iacute;a e historial</li>
+  </ul>
+</div>
+
+<h3>Fase 3 &mdash; <span class="tag tag-a">A</span> Env&iacute;o Proactivo (Semanas 5&ndash;6)</h3>
+<div class="phase">
+  <ul>
+    <li>&ldquo;Enviar todo&rdquo; &mdash; un bot&oacute;n para compartir con todos los contactos</li>
+    <li>Recordatorios inteligentes: &ldquo;Mar&iacute;a no ha pagado &mdash; &iquest;recordarle?&rdquo;</li>
+    <li>Borradores de mensajes de WhatsApp pre-generados por la IA</li>
+  </ul>
+</div>
+
+<h3>Fase 4 &mdash; <span class="tag tag-b">B</span> Bot de WhatsApp MVP (Semanas 7&ndash;12)</h3>
+<div class="phase phase-b">
+  <ul>
+    <li>Webhook HTTP en Convex para recibir mensajes de WhatsApp</li>
+    <li>M&aacute;quina de estados conversacional (foto &rarr; extraer &rarr; asignar &rarr; confirmar)</li>
+    <li>Env&iacute;o autom&aacute;tico de desgloses a cada contacto v&iacute;a WhatsApp</li>
+    <li>Registro autom&aacute;tico de usuarios sin descarga de app</li>
+    <li>Sincronizaci&oacute;n bidireccional: facturas del bot visibles en la app</li>
+  </ul>
+</div>
+
+<h3>Fase 5 &mdash; <span class="tag tag-a">A</span> + <span class="tag tag-b">B</span> Inteligencia Avanzada (Semanas 13&ndash;16)</h3>
+<div class="phase">
+  <ul>
+    <li>Entrada por voz: &ldquo;Cena en Crepes, 4 personas, $180K, divisi&oacute;n igual&rdquo;</li>
+    <li>Feature flags via PostHog para rollout gradual</li>
+    <li>A/B testing de paywall y flujo de onboarding</li>
+    <li>Inteligencia de pagos: qui&eacute;n paga r&aacute;pido, qui&eacute;n se demora</li>
+  </ul>
+</div>
+
+<!-- ===== COSTOS POR TIER ===== -->
+<h2>6. Detalle de Tier Gratuito por Servicio</h2>
+
+<table>
+<tr>
+  <th>Servicio</th>
+  <th>L&iacute;mite Gratuito</th>
+  <th>Se supera en...</th>
+  <th>Costo pagado</th>
+</tr>
+<tr>
+  <td>Convex</td>
+  <td>1M llamadas/mes, 0.5GB DB</td>
+  <td>~4.000 MAU</td>
+  <td>$2.20/1M llamadas</td>
+</tr>
+<tr>
+  <td>PostHog</td>
+  <td>1M eventos/mes</td>
+  <td>~33.000 MAU</td>
+  <td>$0.00005/evento</td>
+</tr>
+<tr>
+  <td>WorkOS</td>
+  <td>1M MAU</td>
+  <td class="highlight">Nunca (para Rondas)</td>
+  <td>$2,500/mes por 1M extra</td>
+</tr>
+<tr>
+  <td>RevenueCat</td>
+  <td>$2,500 MTR</td>
+  <td>~714 suscriptores Pro</td>
+  <td>1% del MTR</td>
+</tr>
+<tr>
+  <td>Sentry</td>
+  <td>5.000 errores/mes</td>
+  <td>~50.000 MAU (si es estable)</td>
+  <td>$26/mes (Team)</td>
+</tr>
+<tr>
+  <td>Expo/EAS</td>
+  <td>1.000 MAU en OTA</td>
+  <td>1.000 MAU</td>
+  <td>$19/mes (Starter)</td>
+</tr>
+<tr>
+  <td>Resend</td>
+  <td>3.000 emails/mes</td>
+  <td>~1.000 MAU</td>
+  <td>$20/mes (50K emails)</td>
+</tr>
+<tr>
+  <td>WhatsApp API</td>
+  <td>Respuestas de servicio: ilimitado</td>
+  <td>N/A (servicio gratis)</td>
+  <td>$0.0008/plantilla utility (CO)</td>
+</tr>
+<tr>
+  <td>Gemini 2.5 Flash</td>
+  <td>Tier gratuito limitado (~50 req/d&iacute;a)</td>
+  <td>D&iacute;a 1 (producci&oacute;n)</td>
+  <td>~$0.0016/escaneo</td>
+</tr>
+</table>
+
+<!-- ===== RECOMENDACI&Oacute;N ===== -->
+<h2>7. Recomendaci&oacute;n Estrat&eacute;gica</h2>
+
+<div class="card" style="border-color: var(--primary);">
+  <h3 style="color: var(--primary); margin-top: 0;">Ejecutar A primero, luego B</h3>
+  <p>El Enfoque A (UX Inteligente) mejora la retenci&oacute;n de usuarios existentes con esfuerzo moderado. El Enfoque B (Bot WhatsApp) es el verdadero diferenciador de crecimiento para el mercado colombiano &mdash; pero requiere que la l&oacute;gica de negocio est&eacute; limpia y desacoplada del UI, lo cual el Enfoque A obliga a construir.</p>
+  <br>
+  <p><strong>Secuencia recomendada:</strong></p>
+  <ul>
+    <li><strong>Mes 1&ndash;2:</strong> Enfoque A &mdash; asignaci&oacute;n inteligente + env&iacute;o proactivo</li>
+    <li><strong>Mes 2&ndash;4:</strong> Enfoque B &mdash; MVP del bot de WhatsApp</li>
+    <li><strong>Mes 4+:</strong> Iteraci&oacute;n basada en datos de PostHog</li>
+  </ul>
+  <br>
+  <p>Los costos operativos permanecen por debajo de <span class="highlight">$105 USD/mes</span> hasta 10K MAU. A 100K MAU el margen es del <span class="highlight">87%</span> ($7,722/mes). A 1M MAU el negocio genera <span class="highlight">$78,453 USD/mes</span> de margen neto con ambos enfoques activos. El breakeven se alcanza con apenas <span class="highlight">3 suscriptores Pro</span>.</p>
+</div>
+
+<div class="footer">
+  Rondas &bull; An&aacute;lisis AI-First &bull; Junio 2026<br>
+  Proyecciones basadas en precios p&uacute;blicos de cada servicio al momento de redacci&oacute;n.<br>
+  Tasas de conversi&oacute;n son estimados conservadores para el mercado colombiano.
+</div>
+
+</body>
+</html>

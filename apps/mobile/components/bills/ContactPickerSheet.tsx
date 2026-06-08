@@ -15,7 +15,7 @@ import { useT } from '@/lib/i18n';
 import { useColorScheme } from 'nativewind';
 import { ICON_COLORS } from '@/constants/colors';
 import { formatPhone } from '@/lib/phone';
-import type * as Contacts from 'expo-contacts';
+import type * as Contacts from 'expo-contacts/legacy';
 import type { Doc } from '@convex/_generated/dataModel';
 
 export const SUGGESTED_PREFIX = 'suggested:';

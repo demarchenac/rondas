@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Sentry from '@sentry/react-native';
-import * as Contacts from 'expo-contacts';
+import * as Contacts from 'expo-contacts/legacy';
 import * as Haptics from 'expo-haptics';
 import { randomUUID } from 'expo-crypto';
 import { useQuery, useMutation } from 'convex/react';
