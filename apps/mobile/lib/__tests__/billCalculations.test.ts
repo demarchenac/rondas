@@ -1,17 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import {
-  computeBase,
-  computeTax,
-  getTaxConfig,
-  withTaxIncludedOverride,
-  computeContactItemShare,
-  toE164,
-  formatPhone,
-  formatCurrency,
-  parseCurrency,
-  getTaxLabel,
-  stateLabel,
-} from '../billCalculations';
+import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride } from '@/constants/taxes';
+import { computeContactItemShare } from '@/lib/billSplit';
+import { toE164, formatPhone } from '@/lib/phone';
+import { formatCurrency, parseCurrency } from '@/lib/format';
+import { getTaxLabel, stateLabel } from '@/lib/billHelpers';
 import type { TaxConfig } from '@/constants/taxes';
 
 // Minimal mock translations for getTaxLabel / stateLabel tests
