@@ -1,15 +1,6 @@
 import { computeBase, computeTax, type TaxConfig } from '@/constants/taxes';
 import type { Id } from '@convex/_generated/dataModel';
-
-interface BillItem {
-  id?: string;
-  subtotal: number;
-}
-
-interface ContactItemRef {
-  itemId: string;
-  units: number;
-}
+import type { ContactItemRef } from '@/lib/types';
 
 interface ContactRef {
   items: ContactItemRef[];
@@ -17,7 +8,7 @@ interface ContactRef {
 
 export function computeContactTotal(
   contact: { items: ContactItemRef[] },
-  billItems: BillItem[],
+  billItems: { id?: string; subtotal: number }[],
   allContacts: ContactRef[],
   taxConfig: TaxConfig,
   tipPercent: number,

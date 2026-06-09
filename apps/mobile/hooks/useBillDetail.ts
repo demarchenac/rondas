@@ -12,8 +12,7 @@ import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type Re
 import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel } from '@/lib/billHelpers';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import { usePhoneContacts } from '@/hooks/usePhoneContacts';
-
-type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
+import type { SortStrategy } from '@/lib/types';
 
 export function useBillDetail(id: string, userId: string | undefined) {
   const t = useT();

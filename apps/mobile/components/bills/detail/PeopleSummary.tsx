@@ -10,15 +10,9 @@ import type { TaxConfig } from '@/constants/taxes';
 import type { Id } from '@convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
 import { useProGate } from '@/hooks/useProGate';
-import type { BillItem, ResolvedContact } from '@/lib/types';
+import type { BillItem, ResolvedContact, ContactGroup } from '@/lib/types';
 import type { IconPalette } from '@/constants/colors';
 import { ContactPill, GroupPill, SelectablePill, CollapsedGroupPill } from './PeoplePills';
-
-interface ContactGroup {
-  id: string;
-  contactIds: Id<'contacts'>[];
-  name: string;
-}
 
 const GROUP_TINTS = [
   { bg: 'bg-blue-500/10', border: 'border-l-blue-500' },

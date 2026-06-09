@@ -20,8 +20,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import { formatCurrency } from '@/lib/format';
 import { useT } from '@/lib/i18n';
-
-// --- Types ---
+import type { ScanPhase } from '@/lib/types';
 
 interface ScanItem {
   name: string;
@@ -41,8 +40,6 @@ interface ScanProgressData {
     decimalPlaces?: number;
   } | null;
 }
-
-type ScanPhase = 'uploading' | 'analyzing' | 'thinking' | 'extracting' | 'complete';
 
 interface ScanningOverlayProps {
   scanProgress: ScanProgressData | null | undefined;

@@ -5,8 +5,7 @@ import FilterChip from '@/components/bills/FilterChip';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
 import type { Translations } from '@/lib/i18n';
-
-type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
+import type { SortStrategy } from '@/lib/types';
 
 interface SortBarProps {
   sortStrategy: SortStrategy;

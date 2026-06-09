@@ -1,8 +1,9 @@
 import React from 'react';
-import type { Id , Doc } from '@convex/_generated/dataModel';
+import type { Id, Doc } from '@convex/_generated/dataModel';
 import type { IconPalette } from '@/constants/colors';
 import type { Translations } from '@/lib/i18n';
 import type { PhoneContactDetails } from '@/hooks/usePhoneContacts';
+import type { ResolvedContact, BillItem, DialogType } from '@/lib/types';
 
 import ContactPickerSheet from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
@@ -11,24 +12,11 @@ import TipDialog from '@/components/bills/TipDialog';
 import CountryDialog from '@/components/bills/CountryDialog';
 import type { TaxConfig } from '@/constants/taxes';
 
-type DialogType = 'tip' | 'country' | 'share' | 'contactPicker' | 'unassignPicker' | null;
-
-interface ResolvedContact {
-  contactId: Id<'contacts'>;
-  name: string;
-  phone?: string;
-  imageUri?: string;
-  isSelf?: boolean;
-  paid: boolean;
-  items: { itemId: string; units: number }[];
-  amount: number;
-}
-
 interface BillDetailSheetsProps {
   activeDialog: DialogType;
   bill: {
     contacts: ResolvedContact[];
-    items: { id?: string; name: string; quantity: number; unitPrice: number; subtotal: number }[];
+    items: BillItem[];
     tip?: number;
   };
   userId: string;

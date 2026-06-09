@@ -7,14 +7,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import type { IconPalette } from '@/constants/colors';
 import type { Translations } from '@/lib/i18n';
 import ScanningOverlay from '@/components/bills/ScanningOverlay';
-
-interface ScanError {
-  type: 'timeout' | 'api' | 'not_a_receipt' | 'generic';
-  message: string;
-  hint: string;
-}
-
-type ScanPhase = 'uploading' | 'analyzing' | 'thinking' | 'extracting' | 'complete';
+import type { ScanError, ScanPhase } from '@/lib/types';
 
 interface ScanPreviewProps {
   imageUri: string;

@@ -32,14 +32,7 @@ import { posthog } from '@/lib/posthog';
 import ScanPreview from '@/components/bills/scan/ScanPreview';
 import ReviewItemRow from '@/components/bills/scan/ReviewItemRow';
 import ReviewSummary from '@/components/bills/scan/ReviewSummary';
-
-interface BillItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
+import type { BillItem, ScanError, ScanPhase } from '@/lib/types';
 
 function prepareItems(items: BillItem[]): BillItem[] {
   return items
@@ -52,8 +45,6 @@ function prepareItems(items: BillItem[]): BillItem[] {
     }));
 }
 
-type ScanErrorType = 'timeout' | 'api' | 'not_a_receipt' | 'generic';
-interface ScanError { type: ScanErrorType; message: string; hint: string; }
 
 export default function NewBillScreen() {
   const { imageUri, photoTakenAt, latitude, longitude, resolveLocation } = useLocalSearchParams<{
@@ -105,7 +96,6 @@ export default function NewBillScreen() {
     return { type: 'generic', message: t.error_scanGeneric, hint: t.error_hintScan };
   }
 
-  type ScanPhase = 'uploading' | 'analyzing' | 'thinking' | 'extracting' | 'complete';
   const [isScanning, setScanning] = useState(false);
   const [localPhase, setLocalPhase] = useState<ScanPhase>('uploading');
   const [isSaving, setSaving] = useState(false);

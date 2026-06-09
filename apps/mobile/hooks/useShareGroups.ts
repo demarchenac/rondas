@@ -8,13 +8,7 @@ import { api } from '@convex/_generated/api';
 import { buildGroupName, contactKey } from '@/lib/billSplit';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import { useT } from '@/lib/i18n';
-import type { ResolvedContact } from '@/lib/types';
-
-interface ContactGroup {
-  id: string;
-  contactIds: Id<'contacts'>[];
-  name: string;
-}
+import type { ResolvedContact, ContactGroup } from '@/lib/types';
 
 export function useShareGroups(
   billId: string,

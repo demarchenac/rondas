@@ -1,19 +1,8 @@
 import type { Doc, Id } from '@convex/_generated/dataModel';
 import type { BillState } from '@/lib/billHelpers';
+import type { ResolvedContact } from '@/lib/types';
 
-/** Contact reference as stored in bills (schema) + resolved fields from contacts table (query join) */
-export interface ResolvedContact {
-  contactId: Id<'contacts'>;
-  isSelf?: boolean;
-  items: { itemId: string; units: number }[];
-  amount: number;
-  paid: boolean;
-  // Resolved from contacts table by query join
-  name: string;
-  phone?: string;
-  email?: string;
-  imageUri?: string;
-}
+export type { ResolvedContact };
 
 export interface ResolvedTag {
   _id: Id<'tags'>;

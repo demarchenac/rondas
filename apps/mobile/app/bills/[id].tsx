@@ -30,9 +30,7 @@ import BillSummaryCard from '@/components/bills/detail/BillSummaryCard';
 import PeopleSummary from '@/components/bills/detail/PeopleSummary';
 import EqualSplitView from '@/components/bills/detail/EqualSplitView';
 import { useBillDetail } from '@/hooks/useBillDetail';
-
-type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
-type DialogType = 'tip' | 'country' | 'share' | 'contactPicker' | 'unassignPicker' | null;
+import type { SortStrategy, DialogType } from '@/lib/types';
 
 export default function BillDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

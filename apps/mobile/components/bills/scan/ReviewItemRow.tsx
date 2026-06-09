@@ -9,14 +9,7 @@ import SwipeableItem from '@/components/bills/SwipeableItem';
 import { formatCurrency } from '@/lib/format';
 import type { IconPalette } from '@/constants/colors';
 import type { Translations } from '@/lib/i18n';
-
-interface BillItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
+import type { BillItem } from '@/lib/types';
 
 interface ReviewItemRowProps {
   item: BillItem;
