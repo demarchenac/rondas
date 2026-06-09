@@ -14,7 +14,6 @@ import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import Avatar from '@/components/ui/avatar';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
-import BillCardSkeleton from '@/components/bills/BillCardSkeleton';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
 import { relativeTime } from '@/lib/date';
@@ -314,6 +313,7 @@ function BillCardIOS({
   paidCount,
   progress,
   iconColors,
+  hasUnassignedItems,
   mode,
 }: BillCardProps & {
   stateStyle: (typeof STATE_STYLES)[BillState];
@@ -326,6 +326,7 @@ function BillCardIOS({
   paidCount: number;
   progress: number;
   iconColors: { primary: string; muted: string; pro: string };
+  hasUnassignedItems: boolean;
   mode: ColorMode;
 }) {
   const glow = useMemo(
@@ -338,16 +339,8 @@ function BillCardIOS({
     setCardHeight(e.nativeEvent.layout.height);
   }, []);
 
-  const { glassAvailable, isGlassReady, shouldUseGlass: glassEnabled } = useGlassEffect();
+  const { shouldUseGlass: glassEnabled } = useGlassEffect();
   const shouldUseGlass = glassEnabled && !isDraft;
-
-  if (glassAvailable && !isGlassReady && !isDraft) {
-    return (
-      <View style={{ marginBottom: 10 }}>
-        <BillCardSkeleton />
-      </View>
-    );
-  }
 
   return (
     <Pressable onPress={onPress} style={{ opacity: locked ? 0.5 : 1 }}>
@@ -356,11 +349,11 @@ function BillCardIOS({
           <GlassView
             onLayout={onCardLayout}
             glassEffectStyle="regular"
-            tintColor={stateStyle.color + '0D'}
+            tintColor={(hasUnassignedItems ? '#f59e0b' : stateStyle.color) + '0D'}
             style={{ borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, overflow: 'hidden' }}
           >
-            <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg="transparent" />
-            <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg="transparent" />
+            <CornerGlow size={cardHeight - 20} color={hasUnassignedItems ? '#f59e0b' : stateStyle.color} corner="top-left" cardBg="transparent" />
+            <CornerGlow size={cardHeight - 20} color={hasUnassignedItems ? '#f59e0b' : stateStyle.color} corner="bottom-right" cardBg="transparent" />
             <CardContent
               bill={bill}
               stateStyle={stateStyle}
@@ -389,13 +382,13 @@ function BillCardIOS({
             style={{
               zIndex: 1,
               borderWidth: isDraft ? 0 : 1,
-              borderColor: isDraft ? 'transparent' : glow.glowMid,
+              borderColor: isDraft ? 'transparent' : hasUnassignedItems ? '#f59e0b33' : glow.glowMid,
             }}
           >
             {!isDraft && (
               <>
-                <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
-                <CornerGlow size={cardHeight - 20} color={stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
+                <CornerGlow size={cardHeight - 20} color={hasUnassignedItems ? '#f59e0b' : stateStyle.color} corner="top-left" cardBg={glow.cardBg} />
+                <CornerGlow size={cardHeight - 20} color={hasUnassignedItems ? '#f59e0b' : stateStyle.color} corner="bottom-right" cardBg={glow.cardBg} />
               </>
             )}
             <CardContent
@@ -438,6 +431,7 @@ function BillCardAndroid({
   paidCount,
   progress,
   iconColors,
+  hasUnassignedItems,
 }: BillCardProps & {
   stateStyle: (typeof STATE_STYLES)[BillState];
   label: string;
@@ -449,13 +443,14 @@ function BillCardAndroid({
   paidCount: number;
   progress: number;
   iconColors: { primary: string; muted: string; pro: string };
+  hasUnassignedItems: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
       className={cn(
         'rounded-xl border-l-[3px] bg-card px-4 py-3 active:opacity-80',
-        stateStyle.borderClass,
+        hasUnassignedItems ? 'border-l-amber-500' : stateStyle.borderClass,
         isDraft && 'opacity-60',
         isUnresolved && 'bg-amber-500/[0.03]',
         locked && 'opacity-50',
@@ -517,6 +512,7 @@ function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
       ? new Set(bill.contacts.flatMap((contact) => contact.items.map((item) => item.itemId))).size
       : 0);
   const progress = bill.progress ?? (itemCount > 0 ? assignedItems / itemCount : 0);
+  const hasUnassignedItems = contactCount > 0 && progress < 1 && !isDraft;
 
   // displayTotal: prefer denormalized, fallback to client tax computation
   const displayTotal = bill.displayTotal ?? computeDisplayTotal(bill);
@@ -536,6 +532,7 @@ function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
     paidCount,
     progress,
     iconColors,
+    hasUnassignedItems,
   };
 
   if (Platform.OS === 'ios') {

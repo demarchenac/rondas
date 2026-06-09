@@ -1,5 +1,6 @@
 import '@/lib/polyfills';
 import * as SecureStore from 'expo-secure-store';
+import * as Sentry from '@sentry/react-native';
 import { getRandomValues, digestStringAsync, CryptoDigestAlgorithm } from 'expo-crypto';
 
 import { ENV } from '@/constants/env';
@@ -33,6 +34,16 @@ interface StoredSession {
 interface PkceState {
   codeVerifier: string;
   expiresAt: number;
+}
+
+function safeParseSecureStore<T>(raw: string, key: string): T | null {
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    Sentry.captureMessage(`Corrupted SecureStore data for key: ${key}`, 'warning');
+    SecureStore.deleteItemAsync(key).catch(() => {});
+    return null;
+  }
 }
 
 // --- PKCE helpers ---
@@ -116,7 +127,10 @@ export async function handleCallback(code: string): Promise<User> {
     throw new Error('No PKCE state found - please try signing in again');
   }
 
-  const pkceState: PkceState = JSON.parse(pkceData);
+  const pkceState = safeParseSecureStore<PkceState>(pkceData, KEYS.PKCE);
+  if (!pkceState) {
+    throw new Error('Corrupted PKCE state - please try signing in again');
+  }
   if (pkceState.expiresAt < Date.now()) {
     await SecureStore.deleteItemAsync(KEYS.PKCE);
     throw new Error('Authentication session expired - please try again');
@@ -183,10 +197,16 @@ async function refreshSession(session: StoredSession): Promise<StoredSession | n
 
 // --- JWT helpers ---
 
-function parseJwtPayload(token: string): Record<string, unknown> {
-  const base64 = token.split('.')[1];
-  const normalized = base64.replace(/-/g, '+').replace(/_/g, '/');
-  return JSON.parse(atob(normalized));
+function parseJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const base64 = token.split('.')[1];
+    if (!base64) return null;
+    const normalized = base64.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(normalized));
+  } catch {
+    Sentry.captureMessage('Malformed JWT payload', 'warning');
+    return null;
+  }
 }
 
 // --- Session management ---
@@ -195,9 +215,15 @@ export async function getUser(): Promise<User | null> {
   const sessionData = await SecureStore.getItemAsync(KEYS.SESSION);
   if (!sessionData) return null;
 
-  const session: StoredSession = JSON.parse(sessionData);
+  const session = safeParseSecureStore<StoredSession>(sessionData, KEYS.SESSION);
+  if (!session) return null;
 
   const payload = parseJwtPayload(session.accessToken);
+  if (!payload) {
+    await clearSession();
+    return null;
+  }
+
   const exp = payload.exp as number;
   const isExpired = Date.now() > exp * 1000 - 10_000;
 
@@ -217,13 +243,11 @@ export async function getSessionId(): Promise<string | null> {
   const sessionData = await SecureStore.getItemAsync(KEYS.SESSION);
   if (!sessionData) return null;
 
-  try {
-    const session: StoredSession = JSON.parse(sessionData);
-    const payload = parseJwtPayload(session.accessToken);
-    return (payload.sid as string) ?? null;
-  } catch {
-    return null;
-  }
+  const session = safeParseSecureStore<StoredSession>(sessionData, KEYS.SESSION);
+  if (!session) return null;
+
+  const payload = parseJwtPayload(session.accessToken);
+  return (payload?.sid as string) ?? null;
 }
 
 export const LOGOUT_REDIRECT_URI = 'rondas://auth/logout';
@@ -245,8 +269,12 @@ export async function getAccessToken(): Promise<string | null> {
   const sessionData = await SecureStore.getItemAsync(KEYS.SESSION);
   if (!sessionData) return null;
 
-  const session: StoredSession = JSON.parse(sessionData);
+  const session = safeParseSecureStore<StoredSession>(sessionData, KEYS.SESSION);
+  if (!session) return null;
+
   const payload = parseJwtPayload(session.accessToken);
+  if (!payload) return null;
+
   const exp = payload.exp as number;
   const isExpired = Date.now() > exp * 1000 - 10_000;
 

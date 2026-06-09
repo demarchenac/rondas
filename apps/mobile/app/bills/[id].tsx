@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import * as Sentry from '@sentry/react-native';
-import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import { GlassView } from 'expo-glass-effect';
+import { useGlassEffect } from '@/hooks/useGlassEffect';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
@@ -33,8 +34,6 @@ import BulkToolbar from '@/components/bills/BulkToolbar';
 import ContactPickerSheet from '@/components/bills/ContactPickerSheet';
 import UnassignPickerSheet from '@/components/bills/UnassignPickerSheet';
 import ContactUnitSheet from '@/components/bills/detail/ContactUnitSheet';
-import Skeleton from '@/components/ui/Skeleton';
-
 import { useBillDetail } from '@/hooks/useBillDetail';
 
 type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
@@ -113,15 +112,7 @@ export default function BillDetailScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   // ── Glass effect ──
-  const glassAvailable = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
-  const [isGlassReady, setIsGlassReady] = useState(false);
-  useEffect(() => {
-    if (glassAvailable && !isGlassReady) {
-      const timerId = setTimeout(() => setIsGlassReady(true), 500);
-      return () => clearTimeout(timerId);
-    }
-  }, [glassAvailable, isGlassReady]);
-  const shouldUseGlass = glassAvailable && isGlassReady;
+  const { shouldUseGlass } = useGlassEffect();
 
   // ── Derived (depends on UI state) ──
   const excludePhones = useMemo(() => computeExcludePhones(selectedItemIds), [computeExcludePhones, selectedItemIds]);
@@ -335,7 +326,7 @@ export default function BillDetailScreen() {
 
       {/* Top scroll edge — fade content under header */}
       <MaskedView
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top + 100, zIndex: 5 }}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top + (unassignedUnits > 0 ? 140 : 100), zIndex: 5 }}
         pointerEvents="none"
         maskElement={
           <LinearGradient
@@ -348,7 +339,7 @@ export default function BillDetailScreen() {
         <View className="flex-1 bg-background" />
       </MaskedView>
 
-      <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 80, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ paddingTop: insets.top + (unassignedUnits > 0 ? 120 : 80), paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
         {/* Metadata */}
         <Animated.View entering={FadeInDown.delay(60).duration(300)}>
           <BillMetadata
@@ -402,6 +393,11 @@ export default function BillDetailScreen() {
             {sortedItems.map((item, index) => {
               const itemId = item.id!;
               const assignedContacts = bill.contacts.filter((contact) => contact.items.some((itemRef) => itemRef.itemId === itemId));
+              const assignedUnits = bill.contacts.reduce((sum, contact) => {
+                const ref = contact.items.find((itemRef) => itemRef.itemId === itemId);
+                return sum + (ref ? ref.units : 0);
+              }, 0);
+              const itemUnassigned = Math.max(0, item.quantity - assignedUnits);
               return (
                 <Animated.View
                   key={item.id ?? `legacy-${index}`}
@@ -414,6 +410,7 @@ export default function BillDetailScreen() {
                     decimalPlaces={decimalPlaces}
                     stateStyle={stateStyle}
                     assignedContacts={assignedContacts}
+                    unassignedUnits={itemUnassigned}
                     isEditing={editingItemId === itemId}
                     isDeleting={deletingId === item.id}
                     isMultiSelectMode={isMultiSelectMode}
@@ -499,9 +496,6 @@ export default function BillDetailScreen() {
       {/* Bottom fixed buttons — absolute positioned */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom, zIndex: 10, backgroundColor: 'transparent', paddingHorizontal: 28 }}>
         {!isMultiSelectMode && bill.contacts.length > 0 && bill.state !== 'draft' && (
-          glassAvailable && !isGlassReady ? (
-            <Skeleton width="100%" height={52} borderRadius={12} style={{ marginBottom: 8 }} />
-          ) : (
             <Pressable onPress={() => router.push(`/bills/share?id=${id}`)} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
               {shouldUseGlass ? (
                 <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
@@ -519,7 +513,6 @@ export default function BillDetailScreen() {
                 </View>
               )}
             </Pressable>
-          )
         )}
         {isMultiSelectMode && selectedItemIds.size > 0 && (
           <BulkToolbar
@@ -530,23 +523,19 @@ export default function BillDetailScreen() {
             onDelete={onBulkDelete}
           />
         )}
-        {glassAvailable && !isGlassReady ? (
-          <Skeleton width="100%" height={44} borderRadius={12} style={{ marginBottom: 8 }} />
-        ) : (
-          <Pressable onPress={onAddItem} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
-            {shouldUseGlass ? (
-              <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
-                <IconSymbol name="plus" size={14} color={iconColors.primary} />
-                <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
-              </GlassView>
-            ) : (
-              <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3">
-                <IconSymbol name="plus" size={14} color={iconColors.primary} />
-                <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
-              </View>
-            )}
-          </Pressable>
-        )}
+        <Pressable onPress={onAddItem} style={{ backgroundColor: 'transparent', marginBottom: 8 }} className="active:opacity-80">
+          {shouldUseGlass ? (
+            <GlassView isInteractive style={{ borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
+              <IconSymbol name="plus" size={14} color={iconColors.primary} />
+              <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
+            </GlassView>
+          ) : (
+            <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary/10 py-3">
+              <IconSymbol name="plus" size={14} color={iconColors.primary} />
+              <Text className="text-base font-semibold text-primary">{t.scan_addItem}</Text>
+            </View>
+          )}
+        </Pressable>
       </View>
 
       {/* Dialogs & Sheets */}

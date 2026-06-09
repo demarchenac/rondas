@@ -23,7 +23,6 @@ import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type Re
 import { buildWhatsAppMessage, buildGroupWhatsAppMessage, buildBillWhatsAppMessage } from '@/lib/whatsapp';
 import { toE164 } from '@/lib/phone';
 import { getTaxLabel } from '@/lib/billHelpers';
-import Skeleton from '@/components/ui/Skeleton';
 import ViewShot from 'react-native-view-shot';
 import { Share2 } from 'lucide-react-native';
 import { WhatsAppIcon } from '@/components/icons/whatsapp';
@@ -33,7 +32,7 @@ import ContactRow from '@/components/bills/share/ContactRow';
 import ContactGroupSection from '@/components/bills/share/ContactGroupSection';
 import ContactInfographic from '@/components/bills/share/ContactInfographic';
 import GroupConfirmToolbar from '@/components/bills/share/GroupConfirmToolbar';
-import { buildGroupName, contactKey, computeContactItemShare } from '@/components/bills/share/utils';
+import { buildGroupName, contactKey, computeContactItemShare, computeUnassignedUnits } from '@/lib/billSplit';
 import type { ResolvedContact, ContactShareData, ItemShareInfo } from '@/components/bills/share/types';
 import { useGlassEffect } from '@/hooks/useGlassEffect';
 import { posthog } from '@/lib/posthog';
@@ -76,7 +75,7 @@ export default function ShareScreen() {
     prevBillRef.current = bill;
   }, [bill]);
 
-  const { glassAvailable, isGlassReady, shouldUseGlass } = useGlassEffect();
+  const { shouldUseGlass } = useGlassEffect();
 
   const billCountry = (bill?.country as 'CO' | 'US') || 'CO';
   const billCategory = (bill?.tags?.find((tag) => tag.isPlatform)?.slug || 'dining') as ReceiptCategory;
@@ -336,14 +335,7 @@ export default function ShareScreen() {
 
   const unassignedUnits = useMemo(() => {
     if (!bill || splitStrategy === 'equal') return 0;
-    return bill.items.reduce((total, item) => {
-      if (!item.id) return total;
-      const assignedUnits = bill.contacts.reduce((assigned, contact) => {
-        const ref = contact.items.find((itemRef) => itemRef.itemId === item.id);
-        return assigned + (ref ? ref.units : 0);
-      }, 0);
-      return total + Math.max(0, item.quantity - assignedUnits);
-    }, 0);
+    return computeUnassignedUnits(bill.items, bill.contacts);
   }, [bill, splitStrategy]);
 
   if (!bill || !userId) {
@@ -454,20 +446,11 @@ export default function ShareScreen() {
 
       {/* Header — floating above MaskedView */}
       <View style={{ position: 'absolute', left: 0, right: 0, top: insets.top, zIndex: 10 }}>
-        {glassAvailable && !isGlassReady ? (
-          <View className="flex-row items-center gap-3 px-7 pb-3 pt-3">
-            <Skeleton width={36} height={36} borderRadius={18} />
-            <Skeleton width="50%" height={24} borderRadius={6} />
-            <View className="flex-1" />
-            <Skeleton width={72} height={28} borderRadius={14} />
-          </View>
-        ) : (
-          <View className="flex-row items-center gap-3 px-7 pb-3 pt-3">
-            {backButton}
-            <Text className="flex-1 text-2xl font-bold text-foreground">{t.share_title}</Text>
-            {trailingButton}
-          </View>
-        )}
+        <View className="flex-row items-center gap-3 px-7 pb-3 pt-3">
+          {backButton}
+          <Text className="flex-1 text-2xl font-bold text-foreground">{t.share_title}</Text>
+          {trailingButton}
+        </View>
       </View>
 
       {/* Top scroll edge — fade content under header */}
@@ -487,10 +470,17 @@ export default function ShareScreen() {
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 80, paddingBottom: insets.bottom + 16, paddingHorizontal: 28 }}>
         {!isGroupSelectMode && unassignedUnits > 0 && (
-          <View className="mb-4 flex-row items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3">
-            <IconSymbol name="exclamationmark.triangle.fill" size={16} color={iconColors.pro} />
-            <Text className="flex-1 text-sm text-amber-600 dark:text-amber-400">{t.share_unassignedWarning(unassignedUnits)}</Text>
-          </View>
+          shouldUseGlass ? (
+            <GlassView tintColor="#f59e0b1A" style={{ marginBottom: 16, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <IconSymbol name="exclamationmark.triangle.fill" size={16} color="#f59e0b" />
+              <Text className="flex-1 text-sm text-amber-600 dark:text-amber-400">{t.share_unassignedWarning(unassignedUnits)}</Text>
+            </GlassView>
+          ) : (
+            <View className="mb-4 flex-row items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3">
+              <IconSymbol name="exclamationmark.triangle.fill" size={16} color={iconColors.pro} />
+              <Text className="flex-1 text-sm text-amber-600 dark:text-amber-400">{t.share_unassignedWarning(unassignedUnits)}</Text>
+            </View>
+          )
         )}
         {isGroupSelectMode && bill.contacts.map((contact) => renderContactRow(contact))}
         {!isGroupSelectMode && ungroupedContacts.map((contact) => renderContactRow(contact))}

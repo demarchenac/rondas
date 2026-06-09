@@ -11,7 +11,7 @@ import Animated from 'react-native-reanimated';
 import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
-import * as FileSystem from 'expo-file-system/legacy';
+import { File as ExpoFile } from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { BlurView } from 'expo-blur';
@@ -256,9 +256,12 @@ export default function NewBillScreen() {
         minPhaseDelay(),
       ]);
 
-      const base64 = await FileSystem.readAsStringAsync(compressed.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const file = new ExpoFile(compressed.uri);
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (const byte of bytes) binary += String.fromCharCode(byte);
+      const base64 = btoa(binary);
 
       // Transition to backend-driven phases
       setLocalPhase('analyzing');

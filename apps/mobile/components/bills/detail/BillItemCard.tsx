@@ -40,6 +40,7 @@ interface BillItemCardProps {
   onContactPress: (itemId: string, contactId: Id<'contacts'>) => void;
   decimalPlaces?: number;
   onToggleSelection: (itemId: string) => void;
+  unassignedUnits?: number;
 }
 
 const PAID_COLORS = { bg: '#10b9811A', border: '#10b98133', text: '#10b981', badge: '#10b98133' };
@@ -224,15 +225,18 @@ function BillItemCard({
   onRemoveContact,
   onContactPress,
   onToggleSelection,
+  unassignedUnits = 0,
 }: BillItemCardProps) {
   const itemId = item.id!;
   const hasContacts = assignedContacts.length > 0;
   const allPaid = hasContacts && assignedContacts.every((c) => c.paid);
+  const isFullyAssigned = hasContacts && unassignedUnits === 0;
+
   const targetColor = !hasContacts
     ? 'rgba(148,163,184,0.2)'
-    : allPaid
-      ? '#10b981'
-      : stateStyle.color;
+    : unassignedUnits > 0
+      ? '#f59e0b'
+      : '#10b981';
 
   const displayColor = useSharedValue(targetColor);
   const borderW = useSharedValue(3);
@@ -272,8 +276,8 @@ function BillItemCard({
           /* Display mode */
           <Pressable
             onPress={() => isMultiSelectMode ? onToggleSelection(itemId) : onPress(itemId)}
-            className="mx-7 mb-2.5 overflow-hidden rounded-xl bg-card pr-4 py-3 active:opacity-80"
-            style={{ paddingLeft: 19 }}
+            className={cn('mx-7 mb-2.5 overflow-hidden rounded-xl pr-4 py-3 active:opacity-80', !(allPaid && isFullyAssigned) && 'bg-card')}
+            style={{ paddingLeft: 19, backgroundColor: allPaid && isFullyAssigned ? 'rgba(16,185,129,0.06)' : undefined }}
           >
             <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, overflow: 'hidden' }}>
               <Animated.View

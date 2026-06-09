@@ -1,7 +1,7 @@
 import { formatCurrency } from '@/lib/format';
 import { computeBase, computeTax, type Country, type TaxConfig } from '@/constants/taxes';
 import { getTaxLabel } from '@/lib/billHelpers';
-import { computeContactItemShare } from '@/components/bills/share/utils';
+import { computeContactItemShare } from '@/lib/billSplit';
 import type { Translations } from '@/lib/i18n';
 
 interface BillData {

@@ -156,7 +156,8 @@ async function googleNearbySearch(
     if (!place) return null;
 
     return parseGooglePlace(place);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { feature: 'places', method: 'nearbySearch' } });
     return null;
   }
 }
@@ -185,7 +186,8 @@ async function googleTextSearch(
     if (!place) return null;
 
     return parseGooglePlace(place);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { feature: 'places', method: 'textSearch' } });
     return null;
   }
 }

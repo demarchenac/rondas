@@ -5,7 +5,6 @@ import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
-import Skeleton from '@/components/ui/Skeleton';
 import { useBufferedInput } from '@/hooks/useBufferedInput';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import AnimatedBadge from '@/components/bills/AnimatedBadge';
@@ -14,25 +13,6 @@ import type { Translations } from '@/lib/i18n';
 import type { IconPalette } from '@/constants/colors';
 import { useGlassEffect } from '@/hooks/useGlassEffect';
 import ProgressBar from '@/components/ui/ProgressBar';
-
-function HeaderSkeleton({ hasProgressBar }: { hasProgressBar: boolean }) {
-  return (
-    <View className="px-5 pb-3 pt-3">
-      <View className="flex-row items-center gap-3">
-        <Skeleton width={36} height={36} borderRadius={18} />
-        <Skeleton width="60%" height={20} borderRadius={6} />
-        <Skeleton width={60} height={28} borderRadius={14} />
-        <Skeleton width={76} height={28} borderRadius={14} />
-        <Skeleton width={36} height={36} borderRadius={18} />
-      </View>
-      {hasProgressBar && (
-        <View style={{ marginTop: 10 }}>
-          <Skeleton width="100%" height={6} borderRadius={3} />
-        </View>
-      )}
-    </View>
-  );
-}
 
 interface BillHeaderProps {
   billName: string;
@@ -81,7 +61,7 @@ function BillHeader({
 }: BillHeaderProps) {
   const nameInput = useBufferedInput(billName, onUpdateName);
   const { alert, actionSheet } = useCustomAlert();
-  const { glassAvailable, isGlassReady, shouldUseGlass } = useGlassEffect();
+  const { shouldUseGlass } = useGlassEffect();
 
   const stateStyle = STATE_STYLES[state];
 
@@ -196,10 +176,6 @@ function BillHeader({
     </Pressable>
   );
 
-  if (glassAvailable && !isGlassReady) {
-    return <HeaderSkeleton hasProgressBar={hasContacts && !isMultiSelectMode} />;
-  }
-
   return (
     <View className="px-5 pb-3 pt-3">
       <View className="flex-row items-center">
@@ -230,10 +206,17 @@ function BillHeader({
       )}
       {/* Unassigned units warning */}
       {unassignedUnits > 0 && !isMultiSelectMode && (
-        <View className="mt-2 flex-row items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2">
-          <IconSymbol name="exclamationmark.triangle.fill" size={14} color={iconColors.pro} />
-          <Text className="flex-1 text-xs text-amber-600 dark:text-amber-400">{t.share_unassignedWarning(unassignedUnits)}</Text>
-        </View>
+        shouldUseGlass ? (
+          <GlassView tintColor="#f59e0b1A" style={{ marginTop: 8, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <IconSymbol name="exclamationmark.triangle.fill" size={14} color="#f59e0b" />
+            <Text className="flex-1 text-xs text-amber-600 dark:text-amber-400">{t.share_unassignedWarning(unassignedUnits)}</Text>
+          </GlassView>
+        ) : (
+          <View className="mt-2 flex-row items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2">
+            <IconSymbol name="exclamationmark.triangle.fill" size={14} color={iconColors.pro} />
+            <Text className="flex-1 text-xs text-amber-600 dark:text-amber-400">{t.share_unassignedWarning(unassignedUnits)}</Text>
+          </View>
+        )
       )}
     </View>
   );

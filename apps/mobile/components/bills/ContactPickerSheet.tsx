@@ -15,14 +15,19 @@ import { useT } from '@/lib/i18n';
 import { useColorScheme } from 'nativewind';
 import { ICON_COLORS } from '@/constants/colors';
 import { formatPhone } from '@/lib/phone';
-import type * as Contacts from 'expo-contacts/legacy';
 import type { Doc } from '@convex/_generated/dataModel';
 
 export const SUGGESTED_PREFIX = 'suggested:';
 export const SELF_PREFIX = 'self:';
 export const ANON_PREFIX = 'anon:';
 
-type PhoneContact = Contacts.Contact & { id: string };
+interface PhoneContact {
+  id: string;
+  givenName?: string | null;
+  familyName?: string | null;
+  phones?: { number?: string }[];
+  image?: string | null;
+}
 
 interface ContactPickerSheetProps {
   visible: boolean;
@@ -88,7 +93,7 @@ function ContactPickerSheet({
   const baseContacts = useMemo(() => {
     if (!excludePhones || excludePhones.size === 0) return phoneContacts;
     return phoneContacts.filter((c) => {
-      const phone = c.phoneNumbers?.[0]?.number;
+      const phone = c.phones?.[0]?.number;
       return !phone || !excludePhones.has(phone);
     });
   }, [phoneContacts, excludePhones]);
@@ -97,7 +102,7 @@ function ContactPickerSheet({
     if (!search) return baseContacts;
     const lowercaseSearch = search.toLowerCase();
     return baseContacts.filter((c) => {
-      const name = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase();
+      const name = `${c.givenName ?? ''} ${c.familyName ?? ''}`.toLowerCase();
       return name.includes(lowercaseSearch);
     });
   }, [baseContacts, search]);
@@ -161,21 +166,21 @@ function ContactPickerSheet({
           size={22}
           color={isSelected ? iconColors.primary : iconColors.muted}
         />
-        {c.image?.uri ? (
-          <Image source={{ uri: c.image.uri }} className="w-9 h-9 rounded-full" />
+        {c.image ? (
+          <Image source={{ uri: c.image }} className="w-9 h-9 rounded-full" />
         ) : (
           <View className="w-9 h-9 rounded-full items-center justify-center bg-primary/10">
             <Text className="text-base font-bold text-primary">
-              {(c.firstName?.[0] ?? '?').toUpperCase()}
+              {(c.givenName?.[0] ?? '?').toUpperCase()}
             </Text>
           </View>
         )}
         <View className="flex-1">
           <Text className="text-base font-medium text-foreground">
-            {`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || 'Unknown'}
+            {`${c.givenName ?? ''} ${c.familyName ?? ''}`.trim() || 'Unknown'}
           </Text>
-          {c.phoneNumbers?.[0]?.number && (
-            <Text className="text-sm text-muted-foreground">{formatPhone(c.phoneNumbers[0].number)}</Text>
+          {c.phones?.[0]?.number && (
+            <Text className="text-sm text-muted-foreground">{formatPhone(c.phones![0].number!)}</Text>
           )}
         </View>
       </Pressable>

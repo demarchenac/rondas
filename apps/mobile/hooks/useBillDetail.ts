@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Sentry from '@sentry/react-native';
-import * as Contacts from 'expo-contacts/legacy';
+import { Contact, ContactField, ContactsSortOrder, requestPermissionsAsync, type PartialContactDetails } from 'expo-contacts';
 import * as Haptics from 'expo-haptics';
 import { randomUUID } from 'expo-crypto';
 import { useQuery, useMutation } from 'convex/react';
 import type { Id } from '@convex/_generated/dataModel';
 
 import { api } from '@convex/_generated/api';
+import { computeUnassignedUnits } from '@/lib/billSplit';
 import { useT } from '@/lib/i18n';
 import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride, type ReceiptCategory } from '@/constants/taxes';
 import { STATE_STYLES, STATE_LABEL_KEYS, getTaxLabel } from '@/lib/billHelpers';
@@ -16,6 +17,9 @@ import { SUGGESTED_PREFIX, SELF_PREFIX, ANON_PREFIX } from '@/components/bills/C
 const CONTACTS_CACHE_TTL = 5 * 60_000; // 5 minutes
 
 type SortStrategy = 'original' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc';
+
+const CONTACT_FIELDS = [ContactField.PHONES, ContactField.GIVEN_NAME, ContactField.FAMILY_NAME, ContactField.IMAGE] as const;
+type PhoneContactDetails = PartialContactDetails<typeof CONTACT_FIELDS> & { id: string };
 
 export function useBillDetail(id: string, userId: string | undefined) {
   const t = useT();
@@ -40,7 +44,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
   const toggleGroupPaidMut = useMutation(api.bills.toggleGroupPaymentStatus);
 
   // ── Data-driven state ──
-  const [phoneContacts, setPhoneContacts] = useState<(Contacts.Contact & { id: string })[]>([]);
+  const [phoneContacts, setPhoneContacts] = useState<PhoneContactDetails[]>([]);
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [singleAssignItemId, setSingleAssignItemId] = useState<string | null>(null);
   const [numPeople, setNumPeople] = useState(() => bill?.numPeople ?? 2);
@@ -50,7 +54,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
   const billRef = useRef(bill);
   useEffect(() => { billRef.current = bill; }, [bill]);
 
-  const contactsCacheRef = useRef<{ data: (Contacts.Contact & { id: string })[]; fetchedAt: number } | null>(null);
+  const contactsCacheRef = useRef<{ data: PhoneContactDetails[]; fetchedAt: number } | null>(null);
   const contactsPermissionRef = useRef(false);
   const numPeopleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -121,7 +125,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
   // ── Contact loading ──
   const ensureContactPermission = useCallback(async (): Promise<boolean> => {
     if (contactsPermissionRef.current) return true;
-    const { status } = await Contacts.requestPermissionsAsync();
+    const { status } = await requestPermissionsAsync();
     if (status !== 'granted') {
       alert(t.bill_permissionNeeded, t.bill_permissionContacts);
       return false;
@@ -137,19 +141,14 @@ export function useBillDetail(id: string, userId: string | undefined) {
       return;
     }
 
-    const { data } = await Contacts.getContactsAsync({
-      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name],
-      sort: Contacts.SortTypes.FirstName,
-    });
-    const filtered = data.filter((c): c is typeof c & { id: string } => !!c.id);
+    const quickFields = [ContactField.PHONES, ContactField.GIVEN_NAME, ContactField.FAMILY_NAME] as const;
+    const quickData = await Contact.getAllDetails(quickFields, { sortOrder: ContactsSortOrder.GivenName });
+    const filtered = quickData.map((c) => ({ ...c, id: c.id! })).filter((c) => !!c.id) as PhoneContactDetails[];
     setPhoneContacts(filtered);
     contactsCacheRef.current = { data: filtered, fetchedAt: Date.now() };
 
-    const { data: withImages } = await Contacts.getContactsAsync({
-      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name, Contacts.Fields.Image],
-      sort: Contacts.SortTypes.FirstName,
-    });
-    const enriched = withImages.filter((c): c is typeof c & { id: string } => !!c.id);
+    const fullData = await Contact.getAllDetails(CONTACT_FIELDS, { sortOrder: ContactsSortOrder.GivenName });
+    const enriched = fullData.map((c) => ({ ...c, id: c.id! })).filter((c) => !!c.id) as PhoneContactDetails[];
     setPhoneContacts(enriched);
     contactsCacheRef.current = { data: enriched, fetchedAt: Date.now() };
   }, []);
@@ -217,9 +216,9 @@ export function useBillDetail(id: string, userId: string | undefined) {
 
     const contact = phoneContacts.find((c) => c.id === selectedId);
     if (!contact) return null;
-    const phone = contact.phoneNumbers?.[0]?.number ?? '';
-    const name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
-    return { name, phone, imageUri: contact.image?.uri };
+    const phone = contact.phones?.[0]?.number ?? '';
+    const name = `${contact.givenName ?? ''}${contact.familyName ? ` ${contact.familyName}` : ''}`.trim() || 'Unknown';
+    return { name, phone, imageUri: contact.image ?? undefined };
   }, [phoneContacts, selfContact, t]);
 
   const handleConfirmContactPicker = useCallback(async (selectedItemIds: Set<string>) => {
@@ -422,10 +421,10 @@ export function useBillDetail(id: string, userId: string | undefined) {
     }
   }, [id, togglePaid, t, userId, alert]);
 
-  const handleUpdateGroups = useCallback(async (groups: { id: string; contactIds: string[]; name: string }[]) => {
+  const handleUpdateGroups = useCallback(async (groups: { id: string; contactIds: Id<'contacts'>[]; name: string }[]) => {
     if (!userId) return;
     try {
-      await updateContactGroupsMut({ id: id as Id<'bills'>, groups: groups as any });
+      await updateContactGroupsMut({ id: id as Id<'bills'>, groups });
     } catch (err) {
       console.error('[Bill] updateContactGroups failed:', err);
       Sentry.captureException(err, { tags: { feature: 'bill_detail' } });
@@ -604,10 +603,10 @@ export function useBillDetail(id: string, userId: string | undefined) {
       } else {
         const contact = phoneContacts.find((c) => c.id === selectedId);
         if (!contact) continue;
-        const phone = contact.phoneNumbers?.[0]?.number ?? '';
-        const name = `${contact.firstName ?? ''}${contact.lastName ? ` ${contact.lastName}` : ''}`.trim() || 'Unknown';
+        const phone = contact.phones?.[0]?.number ?? '';
+        const name = `${contact.givenName ?? ''}${contact.familyName ? ` ${contact.familyName}` : ''}`.trim() || 'Unknown';
         if (contactArgs.some((ca) => ca.phone === phone)) continue;
-        contactArgs.push({ name, phone, imageUri: contact.image?.uri });
+        contactArgs.push({ name, phone, imageUri: contact.image ?? undefined });
       }
     }
 
@@ -668,14 +667,7 @@ export function useBillDetail(id: string, userId: string | undefined) {
 
   const unassignedUnits = useMemo(() => {
     if (!bill || equalSplitMode) return 0;
-    return bill.items.reduce((total, item) => {
-      if (!item.id) return total;
-      const assignedUnits = bill.contacts.reduce((assigned, contact) => {
-        const ref = contact.items.find((itemRef) => itemRef.itemId === item.id);
-        return assigned + (ref ? ref.units : 0);
-      }, 0);
-      return total + Math.max(0, item.quantity - assignedUnits);
-    }, 0);
+    return computeUnassignedUnits(bill.items, bill.contacts);
   }, [bill, equalSplitMode]);
 
   return {

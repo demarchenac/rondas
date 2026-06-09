@@ -8,7 +8,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import Avatar from '@/components/ui/avatar';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
-import { computeContactTotal } from '@/lib/billSplit';
+import { computeContactTotal, buildGroupName } from '@/lib/billSplit';
 import type { TaxConfig } from '@/constants/taxes';
 import type { Id } from '@convex/_generated/dataModel';
 import type { Translations } from '@/lib/i18n';
@@ -45,11 +45,6 @@ interface PeopleSummaryProps {
   onToggleGroupPaid: (groupId: string) => void;
 }
 
-function generateGroupName(members: ResolvedContact[], t: Translations): string {
-  const names = members.map((member) => member.isSelf ? t.self_label(member.name) : member.name);
-  if (names.length <= 2) return names.join(', ');
-  return `${names[0]}, ${names[1]} +${names.length - 2}`;
-}
 
 function PeopleSummary({
   contacts,
@@ -216,7 +211,7 @@ function PeopleSummary({
     const newGroup: ContactGroup = {
       id: randomUUID(),
       contactIds: selectedIds,
-      name: generateGroupName(members, t),
+      name: buildGroupName(members, t.self_label),
     };
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

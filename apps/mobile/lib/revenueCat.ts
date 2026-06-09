@@ -59,8 +59,7 @@ export async function purchasePackage(pkg: PurchasesPackage): Promise<boolean> {
     syncProStatus(customerInfo);
     return customerInfo.entitlements.active[PRO_ENTITLEMENT_ID] !== undefined;
   } catch (err: unknown) {
-    const errorObj = err as { userCancelled?: boolean };
-    if (errorObj.userCancelled) return false;
+    if (err instanceof Object && 'userCancelled' in err && err.userCancelled) return false;
     throw err;
   }
 }

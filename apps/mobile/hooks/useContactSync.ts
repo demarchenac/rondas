@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import * as Contacts from 'expo-contacts/legacy';
+import { Contact, ContactField, ContactsSortOrder, getPermissionsAsync } from 'expo-contacts';
 import * as Sentry from '@sentry/react-native';
 import { useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
@@ -16,26 +16,26 @@ export function useContactSync(userId: string | undefined) {
 
     (async () => {
       try {
-        const { status } = await Contacts.getPermissionsAsync();
+        const { status } = await getPermissionsAsync();
         Sentry.logger.info(`[ContactSync] permission status: ${status}`);
         if (status !== 'granted') return;
 
-        const { data } = await Contacts.getContactsAsync({
-          fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name, Contacts.Fields.Image],
-          sort: Contacts.SortTypes.FirstName,
-        });
+        const data = await Contact.getAllDetails(
+          [ContactField.PHONES, ContactField.GIVEN_NAME, ContactField.FAMILY_NAME, ContactField.IMAGE] as const,
+          { sortOrder: ContactsSortOrder.GivenName },
+        );
 
-        const withImages = data.filter((contact) => contact.image?.uri).length;
+        const withImages = data.filter((contact) => contact.image).length;
         Sentry.logger.info(`[ContactSync] device contacts: ${data.length}, with images: ${withImages}`);
 
         const deviceContacts = data
-          .filter((contact) => contact.phoneNumbers?.[0]?.number)
+          .filter((contact) => contact.phones?.[0]?.number)
           .map((contact) => {
             const entry: { phone: string; name: string; imageUri?: string } = {
-              phone: contact.phoneNumbers![0]!.number!,
-              name: `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim() || (contact.name ?? ''),
+              phone: contact.phones![0]!.number!,
+              name: `${contact.givenName ?? ''} ${contact.familyName ?? ''}`.trim() || '',
             };
-            if (contact.image?.uri) entry.imageUri = contact.image.uri;
+            if (contact.image) entry.imageUri = contact.image;
             return entry;
           });
 
