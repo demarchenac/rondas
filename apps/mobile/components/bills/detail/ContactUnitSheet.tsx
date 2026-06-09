@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable , useColorScheme } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
@@ -7,7 +7,6 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
 import { formatCurrency } from '@/lib/format';
 import { ICON_COLORS } from '@/constants/colors';
-import { useColorScheme } from 'nativewind';
 import { cn } from '@/lib/cn';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Id } from '@convex/_generated/dataModel';
@@ -46,7 +45,7 @@ function ContactUnitSheet({
   onClose,
 }: ContactUnitSheetProps) {
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);

@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View , useColorScheme } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/cn';
 import { useT } from '@/lib/i18n';
-import { useColorScheme } from 'nativewind';
 
 interface CountryDialogProps {
   visible: boolean;
@@ -16,7 +15,7 @@ interface CountryDialogProps {
 
 function CountryDialog({ visible, billCountry, onSelectCountry, onClose }: CountryDialogProps) {
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);
 

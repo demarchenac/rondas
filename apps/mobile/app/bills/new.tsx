@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, View , useColorScheme } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from 'nativewind';
 import { File as ExpoFile } from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
@@ -56,7 +55,7 @@ export default function NewBillScreen() {
   }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { user } = useAuth();
   const t = useT();

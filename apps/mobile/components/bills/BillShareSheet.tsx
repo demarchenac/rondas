@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { ActivityIndicator, View, Pressable, ScrollView } from 'react-native';
+import { ActivityIndicator, View, Pressable, ScrollView , useColorScheme } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Image } from '@/lib/expo-image';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
@@ -11,7 +11,6 @@ import { useT } from '@/lib/i18n';
 import { formatCurrency } from '@/lib/format';
 import { computeBase, computeTax, type TaxConfig } from '@/constants/taxes';
 import { ICON_COLORS } from '@/constants/colors';
-import { useColorScheme } from 'nativewind';
 import { cn } from '@/lib/cn';
 import BillInfographic from './BillInfographic';
 import InfographicPreview from './InfographicPreview';
@@ -60,7 +59,7 @@ function BillShareSheet({
   onClose,
 }: BillShareSheetProps) {
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const sheetRef = useRef<TrueSheet>(null);
 

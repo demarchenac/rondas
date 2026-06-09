@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { LayoutChangeEvent, Platform, Pressable, View } from 'react-native';
+import { LayoutChangeEvent, Platform, Pressable, View , useColorScheme } from 'react-native';
 import { GlassView } from 'expo-glass-effect';
 import type { ResolvedBill } from '@/lib/filters';
 import { cn } from '@/lib/cn';
@@ -7,7 +7,6 @@ import { STATE_STYLES, stateLabel, type BillState } from '@/lib/billHelpers';
 import { computeBase, computeTax, getTaxConfig, withTaxIncludedOverride } from '@/constants/taxes';
 import { ICON_COLORS } from '@/constants/colors';
 import { useGlassEffect } from '@/hooks/useGlassEffect';
-import { useColorScheme } from 'nativewind';
 import { buildGlowTheme, type ColorMode } from '@/lib/stateTheme';
 import type { Translations } from '@/lib/i18n';
 import { CornerGlow, CardContent } from '@/components/bills/BillCardParts';
@@ -169,7 +168,7 @@ function computeDisplayTotal(bill: Bill): number {
 }
 
 function BillCard({ bill, onPress, t, locked = false }: BillCardProps) {
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const mode: ColorMode = colorScheme === 'dark' ? 'dark' : 'light';
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const stateStyle = STATE_STYLES[bill.state as BillState];

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
+import { Pressable, View , useColorScheme } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
@@ -24,7 +23,7 @@ const SettingsRow = React.memo(function SettingsRow({
   last?: boolean;
 }) {
   const [isShowingInfo, setIsShowingInfo] = useState(false);
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const Wrapper = onPress ? Pressable : View;
 

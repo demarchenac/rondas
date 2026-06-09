@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, View, Pressable, ScrollView, TextInput } from 'react-native';
+import { Platform, View, Pressable, ScrollView, TextInput , useColorScheme } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,7 +10,6 @@ import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
-import { useColorScheme } from 'nativewind';
 import { ICON_COLORS } from '@/constants/colors';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/format';
@@ -51,7 +50,7 @@ function FilterSheet({
   onClose,
 }: FilterSheetProps) {
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);

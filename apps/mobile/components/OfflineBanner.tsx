@@ -1,5 +1,4 @@
-import { View } from 'react-native';
-import { useColorScheme } from 'nativewind';
+import { View , useColorScheme } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
@@ -9,7 +8,7 @@ import { useT } from '@/lib/i18n';
 export default function OfflineBanner() {
   const isConnected = useNetworkStatus();
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
 
   if (isConnected) return null;

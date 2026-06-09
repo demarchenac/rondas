@@ -1,7 +1,7 @@
 import React from 'react';
 import RNCurrencyInput from 'react-native-currency-input';
 import { Platform, type TextInputProps, type StyleProp, type TextStyle } from 'react-native';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from 'react-native';
 
 interface CurrencyInputProps extends Omit<TextInputProps, 'value' | 'onChangeText' | 'className'> {
   value: number;
@@ -15,7 +15,7 @@ function CurrencyInput({ value, onChangeValue, country, decimalPlaces, className
   const isCO = country === 'CO';
   const isAndroid = Platform.OS === 'android';
   const precision = decimalPlaces ?? (isCO ? 0 : 2);
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
   const baseStyle: StyleProp<TextStyle> = [

@@ -5,7 +5,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { PortalHost } from '@rn-primitives/portal';
 import { Stack, usePathname, useGlobalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'nativewind';
+import { Appearance, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
@@ -35,7 +35,7 @@ Sentry.init({
 
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
-  const { colorScheme, setColorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const mode = useThemeStore((s) => s.mode);
   const hasCompletedSetup = useSettingsStore((s) => s.hasCompletedSetup);
   const isDark = colorScheme === 'dark';
@@ -43,12 +43,11 @@ function RootLayoutNav() {
   const params = useGlobalSearchParams();
   const previousPathname = useRef<string | undefined>(undefined);
 
-  // Sync persisted theme preference on mount
   useEffect(() => {
     if (mode !== 'system') {
-      setColorScheme(mode);
+      Appearance.setColorScheme(mode);
     }
-  }, [mode, setColorScheme]);
+  }, [mode]);
 
   // Manual screen tracking for Expo Router
   useEffect(() => {

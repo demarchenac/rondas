@@ -1,12 +1,11 @@
 import React, { useCallback, useRef } from 'react';
-import { Platform, Pressable, Share, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, Share, View, useWindowDimensions , useColorScheme } from 'react-native';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
-import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
@@ -36,7 +35,7 @@ function LogRow({ item }: { item: LogEntry }) {
 function DevLogViewer() {
   const sheetRef = useRef<TrueSheet>(null);
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const logs = useLogStore((s) => s.logs);
   const handleClearLogs = useLogStore((s) => s.clear);

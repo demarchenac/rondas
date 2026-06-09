@@ -1,14 +1,13 @@
-import { Keyboard, Platform, Pressable, View } from 'react-native';
+import { Keyboard, Platform, Pressable, View , useColorScheme } from 'react-native';
 import { useKeyboardHandler } from 'react-native-keyboard-controller';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
-import { useColorScheme } from 'nativewind';
 
 export const KEYBOARD_ACCESSORY_ID = 'rondas-keyboard-toolbar';
 
 export function KeyboardToolbar() {
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const keyboardHeight = useSharedValue(0);
   const isVisible = useSharedValue(0);

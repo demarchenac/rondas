@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from 'react';
-import { Pressable } from 'react-native';
+import { Pressable , useColorScheme } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -13,7 +13,6 @@ import { useMutation } from 'convex/react';
 import { getErrorCode, getErrorMessage } from '@/lib/convexError';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
-import { useColorScheme } from 'nativewind';
 import { useT } from '@/lib/i18n';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { IMAGE_QUALITY } from '@/constants/media';
@@ -27,7 +26,7 @@ interface FABProps {
 }
 
 function FAB({ bottom }: FABProps) {
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const t = useT();
   const router = useRouter();

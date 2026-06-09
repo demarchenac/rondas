@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View , useColorScheme } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/cn';
 import { ICON_COLORS } from '@/constants/colors';
@@ -21,7 +20,7 @@ const states = Object.entries(US_STATE_RATES).map(([code, { name }]) => ({ code,
 
 function USStatePicker({ visible, selected, onSelect, onClose }: USStatePickerProps) {
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);

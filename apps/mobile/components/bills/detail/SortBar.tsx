@@ -1,6 +1,5 @@
 import React, { useCallback } from 'react';
-import { ScrollView, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
+import { ScrollView, View , useColorScheme } from 'react-native';
 import FilterChip from '@/components/bills/FilterChip';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
@@ -18,7 +17,7 @@ function SortBar({
   onSortChange,
   t,
 }: SortBarProps) {
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
 
   const handlePricePress = useCallback(() => {

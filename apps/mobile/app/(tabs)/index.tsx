@@ -1,10 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Dimensions, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Dimensions, Pressable, RefreshControl, ScrollView, View , useColorScheme } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
-import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -40,7 +39,7 @@ type Bill = ResolvedBill;
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const router = useRouter();
   const { user } = useAuth();

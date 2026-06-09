@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Appearance, ScrollView, useColorScheme, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation } from 'convex/react';
 
@@ -22,7 +21,7 @@ import { posthog } from '@/lib/posthog';
 export default function SetupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colorScheme, setColorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { user } = useAuth();
   const updateConfig = useMutation(api.users.updateConfig);
@@ -38,7 +37,7 @@ export default function SetupScreen() {
   useEffect(() => {
     settingsStore.setLanguage('es');
     themeStore.setMode('dark');
-    setColorScheme('dark');
+    Appearance.setColorScheme('dark');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLanguageChange = (lang: Language) => {
@@ -54,7 +53,7 @@ export default function SetupScreen() {
     settingsStore.setDefaultTipPercent(tip);
     settingsStore.setLanguage(language);
     themeStore.setMode(theme);
-    if (theme !== 'system') setColorScheme(theme);
+    if (theme !== 'system') Appearance.setColorScheme(theme);
 
     // Save config to Convex
     if (user) {
@@ -143,7 +142,7 @@ export default function SetupScreen() {
               onChange={(value: ThemeMode) => {
                 setTheme(value);
                 themeStore.setMode(value);
-                if (value !== 'system') setColorScheme(value);
+                if (value !== 'system') Appearance.setColorScheme(value);
               }}
             />
           </SettingsRow>

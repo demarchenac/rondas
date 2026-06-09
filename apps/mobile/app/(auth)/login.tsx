@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Linking, View } from 'react-native';
+import { ActivityIndicator, Linking, View , useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from 'nativewind';
 import * as Haptics from 'expo-haptics';
 import { FontAwesome } from '@expo/vector-icons';
 
@@ -20,7 +19,7 @@ const GOOGLE_OAUTH_PROVIDER = 'GoogleOAuth';
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { signIn, isLoading } = useAuth();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const t = useT();
   const language = useSettingsStore((s) => s.language);

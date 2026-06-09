@@ -1,6 +1,5 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
+import { Pressable, View , useColorScheme } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -17,7 +16,7 @@ interface TipSelectorProps {
 
 export const TipSelector = React.memo(function TipSelector({ value, onSelect }: TipSelectorProps) {
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
 
   return (

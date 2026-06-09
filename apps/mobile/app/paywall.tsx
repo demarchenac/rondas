@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View, Platform } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View, Platform , useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from 'nativewind';
 import * as Haptics from 'expo-haptics';
 import type { PurchasesOffering, PurchasesPackage } from 'react-native-purchases';
 
@@ -32,7 +31,7 @@ export default function PaywallScreen() {
   const router = useRouter();
   const t = useT();
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { user } = useAuth();
   const redeemCode = useMutation(api.promoCodes.redeemCode);

@@ -1,7 +1,6 @@
 import React from 'react';
-import { Platform, View, Pressable } from 'react-native';
+import { Platform, View, Pressable , useColorScheme } from 'react-native';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
-import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ICON_COLORS } from '@/constants/colors';
@@ -17,7 +16,7 @@ interface BulkToolbarProps {
 
 function BulkToolbar({ selectedItemIds, hasContactsOnSelection, onAssign, onUnassign, onDelete }: BulkToolbarProps) {
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
 
   const shouldUseGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, View, Pressable, TextInput } from 'react-native';
+import { ActivityIndicator, Platform, View, Pressable, TextInput , useColorScheme } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,7 +12,6 @@ import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
-import { useColorScheme } from 'nativewind';
 import { ICON_COLORS } from '@/constants/colors';
 import { formatPhone } from '@/lib/phone';
 import type { Doc } from '@convex/_generated/dataModel';
@@ -61,7 +60,7 @@ function ContactPickerSheet({
   onClose,
 }: ContactPickerSheetProps) {
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const shouldUseGlass = Platform.OS === 'ios' && isGlassEffectAPIAvailable();

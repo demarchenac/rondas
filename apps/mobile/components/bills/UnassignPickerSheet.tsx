@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable , useColorScheme } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Image } from '@/lib/expo-image';
 import { Text } from '@/components/ui/text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useT } from '@/lib/i18n';
 import { ICON_COLORS } from '@/constants/colors';
-import { useColorScheme } from 'nativewind';
 import { useCustomAlert } from '@/components/ui/custom-alert';
 import type { Id } from '@convex/_generated/dataModel';
 
@@ -32,7 +31,7 @@ function UnassignPickerSheet({
   onClose,
 }: UnassignPickerSheetProps) {
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { alert } = useCustomAlert();
   const sheetRef = useRef<TrueSheet>(null);

@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, Switch, View } from 'react-native';
+import { Pressable, Switch, View , useColorScheme } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/cn';
 import CurrencyInput from '@/components/form/CurrencyInput';
 import { useT } from '@/lib/i18n';
-import { useColorScheme } from 'nativewind';
 
 interface TipDialogProps {
   visible: boolean;
@@ -38,7 +37,7 @@ function TipDialog({
   onClose,
 }: TipDialogProps) {
   const t = useT();
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<TrueSheet>(null);
   const [localCustomTip, setLocalCustomTip] = useState(customTip);

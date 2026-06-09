@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, Switch, View, Platform } from 'react-native';
+import { ActivityIndicator, Appearance, Linking, Platform, Pressable, ScrollView, Switch, useColorScheme, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
-import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useMutation } from 'convex/react';
@@ -42,7 +41,7 @@ function formatOtaDate(d: Date): string {
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { colorScheme, setColorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const { mode, setMode } = useThemeStore();
   const {
@@ -130,9 +129,9 @@ export default function SettingsScreen() {
 
   const handleThemeChange = useCallback((newMode: ThemeMode) => {
     setMode(newMode);
-    if (newMode !== 'system') setColorScheme(newMode);
+    if (newMode !== 'system') Appearance.setColorScheme(newMode);
     syncConfig();
-  }, [setMode, setColorScheme, syncConfig]);
+  }, [setMode, syncConfig]);
 
   const handleCountryChange = useCallback((v: Country) => { setCountry(v); syncConfig(); }, [setCountry, syncConfig]);
   const handleUsStateChange = useCallback((v: string) => { setUsState(v); syncConfig(); }, [setUsState, syncConfig]);

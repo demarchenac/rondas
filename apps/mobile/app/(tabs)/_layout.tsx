@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View , useColorScheme } from 'react-native';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
@@ -16,7 +15,7 @@ const FAB_SIZE = 56;
 const FAB_RIGHT = 20;
 
 export default function TabLayout() {
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const colors = TAB_COLORS[colorScheme ?? 'light'];
   const iconColors = ICON_COLORS[colorScheme ?? 'light'];
   const t = useT();
